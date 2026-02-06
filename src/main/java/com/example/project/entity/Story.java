@@ -44,8 +44,7 @@ public class Story {
     private LocalDateTime expireAt;
 
 
-    @OneToMany
-    @JoinColumn(name = "viewer_id")
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryViewer> viewers;
 
 }
