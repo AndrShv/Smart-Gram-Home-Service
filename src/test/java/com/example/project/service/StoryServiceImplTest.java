@@ -4,10 +4,13 @@ import com.example.project.clients.AuthClient;
 import com.example.project.dto.StoryDTO;
 import com.example.project.dto.UserResponseDTO;
 import com.example.project.entity.Story;
+import com.example.project.entity.StoryReaction;
 import com.example.project.entity.StoryViewer;
+import com.example.project.enums.Reactions;
 import com.example.project.exceptions.StoryIsNotAviableByTimeException;
 import com.example.project.exceptions.StoryNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
+import com.example.project.repository.StoryReactionRepository;
 import com.example.project.repository.StoryRepository;
 import com.example.project.repository.StoryViewerRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,6 +42,9 @@ class StoryServiceImplTest {
 
     @Mock
     private StoryRepository storyRepository;
+
+    @Mock
+    private StoryReactionRepository storyReactionRepository;
 
     @Mock
     private StoryViewerRepository storyViewerRepository;
@@ -334,6 +341,184 @@ class StoryServiceImplTest {
                 .viewers(new ArrayList<>())
                 .build();
     }
+
+    @Test
+    void reactToStory_newReaction_saved() {
+        Story story = validStory();
+
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).build()
+        );
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
+        when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
+                .thenReturn(Optional.empty());
+
+        storyService.reactToStory(storyId, Reactions.LIKE);
+
+        verify(storyReactionRepository).save(any(StoryReaction.class));
+    }
+
+    @Test
+    void reactToStory_existingReaction_updated() {
+        Story story = validStory();
+        StoryReaction existing = StoryReaction.builder()
+                .story(story)
+                .userId(userId)
+                .reaction(Reactions.LOVE)
+                .reactedAt(LocalDateTime.now().minusHours(1))
+                .build();
+
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).build()
+        );
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
+        when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
+                .thenReturn(Optional.of(existing));
+
+        storyService.reactToStory(storyId, Reactions.FIRE);
+
+        assertEquals(Reactions.FIRE, existing.getReaction());
+        assertNotNull(existing.getReactedAt());
+        verify(storyReactionRepository, never()).save(any());
+    }
+
+
+    @Test
+    void reactToStory_storyNotFound() {
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).build()
+        );
+        when(storyRepository.findById(storyId)).thenReturn(Optional.empty());
+
+        assertThrows(StoryNotFoundException.class,
+                () -> storyService.reactToStory(storyId, Reactions.LIKE));
+    }
+
+
+    @Test
+    void reactToStory_reactionFieldsCorrect() {
+        Story story = validStory();
+
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).build()
+        );
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
+        when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
+                .thenReturn(Optional.empty());
+
+        storyService.reactToStory(storyId, Reactions.LOVE);
+
+        verify(storyReactionRepository).save(argThat(r ->
+                r.getReaction() == Reactions.LOVE &&
+                        r.getUserId().equals(userId) &&
+                        r.getStory().equals(story) &&
+                        r.getReactedAt() != null
+        ));
+    }
+
+
+    @Test
+    void deleteReaction_success() {
+        Story story = validStory();
+        StoryReaction reaction = StoryReaction.builder()
+                .story(story)
+                .userId(userId)
+                .reaction(Reactions.LIKE)
+                .reactedAt(LocalDateTime.now())
+                .build();
+
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).build()
+        );
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
+        when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
+                .thenReturn(Optional.of(reaction));
+
+        storyService.deleteReaction(storyId);
+
+        verify(storyReactionRepository).delete(reaction);
+    }
+
+
+    @Test
+    void deleteReaction_storyExpired() {
+        Story story = validStory();
+        story.setExpireAt(LocalDateTime.now().minusMinutes(1));
+
+        StoryReaction reaction = StoryReaction.builder()
+                .story(story)
+                .userId(userId)
+                .reaction(Reactions.LIKE)
+                .reactedAt(LocalDateTime.now())
+                .build();
+
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).build()
+        );
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
+        when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
+                .thenReturn(Optional.of(reaction));
+
+        assertThrows(StoryIsNotAviableByTimeException.class,
+                () -> storyService.deleteReaction(storyId));
+    }
+
+
+    @Test
+    void deleteReaction_reactionNotFound() {
+        Story story = validStory();
+
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).build()
+        );
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
+        when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(StoryNotFoundException.class,
+                () -> storyService.deleteReaction(storyId));
+    }
+
+
+    @Test
+    void getReactionStats_success() {
+        when(storyReactionRepository.countReactionsByStory(storyId))
+                .thenReturn(List.of(
+                        new Object[]{Reactions.LIKE, 3L},
+                        new Object[]{Reactions.FIRE, 1L}
+                ));
+
+        var result = storyService.getReactionStats(storyId);
+
+        assertEquals(2, result.size());
+        assertEquals(Reactions.LIKE, result.get(0).getReaction());
+        assertEquals(3L, result.get(0).getCount());
+    }
+
+
+    @Test
+    void getReactionStats_empty() {
+        when(storyReactionRepository.countReactionsByStory(storyId))
+                .thenReturn(List.of());
+
+        var result = storyService.getReactionStats(storyId);
+
+        assertTrue(result.isEmpty());
+    }
+
+
+    @Test
+    void getReactionStats_repositoryCalled() {
+        when(storyReactionRepository.countReactionsByStory(storyId))
+                .thenReturn(List.of());
+
+        storyService.getReactionStats(storyId);
+
+        verify(storyReactionRepository).countReactionsByStory(storyId);
+    }
+
+
+
 
 
 

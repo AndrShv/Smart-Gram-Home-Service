@@ -1,12 +1,16 @@
 package com.example.project.rest;
 
 import com.example.project.dto.StoryDTO;
+import com.example.project.dto.StoryReactionCountDTO;
+import com.example.project.dto.StoryReactionRequestDTO;
 import com.example.project.entity.Story;
+import com.example.project.enums.Reactions;
 import com.example.project.exceptions.StoryIsNotAviableByTimeException;
 import com.example.project.exceptions.StoryNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
 import com.example.project.handlers.GlobalExceptionHandler;
 import com.example.project.interfaces.StoryCrudService;
+import com.example.project.service.StoryServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -35,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class StoryRestControllerTest {
 
     @Mock
-    private StoryCrudService storyService;
+    private StoryServiceImpl storyService;
 
     @InjectMocks
     private StoryRestController storyRestController;
@@ -47,7 +52,6 @@ class StoryRestControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Добавляем GlobalExceptionHandler для обработки исключений
         mockMvc = MockMvcBuilders
                 .standaloneSetup(storyRestController)
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -305,4 +309,146 @@ class StoryRestControllerTest {
 
         SecurityContextHolder.setContext(securityContext);
     }
+
+
+    @Test
+    void reactToStory_success() throws Exception {
+
+        var dto = new StoryReactionRequestDTO();
+        dto.setReaction(Reactions.LIKE);
+
+        doNothing().when(storyService).reactToStory(storyId, Reactions.LIKE);
+
+        mockMvc.perform(post("/api/stories/{storyId}/reaction", storyId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk());
+
+        verify(storyService).reactToStory(storyId, Reactions.LIKE);
+    }
+
+    @Test
+    void reactToStory_storyNotFound() throws Exception {
+        var dto = new StoryReactionRequestDTO();
+        dto.setReaction(Reactions.LIKE);
+
+        doThrow(new StoryNotFoundException("Story not found"))
+                .when(storyService).reactToStory(storyId, Reactions.LIKE);
+
+        mockMvc.perform(post("/api/stories/{storyId}/reaction", storyId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isNotFound());
+    }
+
+
+    @Test
+    void reactToStory_storyExpired() throws Exception {
+
+        var dto = new StoryReactionRequestDTO();
+        dto.setReaction(Reactions.LIKE);
+
+        doThrow(new StoryIsNotAviableByTimeException("Expired"))
+                .when(storyService).reactToStory(storyId, Reactions.LIKE);
+
+        mockMvc.perform(post("/api/stories/{storyId}/reaction", storyId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isGone());
+    }
+
+
+    @Test
+    void reactToStory_serviceMethodCalled() throws Exception {
+
+        var dto = new StoryReactionRequestDTO();
+        dto.setReaction(Reactions.FIRE);
+
+        mockMvc.perform(post("/api/stories/{storyId}/reaction", storyId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)));
+
+        verify(storyService).reactToStory(storyId, Reactions.FIRE);
+    }
+
+
+    @Test
+    void deleteReaction_success() throws Exception {
+
+        doNothing().when(storyService).deleteReaction(storyId);
+
+        mockMvc.perform(delete("/api/stories/{storyId}/reaction", storyId))
+                .andExpect(status().isNoContent());
+
+        verify(storyService).deleteReaction(storyId);
+    }
+
+
+    @Test
+    void deleteReaction_storyNotFound() throws Exception {
+        doThrow(new StoryNotFoundException("Not found"))
+                .when(storyService).deleteReaction(storyId);
+
+        mockMvc.perform(delete("/api/stories/{storyId}/reaction", storyId))
+                .andExpect(status().isNotFound());
+    }
+
+
+    @Test
+    void deleteReaction_storyExpired() throws Exception {
+
+        doThrow(new StoryIsNotAviableByTimeException("Expired"))
+                .when(storyService).deleteReaction(storyId);
+
+        mockMvc.perform(delete("/api/stories/{storyId}/reaction", storyId))
+                .andExpect(status().isGone());
+    }
+
+
+    @Test
+    void deleteReaction_serviceMethodCalled() throws Exception {
+
+        mockMvc.perform(delete("/api/stories/{storyId}/reaction", storyId));
+
+        verify(storyService).deleteReaction(storyId);
+    }
+
+
+    @Test
+    void getReactionStats_success() throws Exception {
+        var stats = List.of(
+                new StoryReactionCountDTO(Reactions.LIKE, 3L),
+                new StoryReactionCountDTO(Reactions.FIRE, 1L)
+        );
+
+        when(storyService.getReactionStats(storyId)).thenReturn(stats);
+
+        mockMvc.perform(get("/api/stories/{storyId}/reactions", storyId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].reaction").value("LIKE"))
+                .andExpect(jsonPath("$[0].count").value(3));
+    }
+
+
+    @Test
+    void getReactionStats_empty() throws Exception {
+        when(storyService.getReactionStats(storyId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/stories/{storyId}/reactions", storyId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+
+    @Test
+    void getReactionStats_serviceMethodCalled() throws Exception {
+        when(storyService.getReactionStats(storyId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/stories/{storyId}/reactions", storyId));
+
+        verify(storyService).getReactionStats(storyId);
+    }
+
+
 }

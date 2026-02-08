@@ -1,6 +1,7 @@
 package com.example.project.entity;
 
 
+import com.example.project.enums.Reactions;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -46,5 +47,10 @@ public class Story {
 
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryViewer> viewers;
+
+
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StoryReaction> reactions;
+
 
 }

@@ -31,4 +31,5 @@ public class StoryViewer {
 
     @Column(name = "viewed_at", nullable = false)
     private LocalDateTime viewedAt;
+
 }
