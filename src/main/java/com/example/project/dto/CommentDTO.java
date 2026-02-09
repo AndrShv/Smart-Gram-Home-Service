@@ -20,13 +20,14 @@ public class CommentDTO {
     private UUID id;
     private UUID userId;
 
-
     @NotBlank
     @Size(min = 1, max = 500)
     private String text;
 
     @NotNull
     private LocalDateTime createdAt;
+
+
 
     @NotNull
     private long reactionsCount;

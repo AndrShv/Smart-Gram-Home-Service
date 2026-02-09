@@ -1,4 +1,6 @@
 package com.example.project.entity;
+
+
 import com.example.project.enums.Reactions;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -10,28 +12,29 @@ import org.hibernate.annotations.GenericGenerator;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+
 @Entity
 @Table(
-        name = "story_reactions",
+        name = "post_reactions",
         uniqueConstraints = @UniqueConstraint(
-                columnNames = {"story_id", "user_id"}
+                columnNames = {"post_id", "user_id"}
         )
 )
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StoryReaction {
-
+public class PostReaction {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "id", columnDefinition = "BINARY(16)", updatable = false, nullable = false)
     private UUID id;
 
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "story_id", nullable = false)
-    private Story story;
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
@@ -43,4 +46,3 @@ public class StoryReaction {
     @Column(name = "reacted_at", nullable = false)
     private LocalDateTime reactedAt;
 }
-

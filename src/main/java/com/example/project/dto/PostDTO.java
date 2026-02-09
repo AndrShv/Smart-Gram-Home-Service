@@ -29,7 +29,6 @@ public class PostDTO {
     @NotNull
     private String photoUrl;
 
-    @NotNull
     private LocalDateTime createdAt;
 
     private long viewsCount;
