@@ -25,10 +25,11 @@ public class StoryViewer {
     @JoinColumn(name = "story_id", nullable = false)
     private Story story;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "viewer_id", nullable = false)
+    @Column(name = "viewer_id", nullable = false)
     private UUID viewerId;
+
 
     @Column(name = "viewed_at", nullable = false)
     private LocalDateTime viewedAt;
+
 }

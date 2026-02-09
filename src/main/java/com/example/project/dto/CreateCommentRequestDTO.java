@@ -1,22 +1,20 @@
 package com.example.project.dto;
 
-
-import kotlin.text.UStringsKt;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShortUserDTO {
-    private String id;
-    private String username;
-    private String avatarUrl;
+public class CreateCommentRequestDTO {
 
-
+    @NotBlank
+    @Size(max = 500)
+    private String text;
 }
