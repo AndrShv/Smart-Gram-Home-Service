@@ -13,9 +13,7 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "story_reactions",
-        uniqueConstraints = @UniqueConstraint(
-                columnNames = {"story_id", "user_id"}
-        )
+        uniqueConstraints = @UniqueConstraint(columnNames = {"story_id", "user_id"})
 )
 @Data
 @NoArgsConstructor
@@ -26,21 +24,26 @@ public class StoryReaction {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", columnDefinition = "BINARY(16)", updatable = false, nullable = false)
+    @Column(columnDefinition = "BINARY(16)", updatable = false, nullable = false)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "story_id", nullable = false)
+    @JoinColumn(name = "story_id")
     private Story story;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "comment_id")
+    private Comment comment;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "reaction", nullable = false)
+    @Column(nullable = false)
     private Reactions reaction;
 
     @Column(name = "reacted_at", nullable = false)
     private LocalDateTime reactedAt;
 }
+
 

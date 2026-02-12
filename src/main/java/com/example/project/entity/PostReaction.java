@@ -16,21 +16,19 @@ import java.util.UUID;
 @Entity
 @Table(
         name = "post_reactions",
-        uniqueConstraints = @UniqueConstraint(
-                columnNames = {"post_id", "user_id"}
-        )
+        uniqueConstraints = @UniqueConstraint(columnNames = {"post_id", "user_id"})
 )
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class PostReaction {
+
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", columnDefinition = "BINARY(16)", updatable = false, nullable = false)
+    @Column(columnDefinition = "BINARY(16)", updatable = false, nullable = false)
     private UUID id;
-
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
@@ -40,7 +38,7 @@ public class PostReaction {
     private UUID userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "reaction", nullable = false)
+    @Column(nullable = false)
     private Reactions reaction;
 
     @Column(name = "reacted_at", nullable = false)

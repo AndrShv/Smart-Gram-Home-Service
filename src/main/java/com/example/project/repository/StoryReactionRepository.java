@@ -18,10 +18,8 @@ public interface StoryReactionRepository extends JpaRepository<StoryReaction, UU
             """)
     List<Object[]> countReactionsByStory(UUID storyId);
 
-
     Optional<StoryReaction> findByStoryIdAndUserId(UUID storyId, UUID userId);
-    Optional<StoryReaction> findByPostIdAndUserId(UUID postId, UUID userId);
 
-    void deleteByPostIdAndUserId(UUID postId, UUID userId);
+    void deleteByStoryIdAndUserId(UUID storyId, UUID userId);
 
     }

@@ -12,6 +12,7 @@ import com.example.project.interfaces.PostReactionService;
 import com.example.project.mappers.PostMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,12 +22,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -56,9 +60,9 @@ class PostRestControllerTest {
     private UUID userId;
     private Post post;
 
+
     @BeforeEach
     void setUp() {
-        // Добавляем TestExceptionHandler в setup
         mockMvc = MockMvcBuilders.standaloneSetup(postRestController)
                 .setControllerAdvice(new TestExceptionHandler())
                 .build();
@@ -76,9 +80,18 @@ class PostRestControllerTest {
                 .photoUrl("http://example.com/photo.jpg")
                 .createdAt(LocalDateTime.now())
                 .build();
+
+        var auth = new UsernamePasswordAuthenticationToken(userId.toString(), null, List.of());
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
-    // Внутренний класс для обработки исключений в тестах
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+
+
     @RestControllerAdvice
     static class TestExceptionHandler {
 

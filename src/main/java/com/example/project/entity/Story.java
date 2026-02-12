@@ -25,14 +25,13 @@ public class Story {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", columnDefinition = "BINARY(16)", updatable = false, nullable = false)
+    @Column(columnDefinition = "BINARY(16)", updatable = false, nullable = false)
     private UUID id;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-
-    @Column(name = "description", length = 100)
+    @Column(length = 100)
     private String description;
 
     @Column(name = "photo_url", length = 512)
@@ -44,13 +43,11 @@ public class Story {
     @Column(name = "expire_at", nullable = false)
     private LocalDateTime expireAt;
 
-
+    /* просмотры сторис */
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryViewer> viewers;
 
-
+    /* реакции на сторис */
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryReaction> reactions;
-
-
 }
