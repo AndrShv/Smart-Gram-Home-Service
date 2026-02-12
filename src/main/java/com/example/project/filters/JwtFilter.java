@@ -119,6 +119,7 @@ public class JwtFilter extends OncePerRequestFilter {
                         path.startsWith("/oauth2/") ||
                         path.startsWith("/static.css/") ||
                         path.startsWith("/static/") ||
+                        path.startsWith("/actuator/") ||
                         path.startsWith("/images/") ||
                         path.startsWith("/js/");
 

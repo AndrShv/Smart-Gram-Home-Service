@@ -37,6 +37,7 @@ public class SecurityConfig {
                                 "/images/**",
                                 "/js/**"
                         ).permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/stories/all").authenticated()
                         .requestMatchers("/stories/create").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/stories/**").authenticated()

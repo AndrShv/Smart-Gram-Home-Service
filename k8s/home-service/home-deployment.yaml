@@ -14,14 +14,14 @@ spec:
     spec:
       containers:
         - name: home-service
-          image: home-service:latest
+          image: home-service:v5
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
           env:
             # Database
             - name: SPRING_DATASOURCE_URL
-              value: jdbc:mysql://mysql:3306/homeservice?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+              value: jdbc:mysql://mysql-home:3306/homeservice?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
             - name: SPRING_DATASOURCE_USERNAME
               value: root
             - name: SPRING_DATASOURCE_PASSWORD
