@@ -29,21 +29,18 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/auth/**",
-                                "/api/password/reset/**",
-                                "/auth/**",
+                                "/api/stories/**",
+                                "/stories/**",
                                 "/oauth2/**",
                                 "/static.css/**",
                                 "/static/**",
                                 "/images/**",
                                 "/js/**"
                         ).permitAll()
-                        .requestMatchers("/api/profiles/all").hasRole("ADMIN")
-                        .requestMatchers("/profiles/create", "/profiles/success").authenticated()
-                        .requestMatchers("/api/profiles/user/**").hasRole("ADMIN")
-                        .requestMatchers("/api/profiles/gender/**").hasRole("ADMIN")
-                        .requestMatchers("/api/profiles/{id}").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/profiles/**").hasRole("ADMIN")
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/api/stories/all").authenticated()
+                        .requestMatchers("/stories/create").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/stories/**").authenticated()
                         .anyRequest().authenticated()
                 );
 

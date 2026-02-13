@@ -1,24 +1,23 @@
 package com.example.project.entity;
 
-
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(
-        name = "story_views",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"story_id", "viewer_id"})
-)
+@Table(name = "comments")
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class StoryViewer {
+public class Comment {
 
     @Id
     @GeneratedValue(generator = "UUID")
@@ -26,13 +25,21 @@ public class StoryViewer {
     @Column(columnDefinition = "BINARY(16)", updatable = false, nullable = false)
     private UUID id;
 
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
+    @Column(nullable = false, length = 500)
+    private String text;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "story_id", nullable = false)
-    private Story story;
+    @JoinColumn(name = "post_id", nullable = false)
+    private Post post;
 
-    @Column(name = "viewer_id", nullable = false)
-    private UUID viewerId;
 
-    @Column(name = "viewed_at", nullable = false)
-    private LocalDateTime viewedAt;
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StoryReaction> reactions;
 }
+
