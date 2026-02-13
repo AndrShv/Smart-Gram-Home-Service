@@ -113,15 +113,18 @@ public class JwtFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         boolean shouldSkip =
-                path.startsWith("/api/auth/") ||
-                        path.startsWith("/api/auth/") && !path.equals("/api/auth/me") ||
+                path.startsWith("/actuator/") ||
+                        path.startsWith("/api/auth/") ||
                         path.startsWith("/auth/") ||
                         path.startsWith("/oauth2/") ||
                         path.startsWith("/static.css/") ||
                         path.startsWith("/static/") ||
-                        path.startsWith("/actuator/") ||
                         path.startsWith("/images/") ||
                         path.startsWith("/js/");
+
+        if (path.startsWith("/actuator/")) {
+            log.info("🔥 ACTUATOR PATH DETECTED: {}, skipping filter", path);
+        }
 
         log.debug("Path: {}, shouldNotFilter: {}", path, shouldSkip);
         return shouldSkip;

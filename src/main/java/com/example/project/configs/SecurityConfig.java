@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/health", "/actuator/**").permitAll()
                         .requestMatchers(
                                 "/api/stories/**",
                                 "/stories/**",
@@ -37,7 +38,6 @@ public class SecurityConfig {
                                 "/images/**",
                                 "/js/**"
                         ).permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/api/stories/all").authenticated()
                         .requestMatchers("/stories/create").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/stories/**").authenticated()

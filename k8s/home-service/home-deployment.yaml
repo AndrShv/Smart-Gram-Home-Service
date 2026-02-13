@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: home-service
-          image: home-service:v5
+          image: home-service:v6
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
@@ -62,13 +62,13 @@ spec:
               value: "86400000"
           livenessProbe:
             httpGet:
-              path: /actuator/health
+              path: /health
               port: 8083
             initialDelaySeconds: 60
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /health
               port: 8083
             initialDelaySeconds: 30
             periodSeconds: 5
