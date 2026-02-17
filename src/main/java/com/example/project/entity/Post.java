@@ -1,23 +1,21 @@
 package com.example.project.entity;
 
 
-import com.example.project.enums.Reactions;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "stories")
+@Table(name = "posts")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Story {
+public class Post {
 
     @Id
     @GeneratedValue(generator = "UUID")
@@ -31,20 +29,19 @@ public class Story {
     @Column(length = 100)
     private String description;
 
-    @Column(name = "photo_url", length = 512)
+    @Column(name = "photo_url", length = 512, nullable = false)
     private String photoUrl;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "expire_at", nullable = false)
-    private LocalDateTime expireAt;
 
     @ToString.Exclude
-    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<StoryViewer> viewers;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PostReaction> reactions;
+
 
     @ToString.Exclude
-    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<StoryReaction> reactions;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Comment> comments;
 }
