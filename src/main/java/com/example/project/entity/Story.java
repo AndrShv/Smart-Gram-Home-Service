@@ -3,10 +3,7 @@ package com.example.project.entity;
 
 import com.example.project.enums.Reactions;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
@@ -43,11 +40,11 @@ public class Story {
     @Column(name = "expire_at", nullable = false)
     private LocalDateTime expireAt;
 
-    /* просмотры сторис */
+    @ToString.Exclude
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryViewer> viewers;
 
-    /* реакции на сторис */
+    @ToString.Exclude
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryReaction> reactions;
 }

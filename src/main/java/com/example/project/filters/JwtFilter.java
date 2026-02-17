@@ -55,22 +55,22 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            Claims claims = jwtUtil.extractAllClaims(token);
-            List<String> authorities = (List<String>) claims.get("authorities");
+            List<String> authorities = jwtUtil.getAuthoritiesFromToken(token);
+            String userId = jwtUtil.getUserIdFromToken(token).toString();
 
             List<SimpleGrantedAuthority> grantedAuthorities = authorities.stream()
-                    .map(auth -> new SimpleGrantedAuthority("ROLE_" + auth))
+                    .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());
 
-            log.debug("User from token: {}, authorities: {}", email, grantedAuthorities);
+            log.debug("User from token: {}, userId: {}, authorities: {}", email, userId, grantedAuthorities);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    email, null, grantedAuthorities);
+                    userId, null, grantedAuthorities);
 
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.info("✅ Authentication set for user: {} with roles: {}", email, grantedAuthorities);
-        } else if (email == null) {
+            log.info("✅ Authentication set for user: {} (userId: {}) with roles: {}", email, userId, grantedAuthorities);
+        }else if (email == null) {
             log.warn("❌ Email is null, authentication not set");
         } else {
             log.debug("Authentication already exists in context");
