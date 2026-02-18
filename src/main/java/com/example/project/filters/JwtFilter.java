@@ -65,7 +65,7 @@ public class JwtFilter extends OncePerRequestFilter {
             log.debug("User from token: {}, userId: {}, authorities: {}", email, userId, grantedAuthorities);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    userId, null, grantedAuthorities);
+                    userId, token, grantedAuthorities);
 
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -113,14 +113,14 @@ public class JwtFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         boolean shouldSkip =
-                path.startsWith("/actuator/") ||
-                        path.startsWith("/api/auth/") ||
-                        path.startsWith("/auth/") ||
+                path.startsWith("/auth/") ||
                         path.startsWith("/oauth2/") ||
-                        path.startsWith("/static.css/") ||
-                        path.startsWith("/static/") ||
+                        path.startsWith("/actuator/") ||
+                        path.startsWith("/css/") ||
+                        path.startsWith("/js/") ||
                         path.startsWith("/images/") ||
-                        path.startsWith("/js/");
+                        path.startsWith("/webjars/") ||
+                        path.equals("/favicon.ico");
 
         if (path.startsWith("/actuator/")) {
             log.info("🔥 ACTUATOR PATH DETECTED: {}, skipping filter", path);

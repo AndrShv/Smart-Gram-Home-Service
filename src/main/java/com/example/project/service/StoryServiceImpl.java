@@ -19,6 +19,7 @@ import com.example.project.repository.StoryViewerRepository;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -222,6 +223,31 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
                 ))
                 .toList();
     }
+
+    @Override
+    public List<Story> getAllActiveStories() {
+        log.info("Получение всех активных историй");
+        LocalDateTime now = LocalDateTime.now();
+        return storyRepository.findByExpireAtAfter(now);
+    }
+
+    @Override
+    public List<Story> getStoriesByUserId(UUID userId) {
+        log.info("Получение историй пользователя с ID: {}", userId);
+        LocalDateTime now = LocalDateTime.now();
+        return storyRepository.findByUserIdAndExpireAtAfterOrderByCreatedAtDesc(userId, now);
+    }
+
+    @Override
+    public Story getStoryById(UUID storyId) {
+        log.info("Получение истории с ID: {}", storyId);
+        return storyRepository.findById(storyId)
+                .orElseThrow(() -> {
+                    log.warn("❌ История с ID: {} не найдена", storyId);
+                    return new StoryNotFoundException("История с ID " + storyId + " не найдена");
+                });
+    }
+
 
 
 }

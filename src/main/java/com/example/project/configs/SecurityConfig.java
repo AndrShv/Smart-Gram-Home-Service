@@ -30,13 +30,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/health", "/actuator/**").permitAll()
                         .requestMatchers(
-                                "/api/stories/**",
-                                "/stories/**",
-                                "/oauth2/**",
-                                "/static.css/**",
-                                "/static/**",
+                                "/css/**",
+                                "/js/**",
                                 "/images/**",
-                                "/js/**"
+                                "/static/**",
+                                "/webjars/**",
+                                "/favicon.ico"
                         ).permitAll()
                         .requestMatchers("/api/stories/all").authenticated()
                         .requestMatchers("/stories/create").authenticated()
