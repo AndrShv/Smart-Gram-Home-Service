@@ -5,6 +5,7 @@ import com.example.project.dto.StoryReactionCountDTO;
 import com.example.project.dto.StoryReactionRequestDTO;
 import com.example.project.entity.Story;
 import com.example.project.interfaces.StoryCrudService;
+import com.example.project.mappers.StoryMapper;
 import com.example.project.service.StoryServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -24,6 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class StoryRestController {
     private final StoryServiceImpl storyService;
+    private final StoryMapper storyMapper;
 
 
     @PostMapping
@@ -91,6 +94,16 @@ public class StoryRestController {
         return ResponseEntity.ok(storyService.getReactionStats(storyId));
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<StoryDTO>> getStoriesByUserId(@PathVariable UUID userId) {
+        log.info("REST: получение историй пользователя {}", userId);
+        List<Story> stories = storyService.getStoriesByUserId(userId);
+        List<StoryDTO> storyDTOs = stories.stream()
+                .map(storyMapper::toDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(storyDTOs);
+    }
+
     private UUID getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -99,4 +112,7 @@ public class StoryRestController {
 
         return UUID.fromString(authentication.getName());
     }
+
+
+
 }

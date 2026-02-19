@@ -133,6 +133,8 @@ public class PostRestController {
         return ResponseEntity.ok(postDTOs);
     }
 
+
+
     // === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ===
     private UUID getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -141,4 +143,6 @@ public class PostRestController {
         }
         return UUID.fromString(authentication.getName());
     }
+
+
 }
