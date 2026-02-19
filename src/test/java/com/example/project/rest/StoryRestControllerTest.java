@@ -10,6 +10,7 @@ import com.example.project.exceptions.StoryNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
 import com.example.project.handlers.GlobalExceptionHandler;
 import com.example.project.interfaces.StoryCrudService;
+import com.example.project.mappers.StoryMapper;
 import com.example.project.service.StoryServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +42,9 @@ class StoryRestControllerTest {
 
     @Mock
     private StoryServiceImpl storyService;
+
+    @Mock
+    private StoryMapper storyMapper;
 
     @InjectMocks
     private StoryRestController storyRestController;
@@ -449,6 +453,88 @@ class StoryRestControllerTest {
 
         verify(storyService).getReactionStats(storyId);
     }
+
+
+    @Test
+    void getStoriesByUserId_success() throws Exception {
+        Story story = Story.builder()
+                .id(storyId)
+                .userId(userId)
+                .description("Story text")
+                .build();
+
+        StoryDTO dto = StoryDTO.builder()
+                .description("Story text")
+                .build();
+
+        when(storyService.getStoriesByUserId(userId))
+                .thenReturn(List.of(story));
+
+        when(storyMapper.toDto(story)).thenReturn(dto);
+
+        mockMvc.perform(get("/api/stories/user/{userId}", userId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].description").value("Story text"));
+
+        verify(storyService).getStoriesByUserId(userId);
+    }
+
+
+    @Test
+    void getStoriesByUserId_emptyList() throws Exception {
+        when(storyService.getStoriesByUserId(userId))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/stories/user/{userId}", userId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+
+    @Test
+    void getStoriesByUserId_serviceCalled() throws Exception {
+        when(storyService.getStoriesByUserId(userId))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/stories/user/{userId}", userId));
+
+        verify(storyService, times(1)).getStoriesByUserId(userId);
+    }
+
+
+
+    @Test
+    void getStoriesByUserId_multipleStories() throws Exception {
+        Story s1 = Story.builder().id(UUID.randomUUID()).description("One").build();
+        Story s2 = Story.builder().id(UUID.randomUUID()).description("Two").build();
+
+        StoryDTO d1 = StoryDTO.builder().description("One").build();
+        StoryDTO d2 = StoryDTO.builder().description("Two").build();
+
+        when(storyService.getStoriesByUserId(userId))
+                .thenReturn(List.of(s1, s2));
+
+        when(storyMapper.toDto(s1)).thenReturn(d1);
+        when(storyMapper.toDto(s2)).thenReturn(d2);
+
+        mockMvc.perform(get("/api/stories/user/{userId}", userId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[1].description").value("Two"));
+    }
+
+
+
+    @Test
+    void getStoriesByUserId_serviceThrows() throws Exception {
+        when(storyService.getStoriesByUserId(userId))
+                .thenThrow(new RuntimeException("DB error"));
+
+        mockMvc.perform(get("/api/stories/user/{userId}", userId))
+                .andExpect(status().isInternalServerError());
+    }
+
 
 
 }
