@@ -9,6 +9,7 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.lang.reflect.Method;
 
@@ -77,6 +78,11 @@ public class DetailedLoggingAspect {
 
                 if (arg == null) {
                     log.info("{}│   • {} = null", indent, paramName);
+                } else if (arg instanceof byte[]) {
+                    log.info("{}│   • {} = byte[{}] (скрыто)", indent, paramName, ((byte[]) arg).length);
+                } else if (arg instanceof MultipartFile file) {
+                    log.info("{}│   • {} = MultipartFile: {} ({} bytes)",
+                            indent, paramName, file.getOriginalFilename(), file.getSize());
                 } else if (isSensitiveData(paramName, arg)) {
                     log.info("{}│   • {} = [PROTECTED]", indent, paramName);
                 } else if (isSimpleType(arg)) {
@@ -95,7 +101,12 @@ public class DetailedLoggingAspect {
         log.info("{}│ ✓ УСПЕШНО: {}.{}", indent, className, methodName);
 
         if (result != null) {
-            if (isSensitiveData("result", result)) {
+            if (result instanceof byte[]) {
+                log.info("{}│ Результат: byte[{}] (скрыто)", indent, ((byte[]) result).length);
+            } else if (result instanceof MultipartFile file) {
+                log.info("{}│ Результат: MultipartFile: {} ({} bytes)",
+                        indent, file.getOriginalFilename(), file.getSize());
+            } else if (isSensitiveData("result", result)) {
                 log.info("{}│ Результат: {} [PROTECTED]", indent, result.getClass().getSimpleName());
             } else if (isSimpleType(result)) {
                 log.info("{}│ Результат: {}", indent, result);
@@ -127,6 +138,9 @@ public class DetailedLoggingAspect {
 
     private boolean isSensitiveData(String name, Object value) {
         if (value == null) return false;
+        if (value instanceof byte[]) return false;
+        if (value instanceof MultipartFile) return false;
+
         String lowerName = name.toLowerCase();
         String valueStr = value.toString().toLowerCase();
 
