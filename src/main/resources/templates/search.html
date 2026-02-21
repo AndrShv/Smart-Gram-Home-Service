@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Поиск - SmartGram</title>
+  <link rel="stylesheet" th:href="@{/css/search.css}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<!-- Космический фон -->
+<div class="space-background">
+  <div class="stars"></div>
+  <div class="stars2"></div>
+  <div class="stars3"></div>
+</div>
+
+<!-- Верхняя панель -->
+<header class="top-bar">
+  <div class="top-bar-content">
+    <div class="logo">
+      <i class="fas fa-rocket"></i>
+      <span>SmartGram</span>
+    </div>
+  </div>
+</header>
+
+<!-- Основной контент -->
+<main class="main-content">
+  <!-- Поисковая строка -->
+  <div class="search-container">
+    <div class="search-box">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" id="searchInput" placeholder="Поиск пользователей, постов, хэштегов..." autocomplete="off">
+      <button class="clear-btn" id="clearBtn" style="display: none;">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Табы -->
+  <div class="tabs">
+    <button class="tab active" data-tab="users">
+      <i class="fas fa-users"></i> Пользователи
+    </button>
+    <button class="tab" data-tab="posts">
+      <i class="fas fa-th"></i> Посты
+    </button>
+    <button class="tab" data-tab="hashtags">
+      <i class="fas fa-hashtag"></i> Хэштеги
+    </button>
+  </div>
+
+  <!-- Результаты поиска -->
+  <div class="results-container">
+    <!-- Вкладка пользователей -->
+    <div class="tab-content active" id="users-tab">
+      <div class="users-grid" id="usersGrid">
+        <div class="empty-state">
+          <i class="fas fa-user-astronaut"></i>
+          <p>Начните поиск пользователей</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вкладка постов -->
+    <div class="tab-content" id="posts-tab">
+      <div class="posts-grid" id="postsGrid">
+        <div class="empty-state">
+          <i class="fas fa-image"></i>
+          <p>Начните поиск постов</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вкладка хэштегов -->
+    <div class="tab-content" id="hashtags-tab">
+      <div class="hashtags-list" id="hashtagsList">
+        <div class="empty-state">
+          <i class="fas fa-hashtag"></i>
+          <p>Начните поиск хэштегов</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Загрузка -->
+  <div class="loading" id="loading" style="display: none;">
+    <div class="spinner-orbit">
+      <div class="spinner-planet"></div>
+    </div>
+    <p>Поиск...</p>
+  </div>
+</main>
+
+<!-- Нижняя навигация -->
+<nav class="bottom-nav">
+  <a href="/home" class="nav-item">
+    <i class="fas fa-home"></i>
+    <span>Главная</span>
+  </a>
+  <a href="/search" class="nav-item active">
+    <i class="fas fa-search"></i>
+    <span>Поиск</span>
+  </a>
+  <a href="/messages" class="nav-item">
+    <i class="fas fa-comment-dots"></i>
+    <span>Сообщения</span>
+  </a>
+  <a href="/profile" class="nav-item">
+    <i class="fas fa-user"></i>
+    <span>Профиль</span>
+  </a>
+  <a href="/settings" class="nav-item">
+    <i class="fas fa-cog"></i>
+    <span>Настройки</span>
+  </a>
+</nav>
+
+<script th:src="@{/js/search.js}"></script>
+</body>
+</html>
