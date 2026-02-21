@@ -6,6 +6,8 @@ import com.example.project.dto.PostReactionCountDTO;
 import com.example.project.dto.UserResponseDTO;
 import com.example.project.entity.Post;
 import com.example.project.entity.PostReaction;
+import com.example.project.enums.PostCategory;
+import com.example.project.enums.PostMood;
 import com.example.project.enums.Reactions;
 import com.example.project.exceptions.PostNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
@@ -35,6 +37,8 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     private final AuthClient authClient;
     private final PostRepository postRepository;
     private final PostReactionRepository postReactionRepository;
+    private final ImaggaServiceImpl imaggaService;
+
 
     // ============================================
     //           CRUD ОПЕРАЦИИ
@@ -45,29 +49,60 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     public Post createPost(PostDTO post) {
         log.info("Создание нового поста");
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) {
             throw new UnauthorizedException("JWT истёк");
         }
 
-        log.info("Получение текущего пользователя из AuthClient");
+
+
         UserResponseDTO currentUser = authClient.getCurrentUser();
         UUID userId = UUID.fromString(currentUser.getId());
-
         log.info("Получен пользователь с ID: {}", userId);
+
+        List<String> generatedTags = new ArrayList<>();
+        List<String> dominantColors = new ArrayList<>();
+        PostCategory category = PostCategory.OTHER;
+        PostMood mood = PostMood.NEUTRAL;
+
+        try {
+            if (post.getPhotoBytes() != null && post.getPhotoBytes().length > 0) {
+                generatedTags = imaggaService.extractTagsFromBytes(
+                        post.getPhotoBytes(),
+                        post.getPhotoFileName()
+                );
+                dominantColors = imaggaService.extractColorsFromBytes(
+                        post.getPhotoBytes(),
+                        post.getPhotoFileName()
+                );
+                category = mapTagsToCategory(generatedTags);
+                mood = mapColorsToMood(dominantColors);
+            }
+        } catch (Exception e) {
+            log.warn("Imagga не смог сгенерировать теги/цвета: {}", e.getMessage());
+        }
+
+        String description = post.getDescription();
+        if (description == null || description.isBlank()) {
+            description = "Фото с тегами: " + String.join(", ", generatedTags);
+        }
 
         Post postToSave = Post.builder()
                 .id(UUID.randomUUID())
                 .userId(userId)
-                .description(post.getDescription())
+                .description(description)
                 .photoUrl(post.getPhotoUrl())
                 .createdAt(LocalDateTime.now())
+                .tags(generatedTags)
+                .dominantColors(dominantColors)
+                .category(category)
+                .mood(mood)
+                .location(post.getLocation())
+                .isPublic(post.isPublic())
                 .reactions(new ArrayList<>())
                 .comments(new ArrayList<>())
                 .build();
-
-        log.info("Попытка сохранения поста в репозиторий с ID пользователя: {}", userId);
 
         postRepository.save(postToSave);
         log.info("Пост успешно сохранён с ID: {}", postToSave.getId());
@@ -258,5 +293,39 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     public long countReactionsByType(UUID postId, Reactions reaction) {
         log.info("Подсчёт реакций типа {} на пост {}", reaction, postId);
         return postReactionRepository.countByPostIdAndReaction(postId, reaction);
+    }
+
+    private PostCategory mapTagsToCategory(List<String> tags) {
+        if (tags == null) return PostCategory.OTHER;
+        if (tags.stream().anyMatch(t -> t.contains("food") || t.contains("еда"))) return PostCategory.FOOD;
+        if (tags.stream().anyMatch(t -> t.contains("nature") || t.contains("природа"))) return PostCategory.NATURE;
+        if (tags.stream().anyMatch(t -> t.contains("travel") || t.contains("путешествие"))) return PostCategory.TRAVEL;
+        return PostCategory.OTHER;
+    }
+
+    private PostMood mapColorsToMood(List<String> colors) {
+        if (colors == null || colors.isEmpty()) return PostMood.NEUTRAL;
+
+        boolean hasBright = colors.stream().anyMatch(c -> isBrightColor(c));
+        boolean hasDark = colors.stream().anyMatch(c -> isDarkColor(c));
+
+        if (hasBright && !hasDark) return PostMood.HAPPY;
+        if (!hasBright && hasDark) return PostMood.SAD;
+        return PostMood.NEUTRAL;
+    }
+
+    private boolean isBrightColor(String hex) {
+        try {
+            int r = Integer.parseInt(hex.substring(1, 3), 16);
+            int g = Integer.parseInt(hex.substring(3, 5), 16);
+            int b = Integer.parseInt(hex.substring(5, 7), 16);
+            return (r + g + b) / 3 > 127;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean isDarkColor(String hex) {
+        return !isBrightColor(hex);
     }
 }

@@ -8,6 +8,8 @@ import com.example.project.entity.Story;
 import com.example.project.entity.StoryReaction;
 import com.example.project.entity.StoryViewer;
 import com.example.project.enums.Reactions;
+import com.example.project.enums.StoryCategory;
+import com.example.project.enums.StoryMood;
 import com.example.project.exceptions.StoryIsNotAviableByTimeException;
 import com.example.project.exceptions.StoryNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
@@ -69,7 +71,15 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
                 .photoUrl(storyDTO.getPhotoUrl())
                 .createdAt(LocalDateTime.now())
                 .expireAt(LocalDateTime.now().plusHours(STORY_LIFETIME_HOURS))
-                .viewers(new ArrayList<>()).build();
+                .tags(storyDTO.getTags())
+                .category(StoryCategory.valueOf(storyDTO.getCategory()))
+                .location(storyDTO.getLocation())
+                .mood(StoryMood.valueOf(storyDTO.getMood()))
+                .overlayText(storyDTO.getOverlayText())
+                .musicCaption(storyDTO.getMusicCaption())
+                .isPublic(storyDTO.isPublic())
+                .viewers(new ArrayList<>())
+                .build();
 
         log.info("Попытка сохарнения истории в репозиторий с ID пользователя: {}", userId);
         storyRepository.save(story);

@@ -107,12 +107,12 @@ class PostRestControllerTest {
     }
 
     /* ================= CREATE POST ================= */
-
+//TO DO: добавить тест на валидацию полей при создании поста
     @Test
     void createPost_success() throws Exception {
         PostCreateRequestDTO requestDTO = new PostCreateRequestDTO();
         requestDTO.setDescription("Test Post");
-        requestDTO.setPhotoUrl("http://example.com/photo.jpg");
+     //   requestDTO.setPhotoUrl("http://example.com/photo.jpg");
 
         PostDTO responseDTO = PostDTO.builder()
                 .id(postId)
@@ -144,7 +144,7 @@ class PostRestControllerTest {
     void createPost_unauthorized() throws Exception {
         PostCreateRequestDTO requestDTO = new PostCreateRequestDTO();
         requestDTO.setDescription("Test Post");
-        requestDTO.setPhotoUrl("http://example.com/photo.jpg");
+    //    requestDTO.setPhotoUrl("http://example.com/photo.jpg");
 
         when(postService.createPost(any(PostDTO.class)))
                 .thenThrow(new UnauthorizedException("JWT истёк"));

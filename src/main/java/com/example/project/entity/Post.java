@@ -1,6 +1,8 @@
 package com.example.project.entity;
 
-
+import com.example.project.enums.PostCategory;
+import com.example.project.enums.PostMood;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
@@ -35,13 +37,46 @@ public class Post {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @ElementCollection
+    @CollectionTable(name = "post_tags", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "tag")
+    private List<String> tags;
+
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category", length = 64)
+    private PostCategory category;
+
+    @Column(name = "location", length = 128)
+    private String location;
+
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "mood", length = 64)
+    private PostMood mood;
+
+    @Column(name = "is_public", nullable = false)
+    @Builder.Default
+    private boolean isPublic = true;
 
     @ToString.Exclude
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PostReaction> reactions;
 
-
     @ToString.Exclude
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Comment> comments;
+
+
+    @ElementCollection
+    @CollectionTable(name = "post_dominant_colors", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "color")
+    private List<String> dominantColors;
+
+
+    @JsonIgnore
+    private transient byte[] photoBytes;
+
+    @JsonIgnore
+    private transient String photoFileName;
 }

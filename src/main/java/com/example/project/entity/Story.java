@@ -1,13 +1,12 @@
 package com.example.project.entity;
 
-
-import com.example.project.enums.Reactions;
+import com.example.project.enums.StoryCategory;
+import com.example.project.enums.StoryMood;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,6 +38,35 @@ public class Story {
 
     @Column(name = "expire_at", nullable = false)
     private LocalDateTime expireAt;
+
+    // Теги (например: ["закат", "море", "лето"])
+    @ElementCollection
+    @CollectionTable(name = "story_tags", joinColumns = @JoinColumn(name = "story_id"))
+    @Column(name = "tag")
+    private List<String> tags;
+
+    // Категория (например: "Путешествия", "Еда", "Спорт")
+    @Column(name = "category", length = 64)
+    private StoryCategory category;
+
+    // Геолокация (например: "Одесса, Украина")
+    @Column(name = "location", length = 128)
+    private String location;
+
+    @Column(name = "mood", length = 64)
+    private StoryMood mood;
+
+    @Column(name = "overlay_text", length = 128)
+    private String overlayText;
+
+    @Column(name = "music_caption", length = 128)
+    private String musicCaption;
+
+    @Column(name = "is_public", nullable = false)
+    @Builder.Default
+    private boolean isPublic = true;
+
+
 
     @ToString.Exclude
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)

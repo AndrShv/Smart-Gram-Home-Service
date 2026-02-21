@@ -1,10 +1,6 @@
 package com.example.project.dto;
 
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,5 +23,11 @@ public class PostDetailsDTO {
     private long reactionsCount;
 
     private List<CommentDTO> comments;
-}
 
+    private List<String> tags;
+    private List<String> dominantColors;
+    private String category;
+    private String location;
+    private String mood;
+    private boolean isPublic;
+}

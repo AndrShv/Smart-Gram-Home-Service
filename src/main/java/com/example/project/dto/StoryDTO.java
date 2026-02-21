@@ -1,13 +1,10 @@
 package com.example.project.dto;
 
-
 import com.example.project.entity.StoryViewer;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Size;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -17,18 +14,46 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StoryDTO {
+
     private String id;
+
     @NotNull
     private String userId;
+
+    @Size(max = 100)
     private String description;
+
     @NotBlank
     @NotNull
     private String photoUrl;
+
     @NotNull
     private String createdAt;
+
     @NotNull
     private LocalDateTime expireAt;
+
     @NotNull
     private List<StoryViewer> viewers;
 
+    @Size(max = 10, message = "Нельзя добавить больше 10 тегов")
+    private List<@Size(max = 32) String> tags;
+
+    @Size(max = 64)
+    private String category;
+
+    @Size(max = 128)
+    private String location;
+
+    @Size(max = 64)
+    private String mood;
+
+    @Size(max = 128)
+    private String overlayText;
+
+    @Size(max = 128)
+    private String musicCaption;
+
+    @Builder.Default
+    private boolean isPublic = true;
 }
