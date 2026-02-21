@@ -10,5 +10,13 @@ public enum StoryCategory {
     FAMILY,
     FRIENDS,
     CELEBRITY,
-    OTHER
+    OTHER,
+    NATURE,
+    ART,
+    MUSIC,
+    SPORTS,
+    FASHION,
+    TECHNOLOGY,
+    EDUCATION,
+    HEALTH
 }

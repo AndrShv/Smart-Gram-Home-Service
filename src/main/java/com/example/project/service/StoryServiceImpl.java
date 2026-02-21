@@ -7,12 +7,14 @@ import com.example.project.dto.UserResponseDTO;
 import com.example.project.entity.Story;
 import com.example.project.entity.StoryReaction;
 import com.example.project.entity.StoryViewer;
+import com.example.project.enums.PostCategory;
 import com.example.project.enums.Reactions;
 import com.example.project.enums.StoryCategory;
 import com.example.project.enums.StoryMood;
 import com.example.project.exceptions.StoryIsNotAviableByTimeException;
 import com.example.project.exceptions.StoryNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
+import com.example.project.interfaces.ImaggaService;
 import com.example.project.interfaces.StoryCrudService;
 import com.example.project.interfaces.StoryReactionService;
 import com.example.project.repository.StoryReactionRepository;
@@ -46,24 +48,36 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
     private final StoryRepository storyRepository;
     private final StoryViewerRepository storyViewerRepository;
     private final StoryReactionRepository storyReactionRepository;
+    private final ImaggaService imaggaService;
+
 
     @Override
     @Transactional
     public Story createStory(StoryDTO storyDTO) {
         log.info("Создание новой истории");
 
-        log.info("Получение текущего пользователя из AuthClient");
         UserResponseDTO currentUser = authClient.getCurrentUser();
         UUID userId = UUID.fromString(currentUser.getId());
 
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
         if (auth == null || !auth.isAuthenticated()) {
             throw new UnauthorizedException("JWT истёк");
         }
 
-        log.info("Получин пользователь с ID: {}", userId);
+        List<String> tags = new ArrayList<>();
+        String category = String.valueOf(StoryCategory.OTHER);;
+        String mood = String.valueOf(StoryMood.NEUTRAL);
+
+        if (storyDTO.getPhotoBytes() != null && storyDTO.getPhotoFileName() != null) {
+            try {
+                tags = imaggaService.extractTagsFromBytes(storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
+                List<String> colors = imaggaService.extractColorsFromBytes(storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
+                category = mapTagsToCategory(tags);
+                mood = mapColorsToMood(colors);
+            } catch (Exception e) {
+                log.warn("Imagga не смог сгенерировать теги/цвета: {}", e.getMessage());
+            }
+        }
 
         Story story = Story.builder()
                 .userId(userId)
@@ -71,17 +85,16 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
                 .photoUrl(storyDTO.getPhotoUrl())
                 .createdAt(LocalDateTime.now())
                 .expireAt(LocalDateTime.now().plusHours(STORY_LIFETIME_HOURS))
-                .tags(storyDTO.getTags())
-                .category(StoryCategory.valueOf(storyDTO.getCategory()))
+                .tags(tags.isEmpty() ? storyDTO.getTags() : tags)
+                .category(StoryCategory.valueOf(category))
                 .location(storyDTO.getLocation())
-                .mood(StoryMood.valueOf(storyDTO.getMood()))
+                .mood(StoryMood.valueOf(mood))
                 .overlayText(storyDTO.getOverlayText())
                 .musicCaption(storyDTO.getMusicCaption())
                 .isPublic(storyDTO.isPublic())
                 .viewers(new ArrayList<>())
                 .build();
 
-        log.info("Попытка сохарнения истории в репозиторий с ID пользователя: {}", userId);
         storyRepository.save(story);
         log.info("✅ История успешно создана для пользователя с ID: {}", userId);
         return story;
@@ -256,6 +269,40 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
                     log.warn("❌ История с ID: {} не найдена", storyId);
                     return new StoryNotFoundException("История с ID " + storyId + " не найдена");
                 });
+    }
+
+    private String mapTagsToCategory(List<String> tags) {
+        if (tags == null) return StoryCategory.OTHER.name();
+        if (tags.stream().anyMatch(t -> t.contains("food") || t.contains("еда"))) return StoryCategory.FOOD.name();
+        if (tags.stream().anyMatch(t -> t.contains("nature") || t.contains("природа"))) return StoryCategory.NATURE.name();
+        if (tags.stream().anyMatch(t -> t.contains("travel") || t.contains("путешествие"))) return StoryCategory.TRAVEL.name();
+        return StoryCategory.OTHER.name();
+    }
+
+    private String mapColorsToMood(List<String> colors) {
+        if (colors == null || colors.isEmpty()) return StoryMood.NEUTRAL.name();
+
+        boolean hasBright = colors.stream().anyMatch(c -> isBrightColor(c));
+        boolean hasDark = colors.stream().anyMatch(c -> isDarkColor(c));
+
+        if (hasBright && !hasDark) return StoryMood.HAPPY.name();
+        if (!hasBright && hasDark) return StoryMood.SAD.name();
+        return StoryMood.NEUTRAL.name();
+    }
+
+    private boolean isBrightColor(String hex) {
+        try {
+            int r = Integer.parseInt(hex.substring(1, 3), 16);
+            int g = Integer.parseInt(hex.substring(3, 5), 16);
+            int b = Integer.parseInt(hex.substring(5, 7), 16);
+            return (r + g + b) / 3 > 127;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean isDarkColor(String hex) {
+        return !isBrightColor(hex);
     }
 
 

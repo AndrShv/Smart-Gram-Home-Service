@@ -1,6 +1,7 @@
 package com.example.project.dto;
 
 import com.example.project.entity.StoryViewer;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -23,8 +24,6 @@ public class StoryDTO {
     @Size(max = 100)
     private String description;
 
-    @NotBlank
-    @NotNull
     private String photoUrl;
 
     @NotNull
@@ -56,4 +55,12 @@ public class StoryDTO {
 
     @Builder.Default
     private boolean isPublic = true;
+
+    @JsonIgnore
+    @ToString.Exclude
+    private transient byte[] photoBytes;
+
+    @JsonIgnore
+    @ToString.Exclude
+    private transient String photoFileName;
 }

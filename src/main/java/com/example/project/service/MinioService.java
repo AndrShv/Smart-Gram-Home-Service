@@ -26,6 +26,10 @@ public class MinioService {
     private String postsBucket;
 
 
+    @Value("${minio.bucket-stories}")
+    private String storiesBucket;
+
+
     private void ensureBucketExists(String bucket) throws Exception {
         boolean exists = minioClient.bucketExists(
                 BucketExistsArgs.builder().bucket(bucket).build()
@@ -64,6 +68,37 @@ public class MinioService {
 
         } catch (Exception e) {
             log.error("Ошибка загрузки файла в MinIO: {}", e.getMessage());
+            throw new RuntimeException("Не удалось загрузить файл в MinIO: " + e.getMessage());
+        }
+    }
+    
+
+    public String uploadStoryPhotoBytes(byte[] bytes, String originalFilename, String contentType) {
+        try {
+            ensureBucketExists(storiesBucket);
+
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            String fileName = "stories/" + UUID.randomUUID() + extension;
+
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(storiesBucket)
+                            .object(fileName)
+                            .stream(new ByteArrayInputStream(bytes), bytes.length, -1)
+                            .contentType(contentType != null ? contentType : "image/jpeg")
+                            .build()
+            );
+
+            String fileUrl = minioUrl + "/" + storiesBucket + "/" + fileName;
+            log.info("Story файл успешно загружен в MinIO: {}", fileUrl);
+            return fileUrl;
+
+        } catch (Exception e) {
+            log.error("Ошибка загрузки story файла в MinIO: {}", e.getMessage());
             throw new RuntimeException("Не удалось загрузить файл в MinIO: " + e.getMessage());
         }
     }
