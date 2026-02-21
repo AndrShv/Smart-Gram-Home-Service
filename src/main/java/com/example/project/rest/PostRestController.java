@@ -4,6 +4,7 @@ import com.example.project.dto.PostCreateRequestDTO;
 import com.example.project.dto.PostDTO;
 import com.example.project.dto.PostReactionRequestDTO;
 import com.example.project.entity.Post;
+import com.example.project.exceptions.UnauthorizedException;
 import com.example.project.interfaces.PostCrudService;
 import com.example.project.interfaces.PostReactionService;
 import com.example.project.mappers.PostMapper;
@@ -166,9 +167,13 @@ public class PostRestController {
     private UUID getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("Пользователь не авторизован");
+            throw new UnauthorizedException("Пользователь не авторизован");
         }
-        return UUID.fromString(authentication.getName());
+        try {
+            return UUID.fromString(authentication.getName());
+        } catch (Exception e) {
+            throw new UnauthorizedException("Пользователь не авторизован");
+        }
     }
 
 

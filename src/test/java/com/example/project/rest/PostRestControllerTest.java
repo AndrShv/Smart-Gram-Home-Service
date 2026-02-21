@@ -10,6 +10,7 @@ import com.example.project.exceptions.UnauthorizedException;
 import com.example.project.interfaces.PostCrudService;
 import com.example.project.interfaces.PostReactionService;
 import com.example.project.mappers.PostMapper;
+import com.example.project.service.MinioService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.AfterEach;
@@ -19,15 +20,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -52,6 +56,9 @@ class PostRestControllerTest {
 
     @InjectMocks
     private PostRestController postRestController;
+
+    @Mock
+    private MinioService minioService;
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
@@ -107,51 +114,61 @@ class PostRestControllerTest {
     }
 
     /* ================= CREATE POST ================= */
-//TO DO: добавить тест на валидацию полей при создании поста
     @Test
     void createPost_success() throws Exception {
-        PostCreateRequestDTO requestDTO = new PostCreateRequestDTO();
-        requestDTO.setDescription("Test Post");
-     //   requestDTO.setPhotoUrl("http://example.com/photo.jpg");
+        when(minioService.uploadPostPhotoBytes(any(byte[].class), anyString(), anyString()))
+                .thenReturn("http://minio/posts/photo.jpg");
 
-        PostDTO responseDTO = PostDTO.builder()
+        when(postService.createPost(any(PostDTO.class))).thenReturn(post);
+
+        when(postMapper.toDto(post)).thenReturn(PostDTO.builder()
                 .id(postId)
                 .userId(userId)
                 .description("Test Post")
-                .photoUrl("http://example.com/photo.jpg")
+                .photoUrl("http://minio/posts/photo.jpg")
                 .createdAt(LocalDateTime.now())
                 .viewsCount(0)
                 .reactionsCount(0)
                 .commentsCount(0)
-                .build();
+                .build());
 
-        when(postService.createPost(any(PostDTO.class))).thenReturn(post);
-        when(postMapper.toDto(post)).thenReturn(responseDTO);
+        MockMultipartFile photoFile = new MockMultipartFile(
+                "photo",
+                "photo.jpg",
+                "image/jpeg",
+                "dummy image content".getBytes()
+        );
 
-        mockMvc.perform(post("/api/posts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDTO)))
+        mockMvc.perform(multipart("/api/posts")
+                        .file(photoFile)
+                        .param("description", "Test Post")
+                        .param("location", "Одесса")
+                        .param("isPublic", "true")
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(postId.toString()))
-                .andExpect(jsonPath("$.description").value("Test Post"))
-                .andExpect(jsonPath("$.photoUrl").value("http://example.com/photo.jpg"));
+                .andExpect(jsonPath("$.description").value("Test Post"));
 
+        verify(minioService, times(1)).uploadPostPhotoBytes(any(byte[].class), anyString(), anyString());
         verify(postService, times(1)).createPost(any(PostDTO.class));
         verify(postMapper, times(1)).toDto(post);
     }
 
     @Test
     void createPost_unauthorized() throws Exception {
-        PostCreateRequestDTO requestDTO = new PostCreateRequestDTO();
-        requestDTO.setDescription("Test Post");
-    //    requestDTO.setPhotoUrl("http://example.com/photo.jpg");
+        SecurityContextHolder.clearContext();
 
-        when(postService.createPost(any(PostDTO.class)))
-                .thenThrow(new UnauthorizedException("JWT истёк"));
+        MockMultipartFile photoFile = new MockMultipartFile(
+                "photo",
+                "photo.jpg",
+                "image/jpeg",
+                "dummy image content".getBytes()
+        );
 
-        mockMvc.perform(post("/api/posts")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDTO)))
+        mockMvc.perform(multipart("/api/posts")
+                        .file(photoFile)
+                        .param("description", "Test Post")
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
                 .andExpect(status().isUnauthorized());
     }
 

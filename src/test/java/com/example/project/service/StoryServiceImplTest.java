@@ -7,6 +7,8 @@ import com.example.project.entity.Story;
 import com.example.project.entity.StoryReaction;
 import com.example.project.entity.StoryViewer;
 import com.example.project.enums.Reactions;
+import com.example.project.enums.StoryCategory;
+import com.example.project.enums.StoryMood;
 import com.example.project.exceptions.StoryIsNotAviableByTimeException;
 import com.example.project.exceptions.StoryNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
@@ -64,6 +66,15 @@ class StoryServiceImplTest {
     @Test
     void createStory_success() {
         StoryDTO dto = new StoryDTO();
+        dto.setCategory(String.valueOf(StoryCategory.FAMILY));
+        dto.setMood(String.valueOf(StoryMood.HAPPY));
+        dto.setDescription("Test story");
+        dto.setPhotoUrl("http://example.com/photo.jpg");
+        dto.setPublic(true);
+        dto.setOverlayText("Overlay text");
+        dto.setMusicCaption("Music caption");
+        dto.setTags(List.of("tag1", "tag2"));
+        dto.setLocation("Odesa");
 
         UserResponseDTO user = UserResponseDTO.builder()
                 .id(userId.toString())
@@ -76,6 +87,8 @@ class StoryServiceImplTest {
 
         assertNotNull(result);
         assertEquals(userId, result.getUserId());
+        assertEquals("FAMILY", result.getCategory().name());
+        assertEquals("HAPPY", result.getMood().name());
         verify(storyRepository).save(any(Story.class));
     }
 
@@ -97,6 +110,8 @@ class StoryServiceImplTest {
     @Test
     void createStory_expireTimeIs24Hours() {
         StoryDTO dto = new StoryDTO();
+        dto.setCategory(String.valueOf(StoryCategory.FRIENDS));
+        dto.setMood(String.valueOf(StoryMood.HAPPY));
 
         when(authClient.getCurrentUser()).thenReturn(
                 UserResponseDTO.builder().id(userId.toString()).build()
@@ -110,12 +125,16 @@ class StoryServiceImplTest {
 
     @Test
     void createStory_viewersEmpty() {
+        StoryDTO dto = new StoryDTO();
+        dto.setCategory(String.valueOf(StoryCategory.FRIENDS));
+        dto.setMood(String.valueOf(StoryMood.HAPPY));
+
         when(authClient.getCurrentUser()).thenReturn(
                 UserResponseDTO.builder().id(userId.toString()).build()
         );
         mockAuthenticated();
 
-        Story story = storyService.createStory(new StoryDTO());
+        Story story = storyService.createStory(dto);
 
         assertNotNull(story.getViewers());
         assertTrue(story.getViewers().isEmpty());
@@ -126,10 +145,8 @@ class StoryServiceImplTest {
     void createStory_descriptionSaved() {
         StoryDTO dto = new StoryDTO();
         dto.setDescription("hello");
-
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+        dto.setCategory(String.valueOf(StoryCategory.FRIENDS));
+        dto.setMood(String.valueOf(StoryMood.HAPPY));
 
         when(authClient.getCurrentUser()).thenReturn(
                 UserResponseDTO.builder().id(userId.toString()).build()
@@ -146,7 +163,8 @@ class StoryServiceImplTest {
     void createStory_photoUrlSaved() {
         StoryDTO dto = new StoryDTO();
         dto.setPhotoUrl("img.png");
-
+        dto.setCategory(String.valueOf(StoryCategory.FRIENDS));
+        dto.setMood(String.valueOf(StoryMood.HAPPY));
 
         when(authClient.getCurrentUser()).thenReturn(
                 UserResponseDTO.builder().id(userId.toString()).build()
@@ -161,12 +179,17 @@ class StoryServiceImplTest {
 
     @Test
     void createStory_saveCalledOnce() {
+        StoryDTO dto = new StoryDTO();
+        dto.setCategory(String.valueOf(StoryCategory.FAMILY));
+        dto.setMood(String.valueOf(StoryMood.HAPPY));
+        dto.setDescription("Test story");
+
         when(authClient.getCurrentUser()).thenReturn(
                 UserResponseDTO.builder().id(userId.toString()).build()
         );
         mockAuthenticated();
 
-        storyService.createStory(new StoryDTO());
+        storyService.createStory(dto);
 
         verify(storyRepository).save(any());
     }
