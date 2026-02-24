@@ -14,7 +14,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ShortUserDTO {
-
     private String id;
     private String username;
     private String avatarUrl;
