@@ -144,6 +144,14 @@ public class StoryRestController {
         return ResponseEntity.ok(storyDTOs);
     }
 
+    @PutMapping("/privacy/all")
+    public ResponseEntity<Void> setAllStoriesPrivacy(@RequestParam boolean isPublic) {
+        UUID userId = getCurrentUserId();
+        log.info("REST: установка приватности историй пользователя {} -> isPublic={}", userId, isPublic);
+        storyService.setAllStoriesPrivacy(userId, isPublic);
+        return ResponseEntity.ok().build();
+    }
+
     private UUID getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {

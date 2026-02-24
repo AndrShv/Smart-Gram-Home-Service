@@ -25,4 +25,16 @@ public interface PostCrudService {
     long countPostsByUserId(UUID userId);
 
     boolean isPostOwner(UUID postId, UUID userId);
+
+    void setAllPostsPrivacy(UUID userId, boolean isPublic);
+
+    List<Post> searchByTag(String tag);
+
+    List<Post> searchPosts(String query);
+
+
+
+
+
+
 }

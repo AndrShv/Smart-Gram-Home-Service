@@ -6,6 +6,8 @@
   <title>Поиск - SmartGram</title>
   <link rel="stylesheet" th:href="@{/css/search.css}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+
 </head>
 <body>
 <!-- Космический фон -->
@@ -31,7 +33,7 @@
   <div class="search-container">
     <div class="search-box">
       <i class="fas fa-search search-icon"></i>
-      <input type="text" id="searchInput" placeholder="Поиск пользователей, постов, хэштегов..." autocomplete="off">
+      <input type="text" id="searchInput" placeholder="Поиск..." autocomplete="off">
       <button class="clear-btn" id="clearBtn" style="display: none;">
         <i class="fas fa-times"></i>
       </button>
@@ -51,12 +53,18 @@
     </button>
   </div>
 
+  <!-- Загрузка -->
+  <div class="loading" id="loading" style="display: none; text-align: center; padding: 40px;">
+    <div class="spinner-orbit"><div class="spinner-planet"></div></div>
+    <p style="color: rgba(255,255,255,0.6); margin-top: 10px;">Поиск...</p>
+  </div>
+
   <!-- Результаты поиска -->
   <div class="results-container">
     <!-- Вкладка пользователей -->
     <div class="tab-content active" id="users-tab">
       <div class="users-grid" id="usersGrid">
-        <div class="empty-state">
+        <div class="empty-state" style="grid-column: 1/-1;">
           <i class="fas fa-user-astronaut"></i>
           <p>Начните поиск пользователей</p>
         </div>
@@ -66,7 +74,7 @@
     <!-- Вкладка постов -->
     <div class="tab-content" id="posts-tab">
       <div class="posts-grid" id="postsGrid">
-        <div class="empty-state">
+        <div class="empty-state" style="grid-column: 1/-1;">
           <i class="fas fa-image"></i>
           <p>Начните поиск постов</p>
         </div>
@@ -75,7 +83,7 @@
 
     <!-- Вкладка хэштегов -->
     <div class="tab-content" id="hashtags-tab">
-      <div class="hashtags-list" id="hashtagsList">
+      <div id="hashtagsList">
         <div class="empty-state">
           <i class="fas fa-hashtag"></i>
           <p>Начните поиск хэштегов</p>
@@ -83,40 +91,225 @@
       </div>
     </div>
   </div>
-
-  <!-- Загрузка -->
-  <div class="loading" id="loading" style="display: none;">
-    <div class="spinner-orbit">
-      <div class="spinner-planet"></div>
-    </div>
-    <p>Поиск...</p>
-  </div>
 </main>
 
 <!-- Нижняя навигация -->
 <nav class="bottom-nav">
-  <a href="/home" class="nav-item">
-    <i class="fas fa-home"></i>
-    <span>Главная</span>
-  </a>
-  <a href="/search" class="nav-item active">
-    <i class="fas fa-search"></i>
-    <span>Поиск</span>
-  </a>
-  <a href="/messages" class="nav-item">
-    <i class="fas fa-comment-dots"></i>
-    <span>Сообщения</span>
-  </a>
-  <a href="/profile" class="nav-item">
-    <i class="fas fa-user"></i>
-    <span>Профиль</span>
-  </a>
-  <a href="/settings" class="nav-item">
-    <i class="fas fa-cog"></i>
-    <span>Настройки</span>
-  </a>
+  <a href="/home" class="nav-item"><i class="fas fa-home"></i><span>Главная</span></a>
+  <a href="/search" class="nav-item active"><i class="fas fa-search"></i><span>Поиск</span></a>
+  <a href="/messages" class="nav-item"><i class="fas fa-comment-dots"></i><span>Сообщения</span></a>
+  <a href="/profile" class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
+  <a href="/settings" class="nav-item"><i class="fas fa-cog"></i><span>Настройки</span></a>
 </nav>
 
-<script th:src="@{/js/search.js}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      const searchInput = document.getElementById('searchInput');
+      const clearBtn = document.getElementById('clearBtn');
+      const loading = document.getElementById('loading');
+      const tabs = document.querySelectorAll('.tab');
+
+      let searchTimeout;
+      let activeTab = 'users';
+
+      // === ПЕРЕКЛЮЧЕНИЕ ТАБОВ ===
+      tabs.forEach(tab => {
+          tab.addEventListener('click', () => {
+              tabs.forEach(t => t.classList.remove('active'));
+              tab.classList.add('active');
+              activeTab = tab.dataset.tab;
+
+              document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+              document.getElementById(activeTab + '-tab').classList.add('active');
+
+              // Перезапускаем поиск для нового таба если есть запрос
+              const query = searchInput.value.trim();
+              if (query.length >= 2) performSearch(query);
+          });
+      });
+
+      // === ОЧИСТКА ===
+      clearBtn.addEventListener('click', () => {
+          searchInput.value = '';
+          clearBtn.style.display = 'none';
+          resetResults();
+      });
+
+      // === ВВОД ===
+      searchInput.addEventListener('input', (e) => {
+          const value = e.target.value.trim();
+          clearBtn.style.display = value ? 'block' : 'none';
+
+          clearTimeout(searchTimeout);
+          if (value.length >= 2) {
+              searchTimeout = setTimeout(() => performSearch(value), 300);
+          } else if (value.length === 0) {
+              resetResults();
+          }
+      });
+
+      // === ПОИСК ===
+      async function performSearch(query) {
+          loading.style.display = 'block';
+          try {
+              if (activeTab === 'users') await searchUsers(query);
+              else if (activeTab === 'posts') await searchPosts(query);
+              else if (activeTab === 'hashtags') await searchHashtags(query);
+          } catch (e) {
+              console.error('Ошибка поиска:', e);
+          } finally {
+              loading.style.display = 'none';
+          }
+      }
+
+      // === ПОИСК ПОЛЬЗОВАТЕЛЕЙ ===
+      async function searchUsers(query) {
+          const response = await fetch(`/api/profiles/search?query=${encodeURIComponent(query)}`, {
+              credentials: 'include'
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const profiles = await response.json();
+          renderUsers(profiles);
+      }
+
+      // === ПОИСК ПОСТОВ (по description) ===
+      async function searchPosts(query) {
+          const response = await fetch(`/api/posts/search?query=${encodeURIComponent(query)}`, {
+              credentials: 'include'
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const posts = await response.json();
+          renderPosts(posts);
+      }
+
+      // === ПОИСК ХЭШТЕГОВ (по тегам постов) ===
+      async function searchHashtags(query) {
+          const response = await fetch(`/api/posts/search/tags?tag=${encodeURIComponent(query)}`, {
+              credentials: 'include'
+          });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const posts = await response.json();
+          renderHashtags(posts, query);
+      }
+
+      // === РЕНДЕР ПОЛЬЗОВАТЕЛЕЙ ===
+      function renderUsers(profiles) {
+          const grid = document.getElementById('usersGrid');
+          if (!profiles?.length) {
+              grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+                  <i class="fas fa-user-slash"></i><p>Пользователи не найдены</p></div>`;
+              return;
+          }
+          grid.innerHTML = profiles.map(profile => `
+              <div class="user-card" onclick="window.location.href='/profile/${profile.userId}'">
+                  <img src="${profile.avatarUrl
+                      ? `/api/profiles/${profile.id}/avatar`
+                      : '/images/default-avatar.png'}"
+                       alt="${profile.name}"
+                       onerror="this.onerror=null;this.src='/images/default-avatar.png'">
+                  <h3>${profile.name} ${profile.surname}</h3>
+                  <p>${profile.bioDescription || ''}</p>
+                  <button onclick="event.stopPropagation()">Подписаться</button>
+              </div>
+          `).join('');
+      }
+
+      // === РЕНДЕР ПОСТОВ ===
+      function renderPosts(posts) {
+          const grid = document.getElementById('postsGrid');
+          if (!posts?.length) {
+              grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+                  <i class="fas fa-image"></i><p>Посты не найдены</p></div>`;
+              return;
+          }
+          grid.innerHTML = posts.map(post => `
+              <div class="post-item">
+                  <img src="/api/proxy/image?url=${encodeURIComponent(post.photoUrl)}"
+                       alt="Post"
+                       onerror="this.onerror=null;this.src='/images/default-avatar.png'">
+                  <div class="overlay">
+                      <span><i class="fas fa-heart"></i> ${post.reactionsCount || 0}</span>
+                      <span><i class="fas fa-comment"></i> ${post.commentsCount || 0}</span>
+                  </div>
+              </div>
+          `).join('');
+      }
+
+      // === РЕНДЕР ХЭШТЕГОВ ===
+      function renderHashtags(posts, query) {
+          const list = document.getElementById('hashtagsList');
+          if (!posts?.length) {
+              list.innerHTML = `<div class="empty-state">
+                  <i class="fas fa-hashtag"></i><p>Хэштег #${query} не найден</p></div>`;
+              return;
+          }
+
+          // Собираем все теги из постов которые содержат запрос
+          const matchingTags = new Set();
+          posts.forEach(post => {
+              (post.tags || []).forEach(tag => {
+                  if (tag.toLowerCase().includes(query.toLowerCase())) {
+                      matchingTags.add(tag);
+                  }
+              });
+          });
+
+          list.innerHTML = `
+              <div style="margin-bottom: 20px;">
+                  ${[...matchingTags].map(tag => `
+                      <div style="
+                          background: rgba(15,20,35,0.8);
+                          border: 1px solid rgba(0,212,255,0.2);
+                          border-radius: 12px;
+                          padding: 15px 20px;
+                          margin-bottom: 10px;
+                          display: flex;
+                          justify-content: space-between;
+                          align-items: center;
+                          cursor: pointer;
+                          transition: all 0.3s ease;
+                      " onmouseover="this.style.borderColor='#00d4ff'"
+                         onmouseout="this.style.borderColor='rgba(0,212,255,0.2)'"
+                         onclick="searchByTag('${tag}')">
+                          <span style="color: #00d4ff; font-weight: 600;">#${tag}</span>
+                          <span style="color: rgba(255,255,255,0.5); font-size: 13px;">
+                              ${posts.filter(p => (p.tags||[]).includes(tag)).length} постов
+                          </span>
+                      </div>
+                  `).join('')}
+              </div>
+              <div class="posts-grid" id="tagPostsGrid">
+                  ${posts.slice(0, 6).map(post => `
+                      <div class="post-item">
+                          <img src="/api/proxy/image?url=${encodeURIComponent(post.photoUrl)}"
+                               alt="Post"
+                               onerror="this.onerror=null;this.src='/images/default-avatar.png'">
+                          <div class="overlay">
+                              <span><i class="fas fa-heart"></i> ${post.reactionsCount || 0}</span>
+                          </div>
+                      </div>
+                  `).join('')}
+              </div>
+          `;
+      }
+
+      window.searchByTag = function(tag) {
+          searchInput.value = tag;
+          clearBtn.style.display = 'block';
+          performSearch(tag);
+      };
+
+      function resetResults() {
+          document.getElementById('usersGrid').innerHTML =
+              `<div class="empty-state" style="grid-column:1/-1">
+                  <i class="fas fa-user-astronaut"></i><p>Начните поиск пользователей</p></div>`;
+          document.getElementById('postsGrid').innerHTML =
+              `<div class="empty-state" style="grid-column:1/-1">
+                  <i class="fas fa-image"></i><p>Начните поиск постов</p></div>`;
+          document.getElementById('hashtagsList').innerHTML =
+              `<div class="empty-state"><i class="fas fa-hashtag"></i><p>Начните поиск хэштегов</p></div>`;
+      }
+  });
+</script>
 </body>
 </html>

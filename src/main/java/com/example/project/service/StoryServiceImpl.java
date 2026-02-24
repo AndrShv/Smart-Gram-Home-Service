@@ -270,6 +270,16 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
                     return new StoryNotFoundException("История с ID " + storyId + " не найдена");
                 });
     }
+    @Override
+    @Transactional
+    public void setAllStoriesPrivacy(UUID userId, boolean isPublic) {
+        log.info("Установка приватности историй пользователя {}: isPublic={}", userId, isPublic);
+        List<Story> stories = storyRepository.findByUserIdAndExpireAtAfterOrderByCreatedAtDesc(
+                userId, LocalDateTime.now()
+        );
+        stories.forEach(story -> story.setPublic(isPublic));
+        storyRepository.saveAll(stories);
+    }
 
     private String mapTagsToCategory(List<String> tags) {
         if (tags == null) return StoryCategory.OTHER.name();

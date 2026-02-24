@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -160,6 +161,44 @@ public class PostRestController {
 
         return ResponseEntity.ok(postDTOs);
     }
+
+
+    @PutMapping("/privacy/all")
+    public ResponseEntity<Void> setAllPostsPrivacy(@RequestParam boolean isPublic) {
+        UUID userId = getCurrentUserId();
+        log.info("REST: установка приватности постов пользователя {} -> isPublic={}", userId, isPublic);
+        postService.setAllPostsPrivacy(userId, isPublic);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/privacy/status")
+    public ResponseEntity<Map<String, Boolean>> getUserPrivacy() {
+        UUID userId = getCurrentUserId();
+        List<Post> posts = postService.getPostsByUserId(userId);
+        boolean isPrivate = !posts.isEmpty() && posts.stream().noneMatch(Post::isPublic);
+        return ResponseEntity.ok(Map.of("isPrivate", isPrivate));
+    }
+    @GetMapping("/search")
+    public ResponseEntity<List<PostDTO>> searchPosts(@RequestParam String query) {
+        String lower = query.toLowerCase();
+        List<Post> all = postService.getAllPosts();
+        List<PostDTO> result = all.stream()
+                .filter(p -> p.isPublic() && (
+                        (p.getDescription() != null && p.getDescription().toLowerCase().contains(lower)) ||
+                                (p.getTags() != null && p.getTags().stream().anyMatch(t -> t.toLowerCase().contains(lower))) ||
+                                (p.getLocation() != null && p.getLocation().toLowerCase().contains(lower))
+                ))
+                .map(postMapper::toDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/search/tags")
+    public ResponseEntity<List<PostDTO>> searchByTag(@RequestParam String tag) {
+        List<Post> posts = postService.searchByTag(tag);
+        return ResponseEntity.ok(posts.stream().map(postMapper::toDto).collect(Collectors.toList()));
+    }
+
 
 
 

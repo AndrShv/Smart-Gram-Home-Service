@@ -110,4 +110,15 @@ public class ProfileApiProxyController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @GetMapping("/api/profiles/search")
+    public ResponseEntity<?> searchProfiles(@RequestParam String query) {
+        try {
+            List<ProfileDTO> profiles = profileClient.searchProfiles(query);
+            return ResponseEntity.ok(profiles);
+        } catch (Exception e) {
+            log.error("Ошибка поиска профилей: {}", e.getMessage());
+            return ResponseEntity.status(500).build();
+        }
+    }
 }

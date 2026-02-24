@@ -19,6 +19,11 @@ public interface StoryCrudService {
 
 
     List<Story> getAllActiveStories();
+
     List<Story> getStoriesByUserId(UUID userId);
+
     Story getStoryById(UUID storyId);
+
+    void setAllStoriesPrivacy(UUID userId, boolean isPublic);
+
 }

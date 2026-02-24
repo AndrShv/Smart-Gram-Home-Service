@@ -295,6 +295,31 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
         return postReactionRepository.countByPostIdAndReaction(postId, reaction);
     }
 
+    @Override
+    @Transactional
+    public void setAllPostsPrivacy(UUID userId, boolean isPublic) {
+        log.info("Установка приватности постов пользователя {}: isPublic={}", userId, isPublic);
+        List<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        posts.forEach(post -> post.setPublic(isPublic));
+        postRepository.saveAll(posts);
+    }
+
+    public List<Post> searchPosts(String query) {
+        String lower = query.toLowerCase();
+        return postRepository.findAll().stream()
+                .filter(p -> p.isPublic() && p.getDescription() != null
+                        && p.getDescription().toLowerCase().contains(lower))
+                .collect(Collectors.toList());
+    }
+
+    public List<Post> searchByTag(String tag) {
+        String lower = tag.toLowerCase();
+        return postRepository.findAll().stream()
+                .filter(p -> p.isPublic() && p.getTags() != null
+                        && p.getTags().stream().anyMatch(t -> t.toLowerCase().contains(lower)))
+                .collect(Collectors.toList());
+    }
+
     private PostCategory mapTagsToCategory(List<String> tags) {
         if (tags == null) return PostCategory.OTHER;
         if (tags.stream().anyMatch(t -> t.contains("food") || t.contains("еда"))) return PostCategory.FOOD;
