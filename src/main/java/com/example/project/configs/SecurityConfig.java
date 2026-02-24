@@ -37,7 +37,7 @@ public class SecurityConfig {
                                 "/webjars/**",
                                 "/favicon.ico"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/profiles/*/avatar").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/proxy/**", "/api/profiles/*/avatar").permitAll()                        .requestMatchers(HttpMethod.GET, "/api/profiles/*/avatar").permitAll()
                         .requestMatchers("/api/stories/all").authenticated()
                         .requestMatchers("/stories/create").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/stories/**").authenticated()

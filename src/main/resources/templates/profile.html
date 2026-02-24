@@ -196,7 +196,6 @@
       let userId;
       let currentProfileId;
 
-      // === ПОЛУЧАЕМ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ ===
       try {
           const meResponse = await fetch('/api/auth/me', { credentials: 'include' });
           if (!meResponse.ok) { window.location.href = '/auth/login'; return; }
@@ -204,7 +203,6 @@
           userId = me.id;
           console.log('✅ userId:', userId);
       } catch (e) {
-          console.error('Ошибка auth/me:', e);
           window.location.href = '/auth/login';
           return;
       }
@@ -230,7 +228,7 @@
               currentProfileId = profile.id;
               renderProfile(profile);
           } catch (e) {
-              console.error('Ошибка загрузки профиля:', e);
+              console.error('Ошибка профиля:', e);
           }
       }
 
@@ -241,7 +239,7 @@
               const posts = await response.json();
               renderPosts(posts);
           } catch (e) {
-              console.error('Ошибка загрузки постов:', e);
+              console.error('Ошибка постов:', e);
               document.getElementById('postsGrid').innerHTML = `
                   <div class="empty-state" style="grid-column:1/-1">
                       <i class="fas fa-camera"></i><p>Постов пока нет</p>
@@ -256,23 +254,19 @@
               const stories = await response.json();
               renderStories(stories);
           } catch (e) {
-              console.error('Ошибка загрузки историй:', e);
+              console.error('Ошибка историй:', e);
           }
       }
 
       function renderProfile(profile) {
           const avatar = document.getElementById('profileAvatar');
-
-          // Используем прокси GET /api/profiles/{id}/avatar вместо прямого MinIO URL
           if (profile.avatarUrl && profile.avatarUrl !== 'null' && profile.avatarUrl !== '') {
               avatar.src = `/api/profiles/${profile.id}/avatar?t=${Date.now()}`;
           } else {
               avatar.src = '/images/default-avatar.png';
           }
-avatar.onerror = () => {
-    avatar.onerror = null; // убираем обработчик чтобы не зациклиться
-    avatar.src = '/images/default-avatar.png';
-};
+          avatar.onerror = () => { avatar.onerror = null; avatar.src = '/images/default-avatar.png'; };
+
           document.getElementById('profileUsername').textContent =
               `${profile.name.toLowerCase()}_${profile.surname.toLowerCase()}`;
           document.getElementById('profileName').textContent = `${profile.name} ${profile.surname}`;
@@ -301,13 +295,14 @@ avatar.onerror = () => {
           stories.forEach(story => {
               const el = document.createElement('div');
               el.className = 'highlight-item has-story';
+              const photoSrc = story.photoUrl
+                  ? `/api/proxy/image?url=${encodeURIComponent(story.photoUrl)}`
+                  : '/images/default-avatar.png';
               el.innerHTML = `
                   <div class="highlight-circle">
-                      <img src="${story.photoUrl || '/images/default-avatar.png'}" alt="Story"
-                           onerror="this.src='/images/default-avatar.png'">
+                      <img src="${photoSrc}" alt="Story" onerror="this.onerror=null;this.src='/images/default-avatar.png'">
                   </div>
                   <span class="highlight-name">${formatStoryTime(story.createdAt)}</span>`;
-              el.onclick = () => console.log('Открытие истории:', story);
               grid.appendChild(el);
           });
       }
@@ -316,32 +311,29 @@ avatar.onerror = () => {
           const grid = document.getElementById('postsGrid');
           grid.innerHTML = '';
           if (!posts?.length) {
-              grid.innerHTML = `
-                  <div class="empty-state" style="grid-column:1/-1">
-                      <i class="fas fa-camera"></i><p>Постов пока нет</p>
-                  </div>`;
+              grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+                  <i class="fas fa-camera"></i><p>Постов пока нет</p></div>`;
               return;
           }
           posts.forEach(post => {
               const el = document.createElement('div');
               el.className = 'post-grid-item';
+              const photoSrc = post.photoUrl
+                  ? `/api/proxy/image?url=${encodeURIComponent(post.photoUrl)}`
+                  : '/images/default-avatar.png';
               el.innerHTML = `
-                  <img src="${post.photoUrl}" alt="Post" onerror="this.src='/images/default-avatar.png'">
+                  <img src="${photoSrc}" alt="Post" onerror="this.onerror=null;this.src='/images/default-avatar.png'">
                   <div class="post-grid-overlay">
-                      <div class="overlay-stat">
-                          <i class="fas fa-heart"></i><span>${post.reactionsCount || 0}</span>
-                      </div>
-                      <div class="overlay-stat">
-                          <i class="fas fa-comment"></i><span>${post.commentsCount || 0}</span>
-                      </div>
+                      <div class="overlay-stat"><i class="fas fa-heart"></i><span>${post.reactionsCount || 0}</span></div>
+                      <div class="overlay-stat"><i class="fas fa-comment"></i><span>${post.commentsCount || 0}</span></div>
                   </div>`;
-              el.onclick = () => openPost(post);
+              el.onclick = () => openPost(post, photoSrc);
               grid.appendChild(el);
           });
       }
 
-      function openPost(post) {
-          document.getElementById('modalPostImage').src = post.photoUrl;
+      function openPost(post, photoSrc) {
+          document.getElementById('modalPostImage').src = photoSrc;
           document.getElementById('modalUserAvatar').src = document.getElementById('profileAvatar').src;
           document.getElementById('modalUsername').textContent = document.getElementById('profileUsername').textContent;
           document.getElementById('modalPostTime').textContent = formatPostTime(post.createdAt);
@@ -357,35 +349,25 @@ avatar.onerror = () => {
           const avatarEl = document.getElementById('profileAvatar');
           avatarEl.style.cursor = 'pointer';
           avatarEl.title = 'Нажми чтобы изменить фото';
-
           avatarEl.addEventListener('click', () => {
-              if (!currentProfileId) {
-                  console.error('profileId не найден');
-                  return;
-              }
+              if (!currentProfileId) { console.error('profileId не найден'); return; }
               const input = document.createElement('input');
               input.type = 'file';
               input.accept = 'image/png,image/jpeg';
               input.onchange = async (e) => {
                   const file = e.target.files[0];
                   if (!file) return;
-
                   const formData = new FormData();
                   formData.append('file', file);
-
                   try {
                       const res = await fetch(`/api/profiles/${currentProfileId}/avatar`, {
-                          method: 'POST',
-                          credentials: 'include',
-                          body: formData
+                          method: 'POST', credentials: 'include', body: formData
                       });
                       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                      // cache-bust чтобы браузер перезагрузил картинку
                       avatarEl.src = `/api/profiles/${currentProfileId}/avatar?t=${Date.now()}`;
                       console.log('✅ Аватар обновлён');
                   } catch (err) {
                       console.error('Ошибка загрузки аватара:', err);
-                      alert('Не удалось загрузить аватар. Попробуйте снова.');
                   }
               };
               input.click();
@@ -393,18 +375,14 @@ avatar.onerror = () => {
       }
 
       function formatLocation(l) {
-          return {
-              'USA': '🇺🇸 США', 'RUSSIA': '🇷🇺 Россия', 'UK': '🇬🇧 Великобритания',
-              'GERMANY': '🇩🇪 Германия', 'FRANCE': '🇫🇷 Франция', 'ITALY': '🇮🇹 Италия',
-              'SPAIN': '🇪🇸 Испания', 'CANADA': '🇨🇦 Канада', 'UKRAINE': '🇺🇦 Украина'
-          }[l] || l;
+          return {'USA':'🇺🇸 США','RUSSIA':'🇷🇺 Россия','UK':'🇬🇧 Великобритания',
+              'GERMANY':'🇩🇪 Германия','FRANCE':'🇫🇷 Франция','ITALY':'🇮🇹 Италия',
+              'SPAIN':'🇪🇸 Испания','CANADA':'🇨🇦 Канада','UKRAINE':'🇺🇦 Украина'}[l] || l;
       }
 
       function formatRelationStatus(s) {
-          return {
-              'SINGLE': 'Не женат/Не замужем', 'IN_A_RELATIONSHIP': 'В отношениях',
-              'ENGAGED': 'Помолвлен(а)', 'MARRIED': 'Женат/Замужем', 'IT_IS_COMPLICATED': 'Всё сложно'
-          }[s] || s;
+          return {'SINGLE':'Не женат/Не замужем','IN_A_RELATIONSHIP':'В отношениях',
+              'ENGAGED':'Помолвлен(а)','MARRIED':'Женат/Замужем','IT_IS_COMPLICATED':'Всё сложно'}[s] || s;
       }
 
       function calculateAge(birthDate) {
@@ -417,15 +395,15 @@ avatar.onerror = () => {
 
       function formatStoryTime(ts) {
           const diff = Math.floor((new Date() - new Date(ts)) / 3600000);
-          return diff < 1 ? 'Только что' : diff < 24 ? `${diff}ч` : `${Math.floor(diff / 24)}д`;
+          return diff < 1 ? 'Только что' : diff < 24 ? `${diff}ч` : `${Math.floor(diff/24)}д`;
       }
 
       function formatPostTime(ts) {
           const diff = Math.floor((new Date() - new Date(ts)) / 1000);
           if (diff < 60) return 'Только что';
-          if (diff < 3600) return `${Math.floor(diff / 60)} мин. назад`;
-          if (diff < 86400) return `${Math.floor(diff / 3600)} ч. назад`;
-          const d = Math.floor(diff / 86400);
+          if (diff < 3600) return `${Math.floor(diff/60)} мин. назад`;
+          if (diff < 86400) return `${Math.floor(diff/3600)} ч. назад`;
+          const d = Math.floor(diff/86400);
           return d === 1 ? 'Вчера' : d < 7 ? `${d} дней назад` : new Date(ts).toLocaleDateString('ru-RU');
       }
 

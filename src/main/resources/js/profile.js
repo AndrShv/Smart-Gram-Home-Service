@@ -30,18 +30,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
 
     // === ЗАГРУЗКА ПРОФИЛЯ ===
-    async function loadProfile(userId) {
-        try {
-            const response = await fetch(`/api/profiles/user/${userId}`, { credentials: 'include' });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const profile = await response.json();
-            console.log('✅ Профиль:', profile);
-            currentProfileId = profile.id; // сохраняем для аватара
-            renderProfile(profile);
-        } catch (e) {
-            console.error('Ошибка профиля:', e);
+    function renderProfile(profile) {
+        const avatar = document.getElementById('profileAvatar');
+
+        if (profile.avatarUrl && profile.avatarUrl !== 'null' && profile.avatarUrl !== '') {
+            avatar.src = `/api/profiles/${profile.id}/avatar?t=${Date.now()}`;
+        } else {
+            avatar.src = '/images/default-avatar.png';
         }
-    }
+        avatar.onerror = () => { avatar.onerror = null; avatar.src = '/images/default-avatar.png'; };
+        }
 
     // === ЗАГРУЗКА ПОСТОВ ===
     async function loadPosts(userId) {
@@ -107,9 +105,15 @@ document.addEventListener('DOMContentLoaded', async function () {
         stories.forEach(story => {
             const el = document.createElement('div');
             el.className = 'highlight-item has-story';
+
+            // Тоже через прокси
+            const photoSrc = story.photoUrl
+                ? `/api/proxy/image?url=${encodeURIComponent(story.photoUrl)}`
+                : '/images/default-avatar.png';
+
             el.innerHTML = `
                 <div class="highlight-circle">
-                    <img src="${story.photoUrl || '/images/default-avatar.png'}" alt="Story">
+                    <img src="${photoSrc}" alt="Story" onerror="this.onerror=null;this.src='/images/default-avatar.png'">
                 </div>
                 <span class="highlight-name">${formatStoryTime(story.createdAt)}</span>`;
             grid.appendChild(el);
@@ -117,39 +121,44 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
 
     // === РЕНДЕР ПОСТОВ ===
-    function renderPosts(posts) {
-        const grid = document.getElementById('postsGrid');
-        grid.innerHTML = '';
-        if (!posts?.length) {
-            grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-                <i class="fas fa-camera"></i><p>Постов пока нет</p></div>`;
-            return;
-        }
-        posts.forEach(post => {
-            const el = document.createElement('div');
-            el.className = 'post-grid-item';
-            el.innerHTML = `
-                <img src="${post.photoUrl}" alt="Post">
-                <div class="post-grid-overlay">
-                    <div class="overlay-stat"><i class="fas fa-heart"></i><span>${post.reactionsCount || 0}</span></div>
-                    <div class="overlay-stat"><i class="fas fa-comment"></i><span>${post.commentsCount || 0}</span></div>
-                </div>`;
-            el.onclick = () => openPost(post);
-            grid.appendChild(el);
-        });
-    }
+   function renderPosts(posts) {
+       const grid = document.getElementById('postsGrid');
+       grid.innerHTML = '';
+       if (!posts?.length) {
+           grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+               <i class="fas fa-camera"></i><p>Постов пока нет</p></div>`;
+           return;
+       }
+       posts.forEach(post => {
+           const el = document.createElement('div');
+           el.className = 'post-grid-item';
+
+           const photoSrc = post.photoUrl
+               ? `/api/proxy/image?url=${encodeURIComponent(post.photoUrl)}`
+               : '/images/default-avatar.png';
+
+           el.innerHTML = `
+               <img src="${photoSrc}" alt="Post" onerror="this.onerror=null;this.src='/images/default-avatar.png'">
+               <div class="post-grid-overlay">
+                   <div class="overlay-stat"><i class="fas fa-heart"></i><span>${post.reactionsCount || 0}</span></div>
+                   <div class="overlay-stat"><i class="fas fa-comment"></i><span>${post.commentsCount || 0}</span></div>
+               </div>`;
+           el.onclick = () => openPost(post, photoSrc);
+           grid.appendChild(el);
+       });
+   }
 
     // === ОТКРЫТИЕ ПОСТА ===
-    function openPost(post) {
-        document.getElementById('modalPostImage').src = post.photoUrl;
-        document.getElementById('modalUserAvatar').src = document.getElementById('profileAvatar').src;
-        document.getElementById('modalUsername').textContent = document.getElementById('profileUsername').textContent;
-        document.getElementById('modalPostTime').textContent = formatPostTime(post.createdAt);
-        document.getElementById('modalDescription').textContent = post.description || '';
-        document.getElementById('modalLikes').textContent = post.reactionsCount || 0;
-        document.getElementById('modalComments').textContent = post.commentsCount || 0;
-        document.getElementById('postModal').classList.add('show');
-    }
+   function openPost(post, photoSrc) {
+       document.getElementById('modalPostImage').src = photoSrc || `/api/proxy/image?url=${encodeURIComponent(post.photoUrl)}`;
+       document.getElementById('modalUserAvatar').src = document.getElementById('profileAvatar').src;
+       document.getElementById('modalUsername').textContent = document.getElementById('profileUsername').textContent;
+       document.getElementById('modalPostTime').textContent = formatPostTime(post.createdAt);
+       document.getElementById('modalDescription').textContent = post.description || '';
+       document.getElementById('modalLikes').textContent = post.reactionsCount || 0;
+       document.getElementById('modalComments').textContent = post.commentsCount || 0;
+       document.getElementById('postModal').classList.add('show');
+   }
 
     window.closePostModal = () => document.getElementById('postModal').classList.remove('show');
 
