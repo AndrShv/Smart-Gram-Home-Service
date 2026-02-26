@@ -1,8 +1,7 @@
 package com.example.project.rest;
 
-import com.example.project.dto.PostDTO;
-import com.example.project.dto.PostCreateRequestDTO;
-import com.example.project.dto.PostReactionRequestDTO;
+import com.example.project.dto.post.PostDTO;
+import com.example.project.dto.reaction.PostReactionRequestDTO;
 import com.example.project.entity.Post;
 import com.example.project.enums.Reactions;
 import com.example.project.exceptions.PostNotFoundException;
@@ -20,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +29,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;

@@ -1,8 +1,7 @@
 package com.example.project.rest;
 
-import com.example.project.dto.PostCreateRequestDTO;
-import com.example.project.dto.PostDTO;
-import com.example.project.dto.PostReactionRequestDTO;
+import com.example.project.dto.post.PostDTO;
+import com.example.project.dto.reaction.PostReactionRequestDTO;
 import com.example.project.entity.Post;
 import com.example.project.exceptions.UnauthorizedException;
 import com.example.project.interfaces.PostCrudService;

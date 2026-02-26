@@ -3,17 +3,15 @@ package com.example.project.proxy;
 import com.example.project.clients.AuthClient;
 import com.example.project.clients.ProfileClient;
 import com.example.project.clients.SubscriptionClient;
-import com.example.project.dto.PostDTO;
-import com.example.project.dto.ProfileDTO;
-import com.example.project.dto.StoryDTO;
-import com.example.project.dto.UserResponseDTO;
+import com.example.project.dto.profile.ProfileDTO;
+import com.example.project.dto.profile.SubscriberDTO;
+import com.example.project.dto.user.UserResponseDTO;
 import io.minio.MinioClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -141,6 +139,17 @@ public class ProfileApiProxyController {
         } catch (Exception e) {
             log.error("Ошибка получения подписок: {}", e.getMessage());
             return ResponseEntity.ok(0L);
+        }
+    }
+
+
+    @GetMapping("/api/subscriptions/{userId}/followers")
+    public ResponseEntity<List<SubscriberDTO>> getFollowers(@PathVariable UUID userId) {
+        try {
+            return ResponseEntity.ok(subscriptionClient.getFollowers(userId));
+        } catch (Exception e) {
+            log.error("Ошибка получения подписчиков: {}", e.getMessage());
+            return ResponseEntity.ok(List.of());
         }
     }
 }

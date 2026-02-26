@@ -1,11 +1,10 @@
 package com.example.project.clients;
 
 
-import com.example.project.configs.FeignClientInterceptor;
 import com.example.project.configs.FeignConfig;
-import com.example.project.dto.PostDTO;
-import com.example.project.dto.ProfileDTO;
-import com.example.project.dto.StoryDTO;
+import com.example.project.dto.post.PostDTO;
+import com.example.project.dto.profile.ProfileDTO;
+import com.example.project.dto.story.StoryDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;

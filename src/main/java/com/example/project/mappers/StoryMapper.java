@@ -1,6 +1,6 @@
 package com.example.project.mappers;
 
-import com.example.project.dto.StoryDTO;
+import com.example.project.dto.story.StoryDTO;
 import com.example.project.entity.Story;
 import org.mapstruct.*;
 

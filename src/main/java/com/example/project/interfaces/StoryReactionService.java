@@ -1,6 +1,6 @@
 package com.example.project.interfaces;
 
-import com.example.project.dto.StoryReactionCountDTO;
+import com.example.project.dto.count.StoryReactionCountDTO;
 import com.example.project.enums.Reactions;
 
 import java.util.List;

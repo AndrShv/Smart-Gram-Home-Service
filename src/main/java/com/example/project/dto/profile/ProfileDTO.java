@@ -1,18 +1,15 @@
-package com.example.project.dto;
+package com.example.project.dto.profile;
 
 
 import com.example.project.enums.Genders;
 import com.example.project.enums.RelationsStatus;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.catalina.mbeans.SparseUserDatabaseMBean;
 
-import java.util.List;
 @Data
 @Builder
 @NoArgsConstructor

@@ -1,4 +1,5 @@
-package com.example.project.dto;
+package com.example.project.dto.profile;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,9 +12,9 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SubscriptionDTO {
+public class SubscriberDTO {
     private UUID id;
-    private UUID ownerUserId;
-    private UUID followingUserId;
+    private UUID targetUserId;
+    private UUID subscriberUserId;
     private LocalDateTime createdAt;
 }

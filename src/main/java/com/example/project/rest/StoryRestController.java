@@ -1,10 +1,9 @@
 package com.example.project.rest;
 
-import com.example.project.dto.StoryDTO;
-import com.example.project.dto.StoryReactionCountDTO;
-import com.example.project.dto.StoryReactionRequestDTO;
+import com.example.project.dto.story.StoryDTO;
+import com.example.project.dto.count.StoryReactionCountDTO;
+import com.example.project.dto.reaction.StoryReactionRequestDTO;
 import com.example.project.entity.Story;
-import com.example.project.interfaces.StoryCrudService;
 import com.example.project.mappers.StoryMapper;
 import com.example.project.service.MinioService;
 import com.example.project.service.StoryServiceImpl;

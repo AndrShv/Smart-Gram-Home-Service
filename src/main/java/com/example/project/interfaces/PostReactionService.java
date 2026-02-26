@@ -1,6 +1,6 @@
 package com.example.project.interfaces;
 
-import com.example.project.dto.PostReactionCountDTO;
+import com.example.project.dto.count.PostReactionCountDTO;
 import com.example.project.entity.PostReaction;
 import com.example.project.enums.Reactions;
 

@@ -1,13 +1,12 @@
 package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
-import com.example.project.dto.StoryDTO;
-import com.example.project.dto.StoryReactionCountDTO;
-import com.example.project.dto.UserResponseDTO;
+import com.example.project.dto.story.StoryDTO;
+import com.example.project.dto.count.StoryReactionCountDTO;
+import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Story;
 import com.example.project.entity.StoryReaction;
 import com.example.project.entity.StoryViewer;
-import com.example.project.enums.PostCategory;
 import com.example.project.enums.Reactions;
 import com.example.project.enums.StoryCategory;
 import com.example.project.enums.StoryMood;
@@ -23,7 +22,6 @@ import com.example.project.repository.StoryViewerRepository;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;

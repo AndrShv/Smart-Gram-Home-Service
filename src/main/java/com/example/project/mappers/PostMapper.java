@@ -1,6 +1,7 @@
 package com.example.project.mappers;
 
-import com.example.project.dto.*;
+import com.example.project.dto.post.PostDTO;
+import com.example.project.dto.post.PostDetailsDTO;
 import com.example.project.entity.Post;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

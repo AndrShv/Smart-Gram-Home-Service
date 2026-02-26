@@ -1,13 +1,12 @@
 package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
-import com.example.project.dto.PostDTO;
-import com.example.project.dto.UserResponseDTO;
+import com.example.project.dto.post.PostDTO;
+import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Post;
 import com.example.project.entity.PostReaction;
 import com.example.project.enums.Reactions;
 import com.example.project.exceptions.PostNotFoundException;
-import com.example.project.exceptions.ReactionNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
 import com.example.project.repository.PostReactionRepository;
 import com.example.project.repository.PostRepository;

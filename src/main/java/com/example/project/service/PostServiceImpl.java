@@ -1,16 +1,20 @@
 package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
-import com.example.project.dto.PostDTO;
-import com.example.project.dto.PostReactionCountDTO;
-import com.example.project.dto.UserResponseDTO;
+import com.example.project.clients.SubscriptionClient;
+import com.example.project.dto.post.PostDTO;
+import com.example.project.dto.count.PostReactionCountDTO;
+import com.example.project.dto.profile.SubscriberDTO;
+import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Post;
 import com.example.project.entity.PostReaction;
 import com.example.project.enums.PostCategory;
 import com.example.project.enums.PostMood;
 import com.example.project.enums.Reactions;
+import com.example.project.event.PostCreatingNotifications;
 import com.example.project.exceptions.PostNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
+import com.example.project.interfaces.PostCreatingEventProducer;
 import com.example.project.interfaces.PostCrudService;
 import com.example.project.interfaces.PostReactionService;
 import com.example.project.repository.PostReactionRepository;
@@ -35,9 +39,11 @@ import java.util.stream.Collectors;
 public class PostServiceImpl implements PostCrudService, PostReactionService {
 
     private final AuthClient authClient;
+    private final SubscriptionClient subscriptionClient;
     private final PostRepository postRepository;
     private final PostReactionRepository postReactionRepository;
     private final ImaggaServiceImpl imaggaService;
+    private final PostCreatingEventProducer postCreatingEventProducer;
 
 
     // ============================================
@@ -54,7 +60,6 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
         if (auth == null || !auth.isAuthenticated()) {
             throw new UnauthorizedException("JWT истёк");
         }
-
 
 
         UserResponseDTO currentUser = authClient.getCurrentUser();
@@ -104,7 +109,24 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
                 .comments(new ArrayList<>())
                 .build();
 
+
+        List<UUID> subscriberIds = subscriptionClient.getFollowers(UUID.fromString(currentUser.getId()))
+                .stream()
+                .map(SubscriberDTO::getSubscriberUserId)
+                .toList();
+
+        PostCreatingNotifications notifications = PostCreatingNotifications.builder()
+                .userId(UUID.fromString(currentUser.getId()))
+                .postId(postToSave.getId())
+                .username(currentUser.getUsername())
+                .createdAt(postToSave.getCreatedAt())
+                .subscriberUserId(subscriberIds)
+                .build();
+
+
         postRepository.save(postToSave);
+        postCreatingEventProducer.sendPostCreatingEvent(notifications);
+
         log.info("Пост успешно сохранён с ID: {}", postToSave.getId());
         return postToSave;
     }

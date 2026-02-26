@@ -1,7 +1,7 @@
 package com.example.project.mappers;
 
-import com.example.project.dto.CommentDTO;
-import com.example.project.dto.CreateCommentRequestDTO;
+import com.example.project.dto.comment.CommentDTO;
+import com.example.project.dto.comment.CreateCommentRequestDTO;
 import com.example.project.entity.Comment;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
