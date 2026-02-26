@@ -48,4 +48,6 @@ public interface ProfileClient {
     List<ProfileDTO> searchProfiles(@RequestParam("query") String query);
 
 
+
+
 }

@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.catalina.mbeans.SparseUserDatabaseMBean;
 
 import java.util.List;
 @Data
@@ -43,10 +44,10 @@ public class ProfileDTO {
 
     private String avatarUrl;
     private Genders gender;
-    private int followersIds;
-    private int followingIds;
-    private int postsIds;
 
 
+    private long postsCount;
+    private long followersCount;
+    private long followingsCount;
 }
 

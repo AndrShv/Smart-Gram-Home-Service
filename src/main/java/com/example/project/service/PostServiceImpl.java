@@ -260,14 +260,12 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
 
         List<PostReaction> reactions = postReactionRepository.findByPostId(postId);
 
-        // Группировка по типу реакции и подсчёт
         Map<Reactions, Long> stats = reactions.stream()
                 .collect(Collectors.groupingBy(
                         PostReaction::getReaction,
                         Collectors.counting()
                 ));
 
-        // Преобразование в DTO
         return stats.entrySet().stream()
                 .map(entry -> PostReactionCountDTO.builder()
                         .reaction(entry.getKey())

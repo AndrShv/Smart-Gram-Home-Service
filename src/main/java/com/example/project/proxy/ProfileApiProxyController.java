@@ -2,6 +2,7 @@ package com.example.project.proxy;
 
 import com.example.project.clients.AuthClient;
 import com.example.project.clients.ProfileClient;
+import com.example.project.clients.SubscriptionClient;
 import com.example.project.dto.PostDTO;
 import com.example.project.dto.ProfileDTO;
 import com.example.project.dto.StoryDTO;
@@ -26,6 +27,7 @@ public class ProfileApiProxyController {
 
     private final AuthClient authClient;
     private final ProfileClient profileClient;
+    private final SubscriptionClient subscriptionClient;
     private final MinioClient minioClient;
 
 
@@ -119,6 +121,26 @@ public class ProfileApiProxyController {
         } catch (Exception e) {
             log.error("Ошибка поиска профилей: {}", e.getMessage());
             return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/api/subscriptions/{userId}/followers/count")
+    public ResponseEntity<Long> getFollowersCount(@PathVariable UUID userId) {
+        try {
+            return ResponseEntity.ok(subscriptionClient.getFollowersCount(userId));
+        } catch (Exception e) {
+            log.error("Ошибка получения подписчиков: {}", e.getMessage());
+            return ResponseEntity.ok(0L);
+        }
+    }
+
+    @GetMapping("/api/subscriptions/{userId}/followings/count")
+    public ResponseEntity<Long> getFollowingsCount(@PathVariable UUID userId) {
+        try {
+            return ResponseEntity.ok(subscriptionClient.getFollowingsCount(userId));
+        } catch (Exception e) {
+            log.error("Ошибка получения подписок: {}", e.getMessage());
+            return ResponseEntity.ok(0L);
         }
     }
 }
