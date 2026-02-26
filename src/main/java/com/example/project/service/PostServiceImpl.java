@@ -125,7 +125,11 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
 
 
         postRepository.save(postToSave);
+
+        log.info("Пост сохранён в базе данных, отправляем событие в RabbitMQ для уведомлений");
         postCreatingEventProducer.sendPostCreatingEvent(notifications);
+
+        log.info("Событие для уведомлений о новом посте успешно отправлено в RabbitMQ");
 
         log.info("Пост успешно сохранён с ID: {}", postToSave.getId());
         return postToSave;
