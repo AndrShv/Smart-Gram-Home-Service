@@ -14,12 +14,12 @@ import org.springframework.stereotype.Service;
 @Getter
 @Setter
 public class PostCreatingEventProducerImpl implements PostCreatingEventProducer {
-    private final TopicExchange homeExchange;
+    private final TopicExchange profileExchange;
 
     private final RabbitTemplate rabbitTemplate;
 
         public void sendPostCreatingEvent(PostCreatingNotifications event) {
-            String routingKey = "home.created";
-            rabbitTemplate.convertAndSend(homeExchange.getName(), routingKey, event);
+            String routingKey = "profile.post.created";
+            rabbitTemplate.convertAndSend(profileExchange.getName(), routingKey, event);
         }
 }

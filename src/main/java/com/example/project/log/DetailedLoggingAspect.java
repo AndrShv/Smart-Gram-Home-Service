@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Map;
 
 @Aspect
 @Component
@@ -157,5 +159,22 @@ public class DetailedLoggingAspect {
                 || obj instanceof Boolean
                 || obj instanceof Character
                 || obj.getClass().isPrimitive();
+    }
+    private void logValue(String indent, String paramName, Object arg) {
+        if (arg == null) {
+            log.info("{}│   • {} = null", indent, paramName);
+        } else if (arg instanceof byte[]) {
+            log.info("{}│   • {} = byte[{}] (скрыто)", indent, paramName, ((byte[]) arg).length);
+        } else if (arg instanceof Collection<?> collection) {
+            log.info("{}│   • {} = {} элементов (скрыто)", indent, paramName, collection.size());
+        } else if (arg instanceof Map<?, ?> map) {
+            log.info("{}│   • {} = {} элементов (скрыто)", indent, paramName, map.size());
+        } else if (isSensitiveData(paramName, arg)) {
+            log.info("{}│   • {} = [PROTECTED]", indent, paramName);
+        } else if (isSimpleType(arg)) {
+            log.info("{}│   • {} = {}", indent, paramName, arg);
+        } else {
+            log.info("{}│   • {} = {} {}", indent, paramName, arg.getClass().getSimpleName(), arg);
+        }
     }
 }
