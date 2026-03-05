@@ -4,734 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartGram - Главная</title>
-    <link rel="stylesheet" th:href="@{/css/home.css}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <style>
-        * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    min-height: 100vh;
-    background: #090a0f;
-    color: #fff;
-    overflow-x: hidden;
-    padding-bottom: 80px;
-}
-
-/* ============================================
-   КОСМИЧЕСКИЙ ФОН
-   ============================================ */
-
-.space-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
-    z-index: -1;
-}
-
-.stars,
-.stars2,
-.stars3 {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: transparent;
-}
-
-.stars {
-    background-image:
-        radial-gradient(2px 2px at 20px 30px, #eee, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 60px 70px, #fff, rgba(0,0,0,0)),
-        radial-gradient(1px 1px at 50px 50px, #fff, rgba(0,0,0,0)),
-        radial-gradient(1px 1px at 130px 80px, #fff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 90px 10px, #fff, rgba(0,0,0,0));
-    background-repeat: repeat;
-    background-size: 200px 200px;
-    animation: twinkle 5s ease-in-out infinite;
-}
-
-.stars2 {
-    background-image:
-        radial-gradient(1px 1px at 40px 60px, #fff, rgba(0,0,0,0)),
-        radial-gradient(1px 1px at 110px 90px, #fff, rgba(0,0,0,0)),
-        radial-gradient(1px 1px at 150px 30px, #fff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 70px 120px, #fff, rgba(0,0,0,0));
-    background-repeat: repeat;
-    background-size: 250px 250px;
-    animation: twinkle 7s ease-in-out infinite reverse;
-}
-
-.stars3 {
-    background-image:
-        radial-gradient(1px 1px at 80px 10px, #fff, rgba(0,0,0,0)),
-        radial-gradient(1px 1px at 160px 70px, #fff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 40px 100px, #fff, rgba(0,0,0,0));
-    background-repeat: repeat;
-    background-size: 300px 300px;
-    animation: twinkle 10s ease-in-out infinite;
-}
-
-@keyframes twinkle {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-/* ============================================
-   ВЕРХНЯЯ ПАНЕЛЬ
-   ============================================ */
-
-.top-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: rgba(15, 20, 35, 0.95);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(0, 212, 255, 0.2);
-    z-index: 100;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.top-bar-content {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 24px;
-    font-weight: 900;
-    background: linear-gradient(135deg, #00d4ff, #7b2ff7);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.logo i {
-    color: #00d4ff;
-    font-size: 28px;
-    animation: rocket-float 3s ease-in-out infinite;
-}
-
-@keyframes rocket-float {
-    0%, 100% { transform: translateY(0) rotate(-5deg); }
-    50% { transform: translateY(-5px) rotate(5deg); }
-}
-
-.icon-btn {
-    position: relative;
-    background: rgba(0, 212, 255, 0.1);
-    border: 2px solid rgba(0, 212, 255, 0.3);
-    border-radius: 12px;
-    padding: 10px 14px;
-    color: #00d4ff;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.icon-btn:hover {
-    background: rgba(0, 212, 255, 0.2);
-    border-color: #00d4ff;
-    transform: translateY(-2px);
-}
-
-.icon-btn i {
-    font-size: 20px;
-}
-
-.badge {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: linear-gradient(135deg, #f107a3, #ff4757);
-    color: white;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 7px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(241, 7, 163, 0.5);
-}
-
-/* ============================================
-   ОСНОВНОЙ КОНТЕНТ
-   ============================================ */
-
-.main-content {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 80px 20px 20px;
-}
-
-/* ============================================
-   СЕКЦИЯ ИСТОРИЙ
-   ============================================ */
-
-.stories-section {
-    margin-bottom: 30px;
-    background: rgba(15, 20, 35, 0.6);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 20px;
-    border: 1px solid rgba(0, 212, 255, 0.2);
-}
-
-.stories-container {
-    display: flex;
-    gap: 15px;
-    overflow-x: auto;
-    padding-bottom: 10px;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 212, 255, 0.3) transparent;
-}
-
-.stories-container::-webkit-scrollbar {
-    height: 6px;
-}
-
-.stories-container::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
-}
-
-.stories-container::-webkit-scrollbar-thumb {
-    background: rgba(0, 212, 255, 0.3);
-    border-radius: 3px;
-}
-
-.stories-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 212, 255, 0.5);
-}
-
-.story-item {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    transition: transform 0.3s ease;
-}
-
-.story-item:hover {
-    transform: translateY(-5px);
-}
-
-.story-avatar {
-    width: 70px;
-    height: 70px;
-    border-radius: 50%;
-    padding: 3px;
-    background: linear-gradient(135deg, #00d4ff, #f107a3, #7b2ff7);
-    position: relative;
-}
-
-.story-avatar.no-story {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.story-avatar img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid #1b2735;
-}
-
-.add-avatar {
-    background: linear-gradient(135deg, #00d4ff, #7b2ff7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.add-avatar i {
-    font-size: 24px;
-    color: white;
-}
-
-.story-username {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.9);
-    max-width: 70px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    text-align: center;
-}
-
-/* ============================================
-   ЛЕНТА ПОСТОВ
-   ============================================ */
-
-.feed-section {
-    min-height: 400px;
-}
-
-.posts-container {
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-}
-
-.loading-posts {
-    text-align: center;
-    padding: 60px 20px;
-    color: rgba(255, 255, 255, 0.6);
-}
-
-.spinner-orbit {
-    width: 60px;
-    height: 60px;
-    position: relative;
-    margin: 0 auto 20px;
-}
-
-.spinner-planet {
-    width: 20px;
-    height: 20px;
-    background: linear-gradient(135deg, #00d4ff, #7b2ff7);
-    border-radius: 50%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform-origin: 0 0;
-    animation: spinner-orbit 1.5s linear infinite;
-    box-shadow:
-        0 0 20px rgba(0, 212, 255, 0.8),
-        0 0 40px rgba(123, 47, 247, 0.6);
-}
-
-@keyframes spinner-orbit {
-    from {
-        transform: rotate(0deg) translateX(30px) rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg) translateX(30px) rotate(-360deg);
-    }
-}
-
-/* ============================================
-   КАРТОЧКА ПОСТА
-   ============================================ */
-
-.post-card {
-    background: rgba(15, 20, 35, 0.8);
-    backdrop-filter: blur(15px);
-    border-radius: 20px;
-    border: 1px solid rgba(0, 212, 255, 0.2);
-    overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.post-card:hover {
-    border-color: rgba(0, 212, 255, 0.4);
-    box-shadow: 0 10px 30px rgba(0, 212, 255, 0.2);
-}
-
-.post-header {
-    padding: 15px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.post-author {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    transition: opacity 0.3s ease;
-}
-
-.post-author:hover {
-    opacity: 0.8;
-}
-
-.post-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(0, 212, 255, 0.3);
-}
-
-.post-author-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.post-author-name {
-    font-size: 14px;
-    font-weight: 700;
-    color: #fff;
-}
-
-.post-time {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.follow-btn {
-    background: linear-gradient(135deg, #00d4ff, #7b2ff7);
-    border: none;
-    padding: 8px 20px;
-    border-radius: 8px;
-    color: white;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.follow-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
-}
-
-.follow-btn.following {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(0, 212, 255, 0.3);
-}
-
-.post-image {
-    width: 100%;
-    max-height: 600px;
-    object-fit: cover;
-    display: block;
-}
-
-.post-content {
-    padding: 15px 20px;
-}
-
-.post-description {
-    font-size: 14px;
-    line-height: 1.5;
-    color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 15px;
-}
-
-.post-actions {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 10px 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.action-btn {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.7);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    position: relative;
-}
-
-.action-btn:hover {
-    color: #00d4ff;
-    transform: scale(1.1);
-}
-
-.action-btn i {
-    font-size: 20px;
-}
-
-.action-btn.liked {
-    color: #ff4757;
-}
-
-.action-btn.liked i {
-    animation: heart-beat 0.5s ease;
-}
-
-@keyframes heart-beat {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.3); }
-}
-
-.action-count {
-    font-size: 13px;
-    font-weight: 600;
-}
-
-/* Панель реакций */
-.reactions-panel {
-    position: fixed;
-    bottom: -100px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(15, 20, 35, 0.95);
-    backdrop-filter: blur(20px);
-    border: 2px solid rgba(0, 212, 255, 0.3);
-    border-radius: 50px;
-    padding: 12px 20px;
-    display: flex;
-    gap: 15px;
-    z-index: 1000;
-    transition: bottom 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-}
-
-.reactions-panel.show {
-    bottom: 100px;
-}
-
-.reaction-option {
-    background: none;
-    border: none;
-    font-size: 28px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    filter: grayscale(100%);
-    opacity: 0.7;
-}
-
-.reaction-option:hover {
-    transform: scale(1.3);
-    filter: grayscale(0%);
-    opacity: 1;
-}
-
-.reaction-option[data-reaction="LIKE"] { color: #ff4757; }
-.reaction-option[data-reaction="FIRE"] { color: #ff6348; }
-.reaction-option[data-reaction="WOW"] { color: #ffd32a; }
-.reaction-option[data-reaction="LAUGH"] { color: #00d2d3; }
-.reaction-option[data-reaction="SAD"] { color: #5f27cd; }
-.reaction-option[data-reaction="ANGRY"] { color: #ff4757; }
-
-/* ============================================
-   НИЖНЯЯ НАВИГАЦИЯ
-   ============================================ */
-
-.bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(15, 20, 35, 0.95);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(0, 212, 255, 0.2);
-    display: flex;
-    justify-content: space-around;
-    padding: 12px 0;
-    z-index: 100;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    color: rgba(255, 255, 255, 0.6);
-    text-decoration: none;
-    font-size: 12px;
-    transition: all 0.3s ease;
-    padding: 8px 15px;
-    border-radius: 12px;
-}
-
-.nav-item i {
-    font-size: 22px;
-}
-
-.nav-item:hover,
-.nav-item.active {
-    color: #00d4ff;
-}
-
-.nav-item.active {
-    background: rgba(0, 212, 255, 0.1);
-}
-
-/* ============================================
-   МОДАЛЬНОЕ ОКНО ИСТОРИИ
-   ============================================ */
-
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.95);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal.show {
-    display: flex;
-}
-
-.story-viewer {
-    position: relative;
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    background: #000;
-    border-radius: 20px;
-    overflow: hidden;
-}
-
-.close-story {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.5);
-    border: none;
-    color: white;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-
-.close-story:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: rotate(90deg);
-}
-
-.story-progress {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.3);
-    z-index: 10;
-}
-
-.progress-bar {
-    height: 100%;
-    background: #00d4ff;
-    width: 0%;
-    transition: width 0.1s linear;
-}
-
-.story-header {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    z-index: 10;
-}
-
-.story-avatar-img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px solid #00d4ff;
-}
-
-.story-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.story-username-modal {
-    font-size: 14px;
-    font-weight: 700;
-    color: white;
-}
-
-.story-time {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.story-image {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    background: #000;
-}
-
-.story-reactions {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 20px;
-    z-index: 10;
-}
-
-.reaction-btn {
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.reaction-btn:hover {
-    transform: scale(1.2);
-    border-color: #00d4ff;
-}
-
-/* ============================================
-   АДАПТИВ
-   ============================================ */
-
-@media (max-width: 768px) {
-    .main-content {
-        padding: 70px 10px 20px;
-    }
-
-    .post-card {
-        border-radius: 15px;
-    }
-
-    .story-avatar {
-        width: 60px;
-        height: 60px;
-    }
-
-    .story-username {
-        font-size: 11px;
-        max-width: 60px;
-    }
-}
-    </style>
+    <link rel="stylesheet" th:href="@{/css/home.css}">
 </head>
 <body>
-<!-- Космический фон -->
 <div class="space-background">
     <div class="stars"></div>
     <div class="stars2"></div>
@@ -745,9 +21,8 @@ body {
             <i class="fas fa-rocket"></i>
             <span>SmartGram</span>
         </div>
-
         <div class="header-actions">
-            <button class="icon-btn notifications-btn" id="notificationsBtn">
+            <button class="icon-btn" id="notificationsBtn">
                 <i class="fas fa-bell"></i>
                 <span class="badge" id="notificationsBadge">3</span>
             </button>
@@ -757,29 +32,25 @@ body {
 
 <!-- Основной контент -->
 <main class="main-content">
-    <!-- Секция историй -->
     <section class="stories-section">
         <div class="stories-container" id="storiesContainer">
-            <!-- Добавить свою историю -->
-            <div class="story-item add-story" id="addStoryBtn">
-                <div class="story-avatar add-avatar">
-                    <i class="fas fa-plus"></i>
+            <!-- Кнопка "добавить историю" — всегда первая -->
+            <div class="story-item" id="addStoryBtn">
+                <div class="story-avatar-wrap">
+                    <div class="story-avatar add-avatar">
+                        <i class="fas fa-plus"></i>
+                    </div>
                 </div>
                 <span class="story-username">Ваша история</span>
             </div>
-
-            <!-- Истории пользователей (будут загружены динамически) -->
+            <!-- Остальные истории загружаются динамически -->
         </div>
     </section>
 
-    <!-- Лента постов -->
     <section class="feed-section">
         <div class="posts-container" id="postsContainer">
-            <!-- Посты будут загружены динамически -->
             <div class="loading-posts">
-                <div class="spinner-orbit">
-                    <div class="spinner-planet"></div>
-                </div>
+                <div class="spinner-orbit"><div class="spinner-planet"></div></div>
                 <p>Загрузка постов...</p>
             </div>
         </div>
@@ -788,39 +59,18 @@ body {
 
 <!-- Нижняя навигация -->
 <nav class="bottom-nav">
-    <a href="/home" class="nav-item active">
-        <i class="fas fa-home"></i>
-        <span>Главная</span>
-    </a>
-    <a href="/search" class="nav-item">
-        <i class="fas fa-search"></i>
-        <span>Поиск</span>
-    </a>
-    <a href="/messages" class="nav-item">
-        <i class="fas fa-comment-dots"></i>
-        <span>Сообщения</span>
-    </a>
-    <a href="/profile" class="nav-item">
-        <i class="fas fa-user"></i>
-        <span>Профиль</span>
-    </a>
-    <a href="/settings" class="nav-item">
-        <i class="fas fa-cog"></i>
-        <span>Настройки</span>
-    </a>
+    <a href="/home"     class="nav-item active"><i class="fas fa-home"></i><span>Главная</span></a>
+    <a href="/search"   class="nav-item"><i class="fas fa-search"></i><span>Поиск</span></a>
+    <a href="/messages" class="nav-item"><i class="fas fa-comment-dots"></i><span>Сообщения</span></a>
+    <a href="/profile"  class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
+    <a href="/settings" class="nav-item"><i class="fas fa-cog"></i><span>Настройки</span></a>
 </nav>
 
-<!-- Модальное окно для просмотра истории -->
+<!-- Модалка просмотра истории -->
 <div class="modal story-modal" id="storyModal">
     <div class="story-viewer">
-        <button class="close-story" id="closeStory">
-            <i class="fas fa-times"></i>
-        </button>
-
-        <div class="story-progress">
-            <div class="progress-bar" id="storyProgress"></div>
-        </div>
-
+        <button class="close-story" id="closeStory"><i class="fas fa-times"></i></button>
+        <div class="story-progress"><div class="progress-bar" id="storyProgress"></div></div>
         <div class="story-header">
             <img class="story-avatar-img" id="storyAvatarImg" alt="Avatar">
             <div class="story-info">
@@ -828,9 +78,7 @@ body {
                 <span class="story-time" id="storyTime"></span>
             </div>
         </div>
-
         <img class="story-image" id="storyImage" alt="Story">
-
         <div class="story-reactions">
             <button class="reaction-btn" data-reaction="LIKE"><i class="fas fa-heart"></i></button>
             <button class="reaction-btn" data-reaction="FIRE"><i class="fas fa-fire"></i></button>
@@ -840,405 +88,373 @@ body {
     </div>
 </div>
 
-<!-- Модальное окно панели реакций -->
+<!-- Панель реакций на пост -->
 <div class="reactions-panel" id="reactionsPanel">
-    <button class="reaction-option" data-reaction="LIKE">
-        <i class="fas fa-heart"></i>
-    </button>
-    <button class="reaction-option" data-reaction="FIRE">
-        <i class="fas fa-fire"></i>
-    </button>
-    <button class="reaction-option" data-reaction="WOW">
-        <i class="fas fa-surprise"></i>
-    </button>
-    <button class="reaction-option" data-reaction="LAUGH">
-        <i class="fas fa-laugh"></i>
-    </button>
-    <button class="reaction-option" data-reaction="SAD">
-        <i class="fas fa-sad-tear"></i>
-    </button>
-    <button class="reaction-option" data-reaction="ANGRY">
-        <i class="fas fa-angry"></i>
-    </button>
+    <button class="reaction-option" data-reaction="LIKE"><i class="fas fa-heart"></i></button>
+    <button class="reaction-option" data-reaction="FIRE"><i class="fas fa-fire"></i></button>
+    <button class="reaction-option" data-reaction="WOW"><i class="fas fa-surprise"></i></button>
+    <button class="reaction-option" data-reaction="LAUGH"><i class="fas fa-laugh"></i></button>
+    <button class="reaction-option" data-reaction="SAD"><i class="fas fa-sad-tear"></i></button>
+    <button class="reaction-option" data-reaction="ANGRY"><i class="fas fa-angry"></i></button>
 </div>
 
-<!-- JS -->
-<script th:src="@{/js/home.js}"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 SmartGram загружен');
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('🚀 SmartGram загружен');
 
-    // Элементы
-    const storiesContainer = document.getElementById('storiesContainer');
-    const postsContainer = document.getElementById('postsContainer');
-    const addStoryBtn = document.getElementById('addStoryBtn');
-    const storyModal = document.getElementById('storyModal');
-    const closeStory = document.getElementById('closeStory');
-    const reactionsPanel = document.getElementById('reactionsPanel');
+        const storiesContainer = document.getElementById('storiesContainer');
+        const postsContainer   = document.getElementById('postsContainer');
+        const addStoryBtn      = document.getElementById('addStoryBtn');
+        const storyModal       = document.getElementById('storyModal');
+        const closeStoryBtn    = document.getElementById('closeStory');
+        const reactionsPanel   = document.getElementById('reactionsPanel');
 
-    // Данные пользователя
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-    const userId = userData.id;
-    const token = localStorage.getItem('token');
+        let myUserId     = null;
+        let followingIds = new Set();
+        let storyTimer   = null;
 
-    // Загрузка историй и постов
-    loadStories();
-    loadPosts();
-
-    // === ЗАГРУЗКА ИСТОРИЙ ===
-    async function loadStories() {
-        try {
-            const response = await fetch('/api/stories', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+        // ─────────────────────────────────────────
+        // ИНИЦИАЛИЗАЦИЯ — сначала получаем себя
+        // ─────────────────────────────────────────
+        (async function init() {
+            try {
+                const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+                if (meRes.ok) {
+                    const me = await meRes.json();
+                    myUserId = me.id || me.userId;
                 }
+            } catch (e) { console.warn('Не удалось получить текущего пользователя', e); }
+
+            // Загружаем подписки
+            if (myUserId) {
+                try {
+                    const fRes = await fetch(`/api/profiles/user/${myUserId}/followings`, { credentials: 'include' });
+                    if (fRes.ok) {
+                        const list = await fRes.json();
+                        list.forEach(f => followingIds.add(String(f.userId || f.id)));
+                    }
+                } catch (e) { console.warn('Не удалось загрузить подписки', e); }
+            }
+
+            loadStories();
+            loadPosts();
+        })();
+
+        // ─────────────────────────────────────────
+        // ИСТОРИИ
+        // ─────────────────────────────────────────
+        async function loadStories() {
+            try {
+                const res = await fetch('/api/stories', { credentials: 'include' });
+                if (!res.ok) { console.error('Ошибка загрузки историй'); return; }
+                const stories = await res.json();
+                renderStories(stories);
+            } catch (e) { console.error('Ошибка историй:', e); }
+        }
+
+        function renderStories(stories) {
+            // Группируем по userId
+            const byUser = {};
+            stories.forEach(s => {
+                if (!byUser[s.userId]) byUser[s.userId] = [];
+                byUser[s.userId].push(s);
             });
 
-            if (!response.ok) {
-                console.error('Ошибка загрузки историй');
-                return;
-            }
+            // Сортировка: мои подписки первые, потом остальные (себя пропускаем — у нас кнопка add)
+            const uids = Object.keys(byUser).filter(id => id !== myUserId);
+            uids.sort((a, b) => {
+                const af = followingIds.has(a), bf = followingIds.has(b);
+                if (af && !bf) return -1;
+                if (!af && bf) return 1;
+                return 0;
+            });
 
-            const stories = await response.json();
-            renderStories(stories);
-        } catch (error) {
-            console.error('Ошибка:', error);
+            uids.forEach(async uid => {
+                const profile = await getProfile(uid);
+                const el = createStoryElement(uid, profile, byUser[uid]);
+                storiesContainer.appendChild(el);
+            });
         }
-    }
 
-    function renderStories(stories) {
-        // Группировка по пользователям
-        const storiesByUser = {};
-        stories.forEach(story => {
-            if (!storiesByUser[story.userId]) {
-                storiesByUser[story.userId] = [];
-            }
-            storiesByUser[story.userId].push(story);
-        });
+        function createStoryElement(uid, profile, userStories) {
+            const item = document.createElement('div');
+            item.className = 'story-item';
 
-        // Рендеринг
-        Object.keys(storiesByUser).forEach(async (userId) => {
-            const userStories = storiesByUser[userId];
+            const isFollowing = followingIds.has(String(uid));
             const latestStory = userStories[0];
 
-            // Получение профиля пользователя
-            const profile = await getProfile(userId);
+            // Кнопка подписки — только если не подписан
+            const followBadgeHtml = !isFollowing ? `<div class="story-follow-badge"><i class="fas fa-plus"></i></div>` : '';
 
-            const storyElement = createStoryElement(profile, latestStory, userStories);
-            storiesContainer.appendChild(storyElement);
-        });
-    }
+            item.innerHTML = `
+                <div class="story-avatar-wrap">
+                    <div class="story-avatar">
+                        <img src="${profile?.avatarUrl || '/images/default-avatar.png'}"
+                             alt="${profile?.name || '?'}"
+                             onerror="this.src='/images/default-avatar.png'">
+                    </div>
+                    ${followBadgeHtml}
+                </div>
+                <span class="story-username">${profile?.name || '?'}</span>
+            `;
 
-    function createStoryElement(profile, story, allStories) {
-        const storyItem = document.createElement('div');
-        storyItem.className = 'story-item';
-
-        const hasStory = story !== null;
-
-        storyItem.innerHTML = `
-            <div class="story-avatar ${hasStory ? '' : 'no-story'}">
-                <img src="${profile.avatarUrl || '/images/default-avatar.png'}" alt="${profile.name}">
-            </div>
-            <span class="story-username">${profile.name}</span>
-        `;
-
-        if (hasStory) {
-            storyItem.addEventListener('click', () => openStory(story, allStories, profile));
-        }
-
-        return storyItem;
-    }
-
-    // === ПРОСМОТР ИСТОРИИ ===
-    function openStory(story, allStories, profile) {
-        const storyImage = document.getElementById('storyImage');
-        const storyAvatarImg = document.getElementById('storyAvatarImg');
-        const storyUsernameModal = document.getElementById('storyUsernameModal');
-        const storyTime = document.getElementById('storyTime');
-        const storyProgress = document.getElementById('storyProgress');
-
-        storyImage.src = story.photoUrl;
-        storyAvatarImg.src = profile.avatarUrl || '/images/default-avatar.png';
-        storyUsernameModal.textContent = profile.name;
-        storyTime.textContent = formatTime(story.createdAt);
-
-        storyModal.classList.add('show');
-
-        // Отметка просмотра
-        markStoryViewed(story.id);
-
-        // Прогресс бар
-        let progress = 0;
-        const interval = setInterval(() => {
-            progress += 0.5;
-            storyProgress.style.width = progress + '%';
-
-            if (progress >= 100) {
-                clearInterval(interval);
-                closeStoryModal();
-            }
-        }, 30); // 6 секунд на историю
-
-        // Реакции на историю
-        document.querySelectorAll('.reaction-btn').forEach(btn => {
-            btn.onclick = () => reactToStory(story.id, btn.dataset.reaction);
-        });
-    }
-
-    function closeStoryModal() {
-        storyModal.classList.remove('show');
-    }
-
-    closeStory.addEventListener('click', closeStoryModal);
-
-    async function markStoryViewed(storyId) {
-        try {
-            await fetch(`/api/stories/${storyId}/view`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-        } catch (error) {
-            console.error('Ошибка отметки просмотра:', error);
-        }
-    }
-
-    async function reactToStory(storyId, reaction) {
-        try {
-            await fetch(`/api/stories/${storyId}/reaction`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ reaction })
-            });
-            console.log('Реакция добавлена');
-        } catch (error) {
-            console.error('Ошибка добавления реакции:', error);
-        }
-    }
-
-    // === ЗАГРУЗКА ПОСТОВ ===
-    async function loadPosts() {
-        try {
-            const response = await fetch('/api/posts/feed', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            // Клик на аватар — открыть историю
+            item.querySelector('.story-avatar-wrap').addEventListener('click', e => {
+                if (e.target.closest('.story-follow-badge')) return; // кнопка подписки перехватывает сама
+                openStory(latestStory, userStories, profile);
             });
 
-            if (!response.ok) {
-                throw new Error('Ошибка загрузки постов');
+            // Клик на кнопку подписки
+            const badge = item.querySelector('.story-follow-badge');
+            if (badge) {
+                badge.addEventListener('click', async e => {
+                    e.stopPropagation();
+                    try {
+                        await fetch(`/api/profiles/user/${uid}/follow`, {
+                            method: 'POST', credentials: 'include'
+                        });
+                        badge.remove();
+                        followingIds.add(String(uid));
+                    } catch (err) { console.error('Ошибка подписки', err); }
+                });
             }
 
-            const posts = await response.json();
-            renderPosts(posts);
-        } catch (error) {
-            console.error('Ошибка:', error);
-            postsContainer.innerHTML = '<p style="text-align: center; color: rgba(255,255,255,0.5);">Не удалось загрузить посты</p>';
-        }
-    }
-
-    async function renderPosts(posts) {
-        postsContainer.innerHTML = '';
-
-        if (posts.length === 0) {
-            postsContainer.innerHTML = '<p style="text-align: center; color: rgba(255,255,255,0.5);">Пока нет постов</p>';
-            return;
+            return item;
         }
 
-        for (const post of posts) {
-            const profile = await getProfile(post.userId);
-            const postElement = await createPostElement(post, profile);
-            postsContainer.appendChild(postElement);
+        // ─────────────────────────────────────────
+        // ПРОСМОТР ИСТОРИИ
+        // ─────────────────────────────────────────
+        function openStory(story, allStories, profile) {
+            document.getElementById('storyImage').src          = story.photoUrl;
+            document.getElementById('storyAvatarImg').src      = profile?.avatarUrl || '/images/default-avatar.png';
+            document.getElementById('storyUsernameModal').textContent = profile?.name || '?';
+            document.getElementById('storyTime').textContent   = formatTime(story.createdAt);
+
+            const progressBar = document.getElementById('storyProgress');
+            progressBar.style.width = '0%';
+            storyModal.classList.add('show');
+
+            markStoryViewed(story.id);
+
+            if (storyTimer) clearInterval(storyTimer);
+            let progress = 0;
+            storyTimer = setInterval(() => {
+                progress += 0.5;
+                progressBar.style.width = progress + '%';
+                if (progress >= 100) { clearInterval(storyTimer); closeStoryModal(); }
+            }, 30);
+
+            document.querySelectorAll('.reaction-btn').forEach(btn => {
+                btn.onclick = () => reactToStory(story.id, btn.dataset.reaction);
+            });
         }
-    }
 
-    async function createPostElement(post, profile) {
-        const postCard = document.createElement('article');
-        postCard.className = 'post-card';
-        postCard.dataset.postId = post.id;
+        function closeStoryModal() {
+            storyModal.classList.remove('show');
+            if (storyTimer) { clearInterval(storyTimer); storyTimer = null; }
+        }
 
-        const isFollowing = await checkFollowing(post.userId);
-        const reactionsCount = await getReactionsCount(post.id);
+        closeStoryBtn.addEventListener('click', closeStoryModal);
+        storyModal.addEventListener('click', e => { if (e.target === storyModal) closeStoryModal(); });
 
-        postCard.innerHTML = `
-            <div class="post-header">
-                <div class="post-author" onclick="window.location.href='/profile/${post.userId}'">
-                    <img src="${profile.avatarUrl || '/images/default-avatar.png'}" alt="${profile.name}" class="post-avatar">
-                    <div class="post-author-info">
-                        <span class="post-author-name">${profile.name} ${profile.surname}</span>
-                        <span class="post-time">${formatTime(post.createdAt)}</span>
+        async function markStoryViewed(storyId) {
+            try { await fetch(`/api/stories/${storyId}/view`, { method: 'POST', credentials: 'include' }); }
+            catch (e) { console.error('Ошибка отметки просмотра', e); }
+        }
+
+        async function reactToStory(storyId, reaction) {
+            try {
+                await fetch(`/api/stories/${storyId}/reaction`, {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reaction })
+                });
+            } catch (e) { console.error('Ошибка реакции на историю', e); }
+        }
+
+        // ─────────────────────────────────────────
+        // ПОСТЫ
+        // ─────────────────────────────────────────
+        async function loadPosts() {
+            try {
+                const res = await fetch('/api/posts/feed', { credentials: 'include' });
+                if (!res.ok) throw new Error('Ошибка загрузки постов');
+                const posts = await res.json();
+                renderPosts(posts);
+            } catch (e) {
+                console.error('Ошибка постов:', e);
+                postsContainer.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:40px">Не удалось загрузить посты</p>';
+            }
+        }
+
+        async function renderPosts(posts) {
+            postsContainer.innerHTML = '';
+            if (!posts.length) {
+                postsContainer.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:40px">Пока нет постов</p>';
+                return;
+            }
+            for (const post of posts) {
+                const profile = await getProfile(post.userId);
+                postsContainer.appendChild(await createPostElement(post, profile));
+            }
+        }
+
+        async function createPostElement(post, profile) {
+            const card = document.createElement('article');
+            card.className = 'post-card';
+            card.dataset.postId = post.id;
+
+            const isOwn      = String(post.userId) === String(myUserId);
+            const isFollowing = followingIds.has(String(post.userId));
+            const reactions  = await getReactionsCount(post.id);
+
+            card.innerHTML = `
+                <div class="post-header">
+                    <div class="post-author" onclick="window.location.href='/profile/${post.userId}'">
+                        <img src="${profile?.avatarUrl || '/images/default-avatar.png'}"
+                             alt="${profile?.name || '?'}" class="post-avatar"
+                             onerror="this.src='/images/default-avatar.png'">
+                        <div class="post-author-info">
+                            <span class="post-author-name">${profile?.name || '?'} ${profile?.surname || ''}</span>
+                            <span class="post-time">${formatTime(post.createdAt)}</span>
+                        </div>
+                    </div>
+                    ${!isOwn ? `
+                    <button class="follow-btn ${isFollowing ? 'following' : ''}"
+                            data-uid="${post.userId}">
+                        ${isFollowing ? 'Отписаться' : 'Подписаться'}
+                    </button>` : ''}
+                </div>
+
+                <img src="${post.photoUrl}" alt="Post" class="post-image"
+                     onerror="this.style.display='none'">
+
+                <div class="post-content">
+                    ${post.description ? `<p class="post-description">${post.description}</p>` : ''}
+                    <div class="post-actions">
+                        <button class="action-btn like-btn" data-post-id="${post.id}">
+                            <i class="fas fa-heart"></i>
+                            <span class="action-count">${reactions}</span>
+                        </button>
+                        <button class="action-btn" onclick="window.location.href='/post/${post.id}'">
+                            <i class="fas fa-comment"></i>
+                            <span class="action-count">${post.commentsCount || 0}</span>
+                        </button>
+                        <button class="action-btn"><i class="fas fa-share"></i></button>
+                        <button class="action-btn"><i class="fas fa-bookmark"></i></button>
                     </div>
                 </div>
-                ${post.userId !== userId ? `
-                    <button class="follow-btn ${isFollowing ? 'following' : ''}" onclick="toggleFollow('${post.userId}', this)">
-                        ${isFollowing ? 'Отписаться' : 'Подписаться'}
-                    </button>
-                ` : ''}
-            </div>
+            `;
 
-            <img src="${post.photoUrl}" alt="Post" class="post-image">
-
-            <div class="post-content">
-                ${post.description ? `<p class="post-description">${post.description}</p>` : ''}
-
-                <div class="post-actions">
-                    <button class="action-btn like-btn" data-post-id="${post.id}">
-                        <i class="fas fa-heart"></i>
-                        <span class="action-count">${reactionsCount}</span>
-                    </button>
-                    <button class="action-btn" onclick="window.location.href='/post/${post.id}'">
-                        <i class="fas fa-comment"></i>
-                        <span class="action-count">${post.commentsCount || 0}</span>
-                    </button>
-                    <button class="action-btn">
-                        <i class="fas fa-share"></i>
-                    </button>
-                    <button class="action-btn">
-                        <i class="fas fa-bookmark"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-
-        // Обработчик лайка с панелью реакций
-        const likeBtn = postCard.querySelector('.like-btn');
-        let reactionTimeout;
-
-        likeBtn.addEventListener('mouseenter', () => {
-            reactionTimeout = setTimeout(() => {
-                showReactionsPanel(post.id, likeBtn);
-            }, 500);
-        });
-
-        likeBtn.addEventListener('mouseleave', () => {
-            clearTimeout(reactionTimeout);
-        });
-
-        likeBtn.addEventListener('click', () => {
-            toggleReaction(post.id, 'LIKE', likeBtn);
-        });
-
-        return postCard;
-    }
-
-    // === ПАНЕЛЬ РЕАКЦИЙ ===
-    function showReactionsPanel(postId, button) {
-        reactionsPanel.classList.add('show');
-        reactionsPanel.style.left = button.getBoundingClientRect().left + 'px';
-
-        reactionsPanel.querySelectorAll('.reaction-option').forEach(btn => {
-            btn.onclick = () => {
-                reactToPost(postId, btn.dataset.reaction);
-                reactionsPanel.classList.remove('show');
-            };
-        });
-    }
-
-    document.addEventListener('click', (e) => {
-        if (!reactionsPanel.contains(e.target) && !e.target.closest('.like-btn')) {
-            reactionsPanel.classList.remove('show');
-        }
-    });
-
-    async function toggleReaction(postId, reaction, button) {
-        try {
-            const response = await fetch(`/api/posts/${postId}/reaction`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ reaction })
-            });
-
-            if (response.ok) {
-                button.classList.toggle('liked');
-                const count = button.querySelector('.action-count');
-                count.textContent = parseInt(count.textContent) + (button.classList.contains('liked') ? 1 : -1);
+            // Follow/unfollow прямо в посте
+            const followBtn = card.querySelector('.follow-btn');
+            if (followBtn) {
+                followBtn.addEventListener('click', async () => {
+                    const uid = followBtn.dataset.uid;
+                    const following = followBtn.classList.contains('following');
+                    try {
+                        await fetch(`/api/profiles/user/${uid}/${following ? 'unfollow' : 'follow'}`, {
+                            method: 'POST', credentials: 'include'
+                        });
+                        followBtn.classList.toggle('following');
+                        followBtn.textContent = followBtn.classList.contains('following') ? 'Отписаться' : 'Подписаться';
+                        if (followBtn.classList.contains('following')) followingIds.add(uid);
+                        else followingIds.delete(uid);
+                    } catch (e) { console.error('Ошибка подписки', e); }
+                });
             }
-        } catch (error) {
-            console.error('Ошибка реакции:', error);
-        }
-    }
 
-    async function reactToPost(postId, reaction) {
-        try {
-            await fetch(`/api/posts/${postId}/reaction`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ reaction })
+            // Like + reactions panel
+            const likeBtn = card.querySelector('.like-btn');
+            let rTimeout;
+            likeBtn.addEventListener('mouseenter', () => {
+                rTimeout = setTimeout(() => showReactionsPanel(post.id, likeBtn), 500);
             });
-            console.log('Реакция добавлена:', reaction);
-        } catch (error) {
-            console.error('Ошибка:', error);
-        }
-    }
+            likeBtn.addEventListener('mouseleave', () => clearTimeout(rTimeout));
+            likeBtn.addEventListener('click', () => toggleReaction(post.id, 'LIKE', likeBtn));
 
-    // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
-    async function getProfile(userId) {
-        try {
-            const response = await fetch(`/api/profiles/user/${userId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+            return card;
+        }
+
+        // ─────────────────────────────────────────
+        // РЕАКЦИИ НА ПОСТ
+        // ─────────────────────────────────────────
+        function showReactionsPanel(postId, button) {
+            reactionsPanel.classList.add('show');
+            const rect = button.getBoundingClientRect();
+            reactionsPanel.style.left = Math.max(10, rect.left) + 'px';
+            reactionsPanel.style.transform = 'none';
+
+            reactionsPanel.querySelectorAll('.reaction-option').forEach(btn => {
+                btn.onclick = () => {
+                    reactToPost(postId, btn.dataset.reaction);
+                    reactionsPanel.classList.remove('show');
+                };
+            });
+        }
+
+        document.addEventListener('click', e => {
+            if (!reactionsPanel.contains(e.target) && !e.target.closest('.like-btn'))
+                reactionsPanel.classList.remove('show');
+        });
+
+        async function toggleReaction(postId, reaction, button) {
+            try {
+                const res = await fetch(`/api/posts/${postId}/reaction`, {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reaction })
+                });
+                if (res.ok) {
+                    button.classList.toggle('liked');
+                    const cnt = button.querySelector('.action-count');
+                    cnt.textContent = parseInt(cnt.textContent) + (button.classList.contains('liked') ? 1 : -1);
                 }
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Ошибка загрузки профиля:', error);
-            return { name: 'Unknown', avatarUrl: null };
+            } catch (e) { console.error('Ошибка реакции', e); }
         }
-    }
 
-    async function getReactionsCount(postId) {
-        try {
-            const response = await fetch(`/api/posts/${postId}/reactions/count`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            return await response.json();
-        } catch (error) {
-            return 0;
+        async function reactToPost(postId, reaction) {
+            try {
+                await fetch(`/api/posts/${postId}/reaction`, {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reaction })
+                });
+            } catch (e) { console.error('Ошибка реакции', e); }
         }
-    }
 
-    async function checkFollowing(userId) {
-        // Реализовать проверку подписки
-        return false;
-    }
+        // ─────────────────────────────────────────
+        // ВСПОМОГАТЕЛЬНЫЕ
+        // ─────────────────────────────────────────
+        async function getProfile(uid) {
+            try {
+                const res = await fetch(`/api/profiles/user/${uid}`, { credentials: 'include' });
+                return res.ok ? await res.json() : { name: '?', avatarUrl: null };
+            } catch (e) { return { name: '?', avatarUrl: null }; }
+        }
 
-    window.toggleFollow = async function(userId, button) {
-        // Реализовать подписку/отписку
-        button.classList.toggle('following');
-        button.textContent = button.classList.contains('following') ? 'Отписаться' : 'Подписаться';
-    };
+        async function getReactionsCount(postId) {
+            try {
+                const res = await fetch(`/api/posts/${postId}/reactions/count`, { credentials: 'include' });
+                return res.ok ? await res.json() : 0;
+            } catch (e) { return 0; }
+        }
 
-    function formatTime(timestamp) {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diff = Math.floor((now - date) / 1000);
+        function formatTime(ts) {
+            if (!ts) return '';
+            const diff = Math.floor((Date.now() - new Date(ts)) / 1000);
+            if (diff < 60)   return 'Только что';
+            if (diff < 3600) return Math.floor(diff / 60) + ' мин назад';
+            if (diff < 86400)return Math.floor(diff / 3600) + ' ч назад';
+            return Math.floor(diff / 86400) + ' д назад';
+        }
 
-        if (diff < 60) return 'Только что';
-        if (diff < 3600) return Math.floor(diff / 60) + ' мин назад';
-        if (diff < 86400) return Math.floor(diff / 3600) + ' ч назад';
-        return Math.floor(diff / 86400) + ' д назад';
-    }
+        // Кнопка "Ваша история"
+        addStoryBtn.addEventListener('click', () => { window.location.href = '/stories/create'; });
 
-    // === ДОБАВЛЕНИЕ ИСТОРИИ ===
-    addStoryBtn.addEventListener('click', () => {
-        // Перенаправление на страницу создания истории
-        window.location.href = '/stories/create';
+        console.log('✅ Инициализация завершена');
     });
-
-    console.log('✅ Инициализация завершена');
-});
 </script>
 </body>
 </html>

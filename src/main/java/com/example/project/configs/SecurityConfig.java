@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/health", "/actuator/**").permitAll()
+                        .requestMatchers("/favicon.ico", "/images/**").permitAll()
                         .requestMatchers(
                                 "/css/**",
                                 "/js/**",

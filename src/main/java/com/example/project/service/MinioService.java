@@ -102,4 +102,6 @@ public class MinioService {
             throw new RuntimeException("Не удалось загрузить файл в MinIO: " + e.getMessage());
         }
     }
+
+
 }
