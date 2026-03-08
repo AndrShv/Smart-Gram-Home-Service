@@ -59,7 +59,8 @@ public class JwtFilter extends OncePerRequestFilter {
             String userId = jwtUtil.getUserIdFromToken(token).toString();
 
             List<SimpleGrantedAuthority> grantedAuthorities = authorities.stream()
-                    .map(SimpleGrantedAuthority::new)
+                    .map(role -> new SimpleGrantedAuthority(
+                            role.startsWith("ROLE_") ? role : "ROLE_" + role))
                     .collect(Collectors.toList());
 
             log.debug("User from token: {}, userId: {}, authorities: {}", email, userId, grantedAuthorities);

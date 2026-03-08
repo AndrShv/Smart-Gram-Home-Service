@@ -40,15 +40,12 @@ public class PostRestController {
     /* ================= GET FEED (лента постов) ================= */
     @GetMapping("/feed")
     public ResponseEntity<List<PostDTO>> getFeed() {
-        log.info("REST: получение ленты постов");
         UUID userId = getCurrentUserId();
-
-        List<Post> posts = postService.getAllPosts();
-
-        List<PostDTO> postDTOs = posts.stream()
+        List<PostDTO> postDTOs = postService.getAllPosts().stream()
+                .filter(p -> !p.getUserId().equals(userId))
+                .filter(Post::isPublic)
                 .map(postMapper::toDto)
                 .collect(Collectors.toList());
-
         return ResponseEntity.ok(postDTOs);
     }
 

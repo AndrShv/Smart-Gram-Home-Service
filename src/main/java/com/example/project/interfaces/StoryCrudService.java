@@ -26,4 +26,5 @@ public interface StoryCrudService {
 
     void setAllStoriesPrivacy(UUID userId, boolean isPublic);
 
+
 }

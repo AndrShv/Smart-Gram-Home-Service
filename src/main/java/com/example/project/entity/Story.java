@@ -2,6 +2,7 @@ package com.example.project.entity;
 
 import com.example.project.enums.StoryCategory;
 import com.example.project.enums.StoryMood;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
@@ -69,10 +70,12 @@ public class Story {
 
 
     @ToString.Exclude
+    @JsonIgnore
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryViewer> viewers;
 
     @ToString.Exclude
+    @JsonIgnore
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryReaction> reactions;
 }

@@ -152,4 +152,26 @@ public class ProfileApiProxyController {
             return ResponseEntity.ok(List.of());
         }
     }
+
+    @PostMapping("/api/subscriptions/{targetUserId}/subscribe")
+    public ResponseEntity<Void> subscribe(@PathVariable UUID targetUserId) {
+        try {
+            subscriptionClient.subscribe(targetUserId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Ошибка подписки: {}", e.getMessage());
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @DeleteMapping("/api/subscriptions/{targetUserId}/unsubscribe")
+    public ResponseEntity<Void> unsubscribe(@PathVariable UUID targetUserId) {
+        try {
+            subscriptionClient.unsubscribe(targetUserId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Ошибка отписки: {}", e.getMessage());
+            return ResponseEntity.status(500).build();
+        }
+    }
 }

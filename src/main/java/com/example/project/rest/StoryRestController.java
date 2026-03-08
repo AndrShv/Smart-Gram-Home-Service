@@ -32,6 +32,18 @@ public class StoryRestController {
     private final StoryMapper storyMapper;
     private final MinioService minioService;
 
+
+
+    @GetMapping
+    public ResponseEntity<List<StoryDTO>> getAllStories() {
+        UUID userId = getCurrentUserId();
+        List<StoryDTO> storyDTOs = storyService.getAllStories().stream()
+                .filter(s -> !s.getUserId().equals(userId.toString())) // ← без своих
+                .map(storyMapper::toDto)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(storyDTOs);
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<StoryDTO> createStory(
             @RequestParam(value = "description", required = false) String description,

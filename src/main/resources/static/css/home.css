@@ -275,3 +275,20 @@
             .story-avatar { width: 60px; height: 60px; }
             .story-username { font-size: 11px; max-width: 60px; }
         }
+        .follow-btn {
+            transition: all 0.25s ease;
+        }
+
+        .follow-btn.removing {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .story-follow-badge {
+            transition: all 0.25s ease;
+        }
+
+        .story-follow-badge.removing {
+            opacity: 0;
+            transform: scale(0.8);
+        }

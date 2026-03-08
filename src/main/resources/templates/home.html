@@ -34,7 +34,6 @@
 <main class="main-content">
     <section class="stories-section">
         <div class="stories-container" id="storiesContainer">
-            <!-- Кнопка "добавить историю" — всегда первая -->
             <div class="story-item" id="addStoryBtn">
                 <div class="story-avatar-wrap">
                     <div class="story-avatar add-avatar">
@@ -43,14 +42,15 @@
                 </div>
                 <span class="story-username">Ваша история</span>
             </div>
-            <!-- Остальные истории загружаются динамически -->
         </div>
     </section>
 
     <section class="feed-section">
         <div class="posts-container" id="postsContainer">
             <div class="loading-posts">
-                <div class="spinner-orbit"><div class="spinner-planet"></div></div>
+                <div class="spinner-orbit">
+                    <div class="spinner-planet"></div>
+                </div>
                 <p>Загрузка постов...</p>
             </div>
         </div>
@@ -59,10 +59,10 @@
 
 <!-- Нижняя навигация -->
 <nav class="bottom-nav">
-    <a href="/home"     class="nav-item active"><i class="fas fa-home"></i><span>Главная</span></a>
-    <a href="/search"   class="nav-item"><i class="fas fa-search"></i><span>Поиск</span></a>
+    <a href="/home" class="nav-item active"><i class="fas fa-home"></i><span>Главная</span></a>
+    <a href="/search" class="nav-item"><i class="fas fa-search"></i><span>Поиск</span></a>
     <a href="/messages" class="nav-item"><i class="fas fa-comment-dots"></i><span>Сообщения</span></a>
-    <a href="/profile"  class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
+    <a href="/profile" class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
     <a href="/settings" class="nav-item"><i class="fas fa-cog"></i><span>Настройки</span></a>
 </nav>
 
@@ -70,7 +70,9 @@
 <div class="modal story-modal" id="storyModal">
     <div class="story-viewer">
         <button class="close-story" id="closeStory"><i class="fas fa-times"></i></button>
-        <div class="story-progress"><div class="progress-bar" id="storyProgress"></div></div>
+        <div class="story-progress">
+            <div class="progress-bar" id="storyProgress"></div>
+        </div>
         <div class="story-header">
             <img class="story-avatar-img" id="storyAvatarImg" alt="Avatar">
             <div class="story-info">
@@ -113,8 +115,16 @@
         let followingIds = new Set();
         let storyTimer   = null;
 
+        // ✅ Лайки хранятся в localStorage — persist между перезагрузками
+        const likedPosts = new Set(
+            JSON.parse(localStorage.getItem('likedPosts') || '[]')
+        );
+        function saveLikedPosts() {
+            localStorage.setItem('likedPosts', JSON.stringify([...likedPosts]));
+        }
+
         // ─────────────────────────────────────────
-        // ИНИЦИАЛИЗАЦИЯ — сначала получаем себя
+        // ИНИЦИАЛИЗАЦИЯ
         // ─────────────────────────────────────────
         (async function init() {
             try {
@@ -125,7 +135,6 @@
                 }
             } catch (e) { console.warn('Не удалось получить текущего пользователя', e); }
 
-            // Загружаем подписки
             if (myUserId) {
                 try {
                     const fRes = await fetch(`/api/profiles/user/${myUserId}/followings`, { credentials: 'include' });
@@ -153,14 +162,12 @@
         }
 
         function renderStories(stories) {
-            // Группируем по userId
             const byUser = {};
             stories.forEach(s => {
                 if (!byUser[s.userId]) byUser[s.userId] = [];
                 byUser[s.userId].push(s);
             });
 
-            // Сортировка: мои подписки первые, потом остальные (себя пропускаем — у нас кнопка add)
             const uids = Object.keys(byUser).filter(id => id !== myUserId);
             uids.sort((a, b) => {
                 const af = followingIds.has(a), bf = followingIds.has(b);
@@ -179,12 +186,14 @@
         function createStoryElement(uid, profile, userStories) {
             const item = document.createElement('div');
             item.className = 'story-item';
+            item.dataset.uid = uid; // ✅ сохраняем uid на элементе
 
             const isFollowing = followingIds.has(String(uid));
             const latestStory = userStories[0];
 
-            // Кнопка подписки — только если не подписан
-            const followBadgeHtml = !isFollowing ? `<div class="story-follow-badge"><i class="fas fa-plus"></i></div>` : '';
+            const followBadgeHtml = !isFollowing
+                ? `<div class="story-follow-badge"><i class="fas fa-plus"></i></div>`
+                : '';
 
             item.innerHTML = `
                 <div class="story-avatar-wrap">
@@ -198,25 +207,33 @@
                 <span class="story-username">${profile?.name || '?'}</span>
             `;
 
-            // Клик на аватар — открыть историю
             item.querySelector('.story-avatar-wrap').addEventListener('click', e => {
-                if (e.target.closest('.story-follow-badge')) return; // кнопка подписки перехватывает сама
+                if (e.target.closest('.story-follow-badge')) return;
                 openStory(latestStory, userStories, profile);
             });
 
-            // Клик на кнопку подписки
             const badge = item.querySelector('.story-follow-badge');
             if (badge) {
                 badge.addEventListener('click', async e => {
-                    e.stopPropagation();
-                    try {
-                        await fetch(`/api/profiles/user/${uid}/follow`, {
-                            method: 'POST', credentials: 'include'
-                        });
-                        badge.remove();
-                        followingIds.add(String(uid));
-                    } catch (err) { console.error('Ошибка подписки', err); }
-                });
+                e.stopPropagation();
+
+                 try {
+                    const res = await fetch(`/api/subscriptions/${uid}/subscribe`, {
+                    method: 'POST',
+                    credentials: 'include'
+                 });
+
+                  if (res.ok) {
+                         followingIds.add(String(uid));
+                         badge.remove();
+                         document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`)
+                .forEach(btn => btn.remove());
+                 }
+
+                 } catch (err) {
+               console.error('Ошибка подписки', err);
+              }
+            });
             }
 
             return item;
@@ -226,10 +243,10 @@
         // ПРОСМОТР ИСТОРИИ
         // ─────────────────────────────────────────
         function openStory(story, allStories, profile) {
-            document.getElementById('storyImage').src          = story.photoUrl;
-            document.getElementById('storyAvatarImg').src      = profile?.avatarUrl || '/images/default-avatar.png';
+            document.getElementById('storyImage').src                 = story.photoUrl;
+            document.getElementById('storyAvatarImg').src             = profile?.avatarUrl || '/images/default-avatar.png';
             document.getElementById('storyUsernameModal').textContent = profile?.name || '?';
-            document.getElementById('storyTime').textContent   = formatTime(story.createdAt);
+            document.getElementById('storyTime').textContent          = formatTime(story.createdAt);
 
             const progressBar = document.getElementById('storyProgress');
             progressBar.style.width = '0%';
@@ -305,9 +322,12 @@
             card.className = 'post-card';
             card.dataset.postId = post.id;
 
-            const isOwn      = String(post.userId) === String(myUserId);
+            const isOwn       = String(post.userId) === String(myUserId);
             const isFollowing = followingIds.has(String(post.userId));
-            const reactions  = await getReactionsCount(post.id);
+            const reactions   = await getReactionsCount(post.id);
+
+            // ✅ Восстанавливаем состояние лайка из localStorage
+            const isLiked = likedPosts.has(post.id);
 
             card.innerHTML = `
                 <div class="post-header">
@@ -320,10 +340,9 @@
                             <span class="post-time">${formatTime(post.createdAt)}</span>
                         </div>
                     </div>
-                    ${!isOwn ? `
-                    <button class="follow-btn ${isFollowing ? 'following' : ''}"
-                            data-uid="${post.userId}">
-                        ${isFollowing ? 'Отписаться' : 'Подписаться'}
+                    ${!isOwn && !isFollowing ? `
+                    <button class="follow-btn" data-uid="${post.userId}">
+                        Подписаться
                     </button>` : ''}
                 </div>
 
@@ -333,7 +352,7 @@
                 <div class="post-content">
                     ${post.description ? `<p class="post-description">${post.description}</p>` : ''}
                     <div class="post-actions">
-                        <button class="action-btn like-btn" data-post-id="${post.id}">
+                        <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-post-id="${post.id}">
                             <i class="fas fa-heart"></i>
                             <span class="action-count">${reactions}</span>
                         </button>
@@ -347,27 +366,34 @@
                 </div>
             `;
 
-            // Follow/unfollow прямо в посте
+            // ✅ Подписка — кнопка исчезает сразу после успешного запроса
             const followBtn = card.querySelector('.follow-btn');
             if (followBtn) {
                 followBtn.addEventListener('click', async () => {
-                    const uid = followBtn.dataset.uid;
-                    const following = followBtn.classList.contains('following');
-                    try {
-                        await fetch(`/api/profiles/user/${uid}/${following ? 'unfollow' : 'follow'}`, {
-                            method: 'POST', credentials: 'include'
-                        });
-                        followBtn.classList.toggle('following');
-                        followBtn.textContent = followBtn.classList.contains('following') ? 'Отписаться' : 'Подписаться';
-                        if (followBtn.classList.contains('following')) followingIds.add(uid);
-                        else followingIds.delete(uid);
-                    } catch (e) { console.error('Ошибка подписки', e); }
-                });
+                const uid = followBtn.dataset.uid;
+
+                 try {
+                      const res = await fetch(`/api/subscriptions/${uid}/subscribe`, {
+                      method: 'POST',
+                      credentials: 'include'
+                 });
+
+                  if (res.ok) {
+                   followingIds.add(String(uid));
+                   document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`).forEach(btn => btn.remove());
+                   document.querySelectorAll(`.story-item[data-uid="${uid}"] .story-follow-badge`).forEach(b => b.remove());
+             }
+
+            } catch (e) {
+                console.error('Ошибка подписки', e);
+             }
+});
             }
 
-            // Like + reactions panel
+            // ✅ Лайк — toggle с сохранением в localStorage
             const likeBtn = card.querySelector('.like-btn');
             let rTimeout;
+
             likeBtn.addEventListener('mouseenter', () => {
                 rTimeout = setTimeout(() => showReactionsPanel(post.id, likeBtn), 500);
             });
@@ -407,20 +433,43 @@
                     body: JSON.stringify({ reaction })
                 });
                 if (res.ok) {
-                    button.classList.toggle('liked');
                     const cnt = button.querySelector('.action-count');
-                    cnt.textContent = parseInt(cnt.textContent) + (button.classList.contains('liked') ? 1 : -1);
+                    if (likedPosts.has(postId)) {
+                        // ✅ Снять лайк
+                        likedPosts.delete(postId);
+                        button.classList.remove('liked');
+                        cnt.textContent = Math.max(0, parseInt(cnt.textContent) - 1);
+                    } else {
+                        // ✅ Поставить лайк
+                        likedPosts.add(postId);
+                        button.classList.add('liked');
+                        cnt.textContent = parseInt(cnt.textContent) + 1;
+                    }
+                    saveLikedPosts();
                 }
             } catch (e) { console.error('Ошибка реакции', e); }
         }
 
         async function reactToPost(postId, reaction) {
             try {
-                await fetch(`/api/posts/${postId}/reaction`, {
+                const res = await fetch(`/api/posts/${postId}/reaction`, {
                     method: 'POST', credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ reaction })
                 });
+                if (res.ok) {
+                    // ✅ Любая реакция из панели активирует лайк
+                    if (!likedPosts.has(postId)) {
+                        likedPosts.add(postId);
+                        saveLikedPosts();
+                        const likeBtn = document.querySelector(`.like-btn[data-post-id="${postId}"]`);
+                        if (likeBtn) {
+                            likeBtn.classList.add('liked');
+                            const cnt = likeBtn.querySelector('.action-count');
+                            cnt.textContent = parseInt(cnt.textContent) + 1;
+                        }
+                    }
+                }
             } catch (e) { console.error('Ошибка реакции', e); }
         }
 
@@ -444,13 +493,12 @@
         function formatTime(ts) {
             if (!ts) return '';
             const diff = Math.floor((Date.now() - new Date(ts)) / 1000);
-            if (diff < 60)   return 'Только что';
-            if (diff < 3600) return Math.floor(diff / 60) + ' мин назад';
-            if (diff < 86400)return Math.floor(diff / 3600) + ' ч назад';
+            if (diff < 60)    return 'Только что';
+            if (diff < 3600)  return Math.floor(diff / 60) + ' мин назад';
+            if (diff < 86400) return Math.floor(diff / 3600) + ' ч назад';
             return Math.floor(diff / 86400) + ' д назад';
         }
 
-        // Кнопка "Ваша история"
         addStoryBtn.addEventListener('click', () => { window.location.href = '/stories/create'; });
 
         console.log('✅ Инициализация завершена');

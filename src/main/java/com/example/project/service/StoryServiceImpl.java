@@ -314,6 +314,10 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
     }
 
 
+    public List<Story> getAllStories() {
+        return storyRepository.findAll();
+    }
+
 
 
 

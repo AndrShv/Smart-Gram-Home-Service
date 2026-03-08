@@ -1,13 +1,12 @@
 package com.example.project.service;
 
 import io.minio.*;
-import io.minio.errors.MinioException;
-import io.minio.http.Method;
+import io.minio.SetBucketPolicyArgs;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.util.UUID;
@@ -30,6 +29,16 @@ public class MinioService {
     private String storiesBucket;
 
 
+    @PostConstruct
+    public void init() {
+        try {
+            setBucketPublicPolicy(postsBucket);
+            setBucketPublicPolicy(storiesBucket);
+        } catch (Exception e) {
+            log.error("Ошибка применения политик MinIO: {}", e.getMessage());
+        }
+    }
+
     private void ensureBucketExists(String bucket) throws Exception {
         boolean exists = minioClient.bucketExists(
                 BucketExistsArgs.builder().bucket(bucket).build()
@@ -40,6 +49,7 @@ public class MinioService {
             );
             log.info("Бакет '{}' создан в MinIO", bucket);
         }
+        setBucketPublicPolicy(bucket);
     }
 
     public String uploadPostPhotoBytes(byte[] bytes, String originalFilename, String contentType) {
@@ -100,6 +110,34 @@ public class MinioService {
         } catch (Exception e) {
             log.error("Ошибка загрузки story файла в MinIO: {}", e.getMessage());
             throw new RuntimeException("Не удалось загрузить файл в MinIO: " + e.getMessage());
+        }
+    }
+
+    private void setBucketPublicPolicy(String bucket) {
+        try {
+            String policy = """
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"AWS": ["*"]},
+                            "Action": ["s3:GetObject"],
+                            "Resource": ["arn:aws:s3:::%s/*"]
+                        }
+                    ]
+                }
+                """.formatted(bucket);
+
+            minioClient.setBucketPolicy(
+                    SetBucketPolicyArgs.builder()
+                            .bucket(bucket)
+                            .config(policy)
+                            .build()
+            );
+            log.info("Публичная политика чтения установлена для бакета '{}'", bucket);
+        } catch (Exception e) {
+            log.error("Не удалось установить политику для бакета '{}': {}", bucket, e.getMessage());
         }
     }
 
