@@ -1,0 +1,294 @@
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: #090a0f;
+            color: #fff;
+            overflow-x: hidden;
+            padding-bottom: 80px;
+        }
+
+        /* ── КОСМИЧЕСКИЙ ФОН ── */
+        .space-background {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+            z-index: -1;
+        }
+        .stars, .stars2, .stars3 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: transparent; }
+        .stars {
+            background-image: radial-gradient(2px 2px at 20px 30px,#eee,rgba(0,0,0,0)), radial-gradient(2px 2px at 60px 70px,#fff,rgba(0,0,0,0)), radial-gradient(1px 1px at 50px 50px,#fff,rgba(0,0,0,0)), radial-gradient(1px 1px at 130px 80px,#fff,rgba(0,0,0,0)), radial-gradient(2px 2px at 90px 10px,#fff,rgba(0,0,0,0));
+            background-repeat: repeat; background-size: 200px 200px;
+            animation: twinkle 5s ease-in-out infinite;
+        }
+        .stars2 {
+            background-image: radial-gradient(1px 1px at 40px 60px,#fff,rgba(0,0,0,0)), radial-gradient(1px 1px at 110px 90px,#fff,rgba(0,0,0,0)), radial-gradient(1px 1px at 150px 30px,#fff,rgba(0,0,0,0)), radial-gradient(2px 2px at 70px 120px,#fff,rgba(0,0,0,0));
+            background-repeat: repeat; background-size: 250px 250px;
+            animation: twinkle 7s ease-in-out infinite reverse;
+        }
+        .stars3 {
+            background-image: radial-gradient(1px 1px at 80px 10px,#fff,rgba(0,0,0,0)), radial-gradient(1px 1px at 160px 70px,#fff,rgba(0,0,0,0)), radial-gradient(2px 2px at 40px 100px,#fff,rgba(0,0,0,0));
+            background-repeat: repeat; background-size: 300px 300px;
+            animation: twinkle 10s ease-in-out infinite;
+        }
+        @keyframes twinkle { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+        /* ── TOP BAR ── */
+        .top-bar {
+            position: fixed; top: 0; left: 0; right: 0;
+            background: rgba(15,20,35,0.95); backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0,212,255,0.2);
+            z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .top-bar-content {
+            max-width: 800px; margin: 0 auto; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo {
+            display: flex; align-items: center; gap: 12px;
+            font-size: 24px; font-weight: 900;
+            background: linear-gradient(135deg,#00d4ff,#7b2ff7);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .logo i { color: #00d4ff; font-size: 28px; animation: rocket-float 3s ease-in-out infinite; }
+        @keyframes rocket-float { 0%,100%{transform:translateY(0) rotate(-5deg)} 50%{transform:translateY(-5px) rotate(5deg)} }
+
+        .icon-btn {
+            position: relative; background: rgba(0,212,255,0.1);
+            border: 2px solid rgba(0,212,255,0.3); border-radius: 12px;
+            padding: 10px 14px; color: #00d4ff; cursor: pointer; transition: all .3s;
+        }
+        .icon-btn:hover { background: rgba(0,212,255,0.2); border-color: #00d4ff; transform: translateY(-2px); }
+        .icon-btn i { font-size: 20px; }
+        .badge {
+            position: absolute; top: -8px; right: -8px;
+            background: linear-gradient(135deg,#f107a3,#ff4757); color: white;
+            font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(241,7,163,0.5);
+        }
+
+        /* ── MAIN ── */
+        .main-content { max-width: 800px; margin: 0 auto; padding: 80px 20px 20px; }
+
+        /* ── STORIES ── */
+        .stories-section {
+            margin-bottom: 30px; background: rgba(15,20,35,0.6);
+            backdrop-filter: blur(10px); border-radius: 20px; padding: 20px;
+            border: 1px solid rgba(0,212,255,0.2);
+        }
+        .stories-container {
+            display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px;
+            scrollbar-width: thin; scrollbar-color: rgba(0,212,255,0.3) transparent;
+        }
+        .stories-container::-webkit-scrollbar { height: 6px; }
+        .stories-container::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+        .stories-container::-webkit-scrollbar-thumb { background: rgba(0,212,255,0.3); border-radius: 3px; }
+
+        .story-item {
+            flex-shrink: 0; display: flex; flex-direction: column;
+            align-items: center; gap: 8px; cursor: pointer; transition: transform .3s;
+        }
+        .story-item:hover { transform: translateY(-5px); }
+
+        /* Обёртка аватара — для позиционирования кнопки + */
+        .story-avatar-wrap { position: relative; display: inline-block; }
+
+        .story-avatar {
+            width: 70px; height: 70px; border-radius: 50%; padding: 3px;
+            background: linear-gradient(135deg,#00d4ff,#f107a3,#7b2ff7);
+        }
+        .story-avatar.no-story { background: rgba(255,255,255,0.2); }
+        .story-avatar img {
+            width: 100%; height: 100%; border-radius: 50%;
+            object-fit: cover; border: 3px solid #1b2735;
+        }
+
+        /* Кнопка "добавить свою историю" */
+        .add-avatar {
+            background: linear-gradient(135deg,#00d4ff,#7b2ff7);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .add-avatar i { font-size: 24px; color: white; }
+
+        /* Кнопка подписаться на аватаре */
+        .story-follow-badge {
+            position: absolute; bottom: 0; right: 0;
+            width: 22px; height: 22px;
+            background: linear-gradient(135deg,#00d4ff,#7b2ff7);
+            border-radius: 50%; border: 2px solid #090a0f;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; color: white; cursor: pointer; z-index: 3;
+            transition: transform .2s;
+        }
+        .story-follow-badge:hover { transform: scale(1.25); }
+
+        .story-username {
+            font-size: 12px; color: rgba(255,255,255,0.9);
+            max-width: 70px; overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap; text-align: center;
+        }
+
+        /* ── FEED ── */
+        .feed-section { min-height: 400px; }
+        .posts-container { display: flex; flex-direction: column; gap: 25px; }
+
+        .loading-posts { text-align: center; padding: 60px 20px; color: rgba(255,255,255,0.6); }
+        .spinner-orbit { width: 60px; height: 60px; position: relative; margin: 0 auto 20px; }
+        .spinner-planet {
+            width: 20px; height: 20px;
+            background: linear-gradient(135deg,#00d4ff,#7b2ff7);
+            border-radius: 50%; position: absolute; top: 50%; left: 50%;
+            transform-origin: 0 0; animation: spinner-orbit 1.5s linear infinite;
+            box-shadow: 0 0 20px rgba(0,212,255,0.8), 0 0 40px rgba(123,47,247,0.6);
+        }
+        @keyframes spinner-orbit {
+            from { transform: rotate(0deg) translateX(30px) rotate(0deg); }
+            to   { transform: rotate(360deg) translateX(30px) rotate(-360deg); }
+        }
+
+        /* ── POST CARD ── */
+        .post-card {
+            background: rgba(15,20,35,0.8); backdrop-filter: blur(15px);
+            border-radius: 20px; border: 1px solid rgba(0,212,255,0.2);
+            overflow: hidden; transition: all .3s;
+        }
+        .post-card:hover { border-color: rgba(0,212,255,0.4); box-shadow: 0 10px 30px rgba(0,212,255,0.2); }
+
+        .post-header { padding: 15px 20px; display: flex; align-items: center; justify-content: space-between; }
+        .post-author { display: flex; align-items: center; gap: 12px; cursor: pointer; transition: opacity .3s; }
+        .post-author:hover { opacity: .8; }
+        .post-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(0,212,255,0.3); }
+        .post-author-info { display: flex; flex-direction: column; gap: 2px; }
+        .post-author-name { font-size: 14px; font-weight: 700; color: #fff; }
+        .post-time { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+        .follow-btn {
+            background: linear-gradient(135deg,#00d4ff,#7b2ff7); border: none;
+            padding: 8px 20px; border-radius: 8px; color: white;
+            font-weight: 600; font-size: 13px; cursor: pointer; transition: all .3s;
+        }
+        .follow-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,212,255,0.4); }
+        .follow-btn.following { background: rgba(255,255,255,0.1); border: 2px solid rgba(0,212,255,0.3); }
+
+        .post-image { width: 100%; max-height: 600px; object-fit: cover; display: block; }
+
+        .post-content { padding: 15px 20px; }
+        .post-description { font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.9); margin-bottom: 15px; }
+
+        .post-actions {
+            display: flex; align-items: center; gap: 15px; padding: 10px 0;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .action-btn {
+            background: none; border: none; color: rgba(255,255,255,0.7);
+            cursor: pointer; display: flex; align-items: center; gap: 8px;
+            font-size: 14px; transition: all .3s;
+        }
+        .action-btn:hover { color: #00d4ff; transform: scale(1.1); }
+        .action-btn i { font-size: 20px; }
+        .action-btn.liked { color: #ff4757; }
+        .action-btn.liked i { animation: heart-beat .5s ease; }
+        @keyframes heart-beat { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
+        .action-count { font-size: 13px; font-weight: 600; }
+
+        /* ── REACTIONS PANEL ── */
+        .reactions-panel {
+            position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%);
+            background: rgba(15,20,35,0.95); backdrop-filter: blur(20px);
+            border: 2px solid rgba(0,212,255,0.3); border-radius: 50px;
+            padding: 12px 20px; display: flex; gap: 15px; z-index: 1000;
+            transition: bottom .4s cubic-bezier(.68,-.55,.265,1.55);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .reactions-panel.show { bottom: 100px; }
+        .reaction-option {
+            background: none; border: none; font-size: 28px;
+            cursor: pointer; transition: all .3s; filter: grayscale(100%); opacity: .7;
+        }
+        .reaction-option:hover { transform: scale(1.3); filter: grayscale(0%); opacity: 1; }
+
+        /* ── BOTTOM NAV ── */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(15,20,35,0.95); backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(0,212,255,0.2);
+            display: flex; justify-content: space-around; padding: 12px 0;
+            z-index: 100; box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            color: rgba(255,255,255,0.6); text-decoration: none;
+            font-size: 12px; transition: all .3s; padding: 8px 15px; border-radius: 12px;
+        }
+        .nav-item i { font-size: 22px; }
+        .nav-item:hover, .nav-item.active { color: #00d4ff; }
+        .nav-item.active { background: rgba(0,212,255,0.1); }
+
+        /* ── STORY MODAL ── */
+        .modal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.95); z-index: 1000;
+            align-items: center; justify-content: center;
+        }
+        .modal.show { display: flex; }
+        .story-viewer {
+            position: relative; max-width: 500px; width: 90%; max-height: 90vh;
+            background: #000; border-radius: 20px; overflow: hidden;
+        }
+        .close-story {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(0,0,0,0.5); border: none; color: white;
+            width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+            z-index: 10; display: flex; align-items: center; justify-content: center; transition: all .3s;
+        }
+        .close-story:hover { background: rgba(255,255,255,0.2); transform: rotate(90deg); }
+        .story-progress {
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 3px; background: rgba(255,255,255,0.3); z-index: 10;
+        }
+        .progress-bar { height: 100%; background: #00d4ff; width: 0%; transition: width .1s linear; }
+        .story-header {
+            position: absolute; top: 20px; left: 20px;
+            display: flex; align-items: center; gap: 12px; z-index: 10;
+        }
+        .story-avatar-img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #00d4ff; }
+        .story-info { display: flex; flex-direction: column; gap: 2px; }
+        .story-username-modal { font-size: 14px; font-weight: 700; color: white; }
+        .story-time { font-size: 12px; color: rgba(255,255,255,0.7); }
+        .story-image { width: 100%; height: 100%; object-fit: contain; background: #000; }
+        .story-reactions {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 20px; z-index: 10;
+        }
+        .reaction-btn {
+            background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3); border-radius: 50%;
+            width: 50px; height: 50px; color: white; font-size: 24px;
+            cursor: pointer; transition: all .3s;
+        }
+        .reaction-btn:hover { transform: scale(1.2); border-color: #00d4ff; }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            .main-content { padding: 70px 10px 20px; }
+            .post-card { border-radius: 15px; }
+            .story-avatar { width: 60px; height: 60px; }
+            .story-username { font-size: 11px; max-width: 60px; }
+        }
+        .follow-btn {
+            transition: all 0.25s ease;
+        }
+
+        .follow-btn.removing {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .story-follow-badge {
+            transition: all 0.25s ease;
+        }
+
+        .story-follow-badge.removing {
+            opacity: 0;
+            transform: scale(0.8);
+        }

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartGram - Главная</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/home.css}">
+</head>
+<body>
+<div class="space-background">
+    <div class="stars"></div>
+    <div class="stars2"></div>
+    <div class="stars3"></div>
+</div>
+
+<!-- Верхняя панель -->
+<header class="top-bar">
+    <div class="top-bar-content">
+        <div class="logo">
+            <i class="fas fa-rocket"></i>
+            <span>SmartGram</span>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" id="notificationsBtn">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="notificationsBadge">3</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Основной контент -->
+<main class="main-content">
+    <section class="stories-section">
+        <div class="stories-container" id="storiesContainer">
+            <div class="story-item" id="addStoryBtn">
+                <div class="story-avatar-wrap">
+                    <div class="story-avatar add-avatar">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                </div>
+                <span class="story-username">Ваша история</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="feed-section">
+        <div class="posts-container" id="postsContainer">
+            <div class="loading-posts">
+                <div class="spinner-orbit">
+                    <div class="spinner-planet"></div>
+                </div>
+                <p>Загрузка постов...</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- Нижняя навигация -->
+<nav class="bottom-nav">
+    <a href="/home" class="nav-item active"><i class="fas fa-home"></i><span>Главная</span></a>
+    <a href="/search" class="nav-item"><i class="fas fa-search"></i><span>Поиск</span></a>
+    <a href="/messages" class="nav-item"><i class="fas fa-comment-dots"></i><span>Сообщения</span></a>
+    <a href="/profile" class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
+    <a href="/settings" class="nav-item"><i class="fas fa-cog"></i><span>Настройки</span></a>
+</nav>
+
+<!-- Модалка просмотра истории -->
+<div class="modal story-modal" id="storyModal">
+    <div class="story-viewer">
+        <button class="close-story" id="closeStory"><i class="fas fa-times"></i></button>
+        <div class="story-progress">
+            <div class="progress-bar" id="storyProgress"></div>
+        </div>
+        <div class="story-header">
+            <img class="story-avatar-img" id="storyAvatarImg" alt="Avatar">
+            <div class="story-info">
+                <span class="story-username-modal" id="storyUsernameModal"></span>
+                <span class="story-time" id="storyTime"></span>
+            </div>
+        </div>
+        <img class="story-image" id="storyImage" alt="Story">
+        <div class="story-reactions">
+            <button class="reaction-btn" data-reaction="LIKE"><i class="fas fa-heart"></i></button>
+            <button class="reaction-btn" data-reaction="FIRE"><i class="fas fa-fire"></i></button>
+            <button class="reaction-btn" data-reaction="WOW"><i class="fas fa-surprise"></i></button>
+            <button class="reaction-btn" data-reaction="LAUGH"><i class="fas fa-laugh"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- Панель реакций на пост -->
+<div class="reactions-panel" id="reactionsPanel">
+    <button class="reaction-option" data-reaction="LIKE"><i class="fas fa-heart"></i></button>
+    <button class="reaction-option" data-reaction="FIRE"><i class="fas fa-fire"></i></button>
+    <button class="reaction-option" data-reaction="WOW"><i class="fas fa-surprise"></i></button>
+    <button class="reaction-option" data-reaction="LAUGH"><i class="fas fa-laugh"></i></button>
+    <button class="reaction-option" data-reaction="SAD"><i class="fas fa-sad-tear"></i></button>
+    <button class="reaction-option" data-reaction="ANGRY"><i class="fas fa-angry"></i></button>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('🚀 SmartGram загружен');
+
+        const storiesContainer = document.getElementById('storiesContainer');
+        const postsContainer   = document.getElementById('postsContainer');
+        const addStoryBtn      = document.getElementById('addStoryBtn');
+        const storyModal       = document.getElementById('storyModal');
+        const closeStoryBtn    = document.getElementById('closeStory');
+        const reactionsPanel   = document.getElementById('reactionsPanel');
+
+        let myUserId     = null;
+        let followingIds = new Set();
+        let storyTimer   = null;
+
+        // ✅ Лайки хранятся в localStorage — persist между перезагрузками
+        const likedPosts = new Set(
+            JSON.parse(localStorage.getItem('likedPosts') || '[]')
+        );
+        function saveLikedPosts() {
+            localStorage.setItem('likedPosts', JSON.stringify([...likedPosts]));
+        }
+
+        // ─────────────────────────────────────────
+        // ИНИЦИАЛИЗАЦИЯ
+        // ─────────────────────────────────────────
+        (async function init() {
+            try {
+                const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+                if (meRes.ok) {
+                    const me = await meRes.json();
+                    myUserId = me.id || me.userId;
+                }
+            } catch (e) { console.warn('Не удалось получить текущего пользователя', e); }
+
+            if (myUserId) {
+                try {
+                    const fRes = await fetch(`/api/profiles/user/${myUserId}/followings`, { credentials: 'include' });
+                    if (fRes.ok) {
+                        const list = await fRes.json();
+                        list.forEach(f => followingIds.add(String(f.userId || f.id)));
+                    }
+                } catch (e) { console.warn('Не удалось загрузить подписки', e); }
+            }
+
+            loadStories();
+            loadPosts();
+        })();
+
+        // ─────────────────────────────────────────
+        // ИСТОРИИ
+        // ─────────────────────────────────────────
+        async function loadStories() {
+            try {
+                const res = await fetch('/api/stories', { credentials: 'include' });
+                if (!res.ok) { console.error('Ошибка загрузки историй'); return; }
+                const stories = await res.json();
+                renderStories(stories);
+            } catch (e) { console.error('Ошибка историй:', e); }
+        }
+
+        function renderStories(stories) {
+            const byUser = {};
+            stories.forEach(s => {
+                if (!byUser[s.userId]) byUser[s.userId] = [];
+                byUser[s.userId].push(s);
+            });
+
+            const uids = Object.keys(byUser).filter(id => id !== myUserId);
+            uids.sort((a, b) => {
+                const af = followingIds.has(a), bf = followingIds.has(b);
+                if (af && !bf) return -1;
+                if (!af && bf) return 1;
+                return 0;
+            });
+
+            uids.forEach(async uid => {
+                const profile = await getProfile(uid);
+                const el = createStoryElement(uid, profile, byUser[uid]);
+                storiesContainer.appendChild(el);
+            });
+        }
+
+        function createStoryElement(uid, profile, userStories) {
+            const item = document.createElement('div');
+            item.className = 'story-item';
+            item.dataset.uid = uid; // ✅ сохраняем uid на элементе
+
+            const isFollowing = followingIds.has(String(uid));
+            const latestStory = userStories[0];
+
+            const followBadgeHtml = !isFollowing
+                ? `<div class="story-follow-badge"><i class="fas fa-plus"></i></div>`
+                : '';
+
+            item.innerHTML = `
+                <div class="story-avatar-wrap">
+                    <div class="story-avatar">
+                        <img src="${profile?.avatarUrl || '/images/default-avatar.png'}"
+                             alt="${profile?.name || '?'}"
+                             onerror="this.src='/images/default-avatar.png'">
+                    </div>
+                    ${followBadgeHtml}
+                </div>
+                <span class="story-username">${profile?.name || '?'}</span>
+            `;
+
+            item.querySelector('.story-avatar-wrap').addEventListener('click', e => {
+                if (e.target.closest('.story-follow-badge')) return;
+                openStory(latestStory, userStories, profile);
+            });
+
+            const badge = item.querySelector('.story-follow-badge');
+            if (badge) {
+                badge.addEventListener('click', async e => {
+                e.stopPropagation();
+
+                 try {
+                    const res = await fetch(`/api/subscriptions/${uid}/subscribe`, {
+                    method: 'POST',
+                    credentials: 'include'
+                 });
+
+                  if (res.ok) {
+                         followingIds.add(String(uid));
+                         badge.remove();
+                         document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`)
+                .forEach(btn => btn.remove());
+                 }
+
+                 } catch (err) {
+               console.error('Ошибка подписки', err);
+              }
+            });
+            }
+
+            return item;
+        }
+
+        // ─────────────────────────────────────────
+        // ПРОСМОТР ИСТОРИИ
+        // ─────────────────────────────────────────
+        function openStory(story, allStories, profile) {
+            document.getElementById('storyImage').src                 = story.photoUrl;
+            document.getElementById('storyAvatarImg').src             = profile?.avatarUrl || '/images/default-avatar.png';
+            document.getElementById('storyUsernameModal').textContent = profile?.name || '?';
+            document.getElementById('storyTime').textContent          = formatTime(story.createdAt);
+
+            const progressBar = document.getElementById('storyProgress');
+            progressBar.style.width = '0%';
+            storyModal.classList.add('show');
+
+            markStoryViewed(story.id);
+
+            if (storyTimer) clearInterval(storyTimer);
+            let progress = 0;
+            storyTimer = setInterval(() => {
+                progress += 0.5;
+                progressBar.style.width = progress + '%';
+                if (progress >= 100) { clearInterval(storyTimer); closeStoryModal(); }
+            }, 30);
+
+            document.querySelectorAll('.reaction-btn').forEach(btn => {
+                btn.onclick = () => reactToStory(story.id, btn.dataset.reaction);
+            });
+        }
+
+        function closeStoryModal() {
+            storyModal.classList.remove('show');
+            if (storyTimer) { clearInterval(storyTimer); storyTimer = null; }
+        }
+
+        closeStoryBtn.addEventListener('click', closeStoryModal);
+        storyModal.addEventListener('click', e => { if (e.target === storyModal) closeStoryModal(); });
+
+        async function markStoryViewed(storyId) {
+            try { await fetch(`/api/stories/${storyId}/view`, { method: 'POST', credentials: 'include' }); }
+            catch (e) { console.error('Ошибка отметки просмотра', e); }
+        }
+
+        async function reactToStory(storyId, reaction) {
+            try {
+                await fetch(`/api/stories/${storyId}/reaction`, {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reaction })
+                });
+            } catch (e) { console.error('Ошибка реакции на историю', e); }
+        }
+
+        // ─────────────────────────────────────────
+        // ПОСТЫ
+        // ─────────────────────────────────────────
+        async function loadPosts() {
+            try {
+                const res = await fetch('/api/posts/feed', { credentials: 'include' });
+                if (!res.ok) throw new Error('Ошибка загрузки постов');
+                const posts = await res.json();
+                renderPosts(posts);
+            } catch (e) {
+                console.error('Ошибка постов:', e);
+                postsContainer.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:40px">Не удалось загрузить посты</p>';
+            }
+        }
+
+        async function renderPosts(posts) {
+            postsContainer.innerHTML = '';
+            if (!posts.length) {
+                postsContainer.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:40px">Пока нет постов</p>';
+                return;
+            }
+            for (const post of posts) {
+                const profile = await getProfile(post.userId);
+                postsContainer.appendChild(await createPostElement(post, profile));
+            }
+        }
+
+        async function createPostElement(post, profile) {
+            const card = document.createElement('article');
+            card.className = 'post-card';
+            card.dataset.postId = post.id;
+
+            const isOwn       = String(post.userId) === String(myUserId);
+            const isFollowing = followingIds.has(String(post.userId));
+            const reactions   = await getReactionsCount(post.id);
+
+            // ✅ Восстанавливаем состояние лайка из localStorage
+            const isLiked = likedPosts.has(post.id);
+
+            card.innerHTML = `
+                <div class="post-header">
+                    <div class="post-author" onclick="window.location.href='/profile/${post.userId}'">
+                        <img src="${profile?.avatarUrl || '/images/default-avatar.png'}"
+                             alt="${profile?.name || '?'}" class="post-avatar"
+                             onerror="this.src='/images/default-avatar.png'">
+                        <div class="post-author-info">
+                            <span class="post-author-name">${profile?.name || '?'} ${profile?.surname || ''}</span>
+                            <span class="post-time">${formatTime(post.createdAt)}</span>
+                        </div>
+                    </div>
+                    ${!isOwn && !isFollowing ? `
+                    <button class="follow-btn" data-uid="${post.userId}">
+                        Подписаться
+                    </button>` : ''}
+                </div>
+
+                <img src="${post.photoUrl}" alt="Post" class="post-image"
+                     onerror="this.style.display='none'">
+
+                <div class="post-content">
+                    ${post.description ? `<p class="post-description">${post.description}</p>` : ''}
+                    <div class="post-actions">
+                        <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-post-id="${post.id}">
+                            <i class="fas fa-heart"></i>
+                            <span class="action-count">${reactions}</span>
+                        </button>
+                        <button class="action-btn" onclick="window.location.href='/post/${post.id}'">
+                            <i class="fas fa-comment"></i>
+                            <span class="action-count">${post.commentsCount || 0}</span>
+                        </button>
+                        <button class="action-btn"><i class="fas fa-share"></i></button>
+                        <button class="action-btn"><i class="fas fa-bookmark"></i></button>
+                    </div>
+                </div>
+            `;
+
+            // ✅ Подписка — кнопка исчезает сразу после успешного запроса
+            const followBtn = card.querySelector('.follow-btn');
+            if (followBtn) {
+                followBtn.addEventListener('click', async () => {
+                const uid = followBtn.dataset.uid;
+
+                 try {
+                      const res = await fetch(`/api/subscriptions/${uid}/subscribe`, {
+                      method: 'POST',
+                      credentials: 'include'
+                 });
+
+                  if (res.ok) {
+                   followingIds.add(String(uid));
+                   document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`).forEach(btn => btn.remove());
+                   document.querySelectorAll(`.story-item[data-uid="${uid}"] .story-follow-badge`).forEach(b => b.remove());
+             }
+
+            } catch (e) {
+                console.error('Ошибка подписки', e);
+             }
+});
+            }
+
+            // ✅ Лайк — toggle с сохранением в localStorage
+            const likeBtn = card.querySelector('.like-btn');
+            let rTimeout;
+
+            likeBtn.addEventListener('mouseenter', () => {
+                rTimeout = setTimeout(() => showReactionsPanel(post.id, likeBtn), 500);
+            });
+            likeBtn.addEventListener('mouseleave', () => clearTimeout(rTimeout));
+            likeBtn.addEventListener('click', () => toggleReaction(post.id, 'LIKE', likeBtn));
+
+            return card;
+        }
+
+        // ─────────────────────────────────────────
+        // РЕАКЦИИ НА ПОСТ
+        // ─────────────────────────────────────────
+        function showReactionsPanel(postId, button) {
+            reactionsPanel.classList.add('show');
+            const rect = button.getBoundingClientRect();
+            reactionsPanel.style.left = Math.max(10, rect.left) + 'px';
+            reactionsPanel.style.transform = 'none';
+
+            reactionsPanel.querySelectorAll('.reaction-option').forEach(btn => {
+                btn.onclick = () => {
+                    reactToPost(postId, btn.dataset.reaction);
+                    reactionsPanel.classList.remove('show');
+                };
+            });
+        }
+
+        document.addEventListener('click', e => {
+            if (!reactionsPanel.contains(e.target) && !e.target.closest('.like-btn'))
+                reactionsPanel.classList.remove('show');
+        });
+
+        async function toggleReaction(postId, reaction, button) {
+            try {
+                const res = await fetch(`/api/posts/${postId}/reaction`, {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reaction })
+                });
+                if (res.ok) {
+                    const cnt = button.querySelector('.action-count');
+                    if (likedPosts.has(postId)) {
+                        // ✅ Снять лайк
+                        likedPosts.delete(postId);
+                        button.classList.remove('liked');
+                        cnt.textContent = Math.max(0, parseInt(cnt.textContent) - 1);
+                    } else {
+                        // ✅ Поставить лайк
+                        likedPosts.add(postId);
+                        button.classList.add('liked');
+                        cnt.textContent = parseInt(cnt.textContent) + 1;
+                    }
+                    saveLikedPosts();
+                }
+            } catch (e) { console.error('Ошибка реакции', e); }
+        }
+
+        async function reactToPost(postId, reaction) {
+            try {
+                const res = await fetch(`/api/posts/${postId}/reaction`, {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reaction })
+                });
+                if (res.ok) {
+                    // ✅ Любая реакция из панели активирует лайк
+                    if (!likedPosts.has(postId)) {
+                        likedPosts.add(postId);
+                        saveLikedPosts();
+                        const likeBtn = document.querySelector(`.like-btn[data-post-id="${postId}"]`);
+                        if (likeBtn) {
+                            likeBtn.classList.add('liked');
+                            const cnt = likeBtn.querySelector('.action-count');
+                            cnt.textContent = parseInt(cnt.textContent) + 1;
+                        }
+                    }
+                }
+            } catch (e) { console.error('Ошибка реакции', e); }
+        }
+
+        // ─────────────────────────────────────────
+        // ВСПОМОГАТЕЛЬНЫЕ
+        // ─────────────────────────────────────────
+        async function getProfile(uid) {
+            try {
+                const res = await fetch(`/api/profiles/user/${uid}`, { credentials: 'include' });
+                return res.ok ? await res.json() : { name: '?', avatarUrl: null };
+            } catch (e) { return { name: '?', avatarUrl: null }; }
+        }
+
+        async function getReactionsCount(postId) {
+            try {
+                const res = await fetch(`/api/posts/${postId}/reactions/count`, { credentials: 'include' });
+                return res.ok ? await res.json() : 0;
+            } catch (e) { return 0; }
+        }
+
+        function formatTime(ts) {
+            if (!ts) return '';
+            const diff = Math.floor((Date.now() - new Date(ts)) / 1000);
+            if (diff < 60)    return 'Только что';
+            if (diff < 3600)  return Math.floor(diff / 60) + ' мин назад';
+            if (diff < 86400) return Math.floor(diff / 3600) + ' ч назад';
+            return Math.floor(diff / 86400) + ' д назад';
+        }
+
+        addStoryBtn.addEventListener('click', () => { window.location.href = '/stories/create'; });
+
+        console.log('✅ Инициализация завершена');
+    });
+</script>
+</body>
+</html>
