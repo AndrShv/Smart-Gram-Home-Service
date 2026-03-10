@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: home-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: home-service
+  template:
+    metadata:
+      labels:
+        app: home-service
+    spec:
+      containers:
+        - name: home-service
+          image: home-service:v6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8083
+          env:
+            # Database
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql-home:3306/homeservice?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+            - name: SPRING_DATASOURCE_USERNAME
+              value: root
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "1111"
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: com.mysql.cj.jdbc.Driver
+            - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+              value: update
+
+            # MinIO
+            - name: MINIO_URL
+              value: http://minio:9000
+            - name: MINIO_ACCESS_KEY
+              value: minioadmin
+            - name: MINIO_SECRET_KEY
+              value: minioadmin
+            - name: MINIO_BUCKET
+              value: avatars
+
+            # RabbitMQ
+            - name: SPRING_RABBITMQ_HOST
+              value: rabbitmq
+            - name: SPRING_RABBITMQ_PORT
+              value: "5672"
+            - name: SPRING_RABBITMQ_USERNAME
+              value: guest
+            - name: SPRING_RABBITMQ_PASSWORD
+              value: guest
+
+            # Auth Service
+            - name: AUTH_SERVICE_URL
+              value: http://auth-service:8081
+
+            # JWT
+            - name: JWT_SECRET
+              value: SuperSecureKeyThatIsLongEnough1234567890orgspringframeworkbootSpringApplication
+            - name: JWT_EXPIRATION_MS
+              value: "86400000"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8083
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 5
