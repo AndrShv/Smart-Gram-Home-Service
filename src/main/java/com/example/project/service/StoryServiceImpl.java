@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -315,7 +316,7 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
 
 
     public List<Story> getAllStories() {
-        return storyRepository.findAll();
+        return storyRepository.findByExpireAtAfterAndIsPublicTrue(LocalDateTime.now());
     }
 
 

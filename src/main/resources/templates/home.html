@@ -3,101 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartGram - Главная</title>
+    <title>SmartGram</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" th:href="@{/css/home.css}">
 </head>
 <body>
+
 <div class="space-background">
     <div class="stars"></div>
     <div class="stars2"></div>
     <div class="stars3"></div>
 </div>
+<div class="aurora">
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+    <div class="aurora-blob"></div>
+</div>
 
-<!-- Верхняя панель -->
+<!-- TOP BAR -->
 <header class="top-bar">
     <div class="top-bar-content">
-        <div class="logo">
-            <i class="fas fa-rocket"></i>
-            <span>SmartGram</span>
-        </div>
-        <div class="header-actions">
-            <button class="icon-btn" id="notificationsBtn">
-                <i class="fas fa-bell"></i>
-                <span class="badge" id="notificationsBadge">3</span>
-            </button>
-        </div>
+        <a href="/home" class="logo">
+            <div class="logo-mark">
+                <!-- Кастомный логотип: стилизованная "SG" с орбитой -->
+                <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="lg1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#c4b5fd"/>
+                            <stop offset="50%" stop-color="#93c5fd"/>
+                            <stop offset="100%" stop-color="#f9a8d4"/>
+                        </linearGradient>
+                        <linearGradient id="lg2" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#a78bfa"/>
+                            <stop offset="100%" stop-color="#38bdf8"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Outer ring -->
+                    <circle cx="18" cy="18" r="16" stroke="url(#lg1)" stroke-width="1.5" stroke-dasharray="4 2" fill="none" opacity=".5"/>
+                    <!-- Inner circle -->
+                    <circle cx="18" cy="18" r="11" fill="url(#lg2)" opacity=".15"/>
+                    <!-- S letter -->
+                    <path d="M13.5 14.5 C13.5 13.1 14.6 12 16 12 H19.5 C20.9 12 22 13.1 22 14.5 C22 15.9 20.9 17 19.5 17 H16.5 C15.1 17 14 18.1 14 19.5 C14 20.9 15.1 22 16.5 22 H20 C21.4 22 22.5 20.9 22.5 19.5"
+                          stroke="url(#lg1)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                    <!-- Orbit dot -->
+                    <circle cx="28" cy="10" r="2.5" fill="#f9a8d4" opacity=".9"/>
+                </svg>
+            </div>
+            <span class="logo-text">Smart<span>Gram</span></span>
+        </a>
+        <a href="/posts/create" class="create-post-btn">
+            <i class="fas fa-plus"></i><span>Пост</span>
+        </a>
+        <button class="notif-btn" id="notificationsBtn">
+            <i class="fas fa-bell"></i>
+            <span class="notif-badge" id="notificationsBadge">3</span>
+        </button>
     </div>
 </header>
 
-<!-- Основной контент -->
+<!-- MAIN -->
 <main class="main-content">
+
+    <!-- STORIES -->
     <section class="stories-section">
+        <div class="stories-label">Истории</div>
         <div class="stories-container" id="storiesContainer">
             <div class="story-item" id="addStoryBtn">
                 <div class="story-avatar-wrap">
-                    <div class="story-avatar add-avatar">
-                        <i class="fas fa-plus"></i>
+                    <div class="story-ring own">
+                        <div class="story-ring-inner">
+                            <div class="add-story-icon"><i class="fas fa-plus"></i></div>
+                        </div>
                     </div>
                 </div>
-                <span class="story-username">Ваша история</span>
+                <span class="story-username">Ваша</span>
             </div>
         </div>
     </section>
 
-    <section class="feed-section">
-        <div class="posts-container" id="postsContainer">
-            <div class="loading-posts">
-                <div class="spinner-orbit">
-                    <div class="spinner-planet"></div>
-                </div>
-                <p>Загрузка постов...</p>
+    <!-- FEED -->
+    <div class="feed-header">
+        <span class="feed-header-label">Лента</span>
+        <div class="feed-header-line"></div>
+    </div>
+
+    <div class="posts-container" id="postsContainer">
+        <div class="loading-posts">
+            <div class="loader-dots">
+                <div class="loader-dot"></div>
+                <div class="loader-dot"></div>
+                <div class="loader-dot"></div>
             </div>
+            Загружаем посты…
         </div>
-    </section>
+    </div>
+
 </main>
 
-<!-- Нижняя навигация -->
+<!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-    <a href="/home" class="nav-item active"><i class="fas fa-home"></i><span>Главная</span></a>
-    <a href="/search" class="nav-item"><i class="fas fa-search"></i><span>Поиск</span></a>
-    <a href="/messages" class="nav-item"><i class="fas fa-comment-dots"></i><span>Сообщения</span></a>
-    <a href="/profile" class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
-    <a href="/settings" class="nav-item"><i class="fas fa-cog"></i><span>Настройки</span></a>
+    <a href="/home"     class="nav-item active"><i class="fas fa-house"></i><span>Главная</span></a>
+    <a href="/search"   class="nav-item"><i class="fas fa-magnifying-glass"></i><span>Поиск</span></a>
+    <a href="/messages" class="nav-item"><i class="fas fa-comment-dots"></i><span>Чаты</span></a>
+    <a href="/profile"  class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
+    <a href="/settings" class="nav-item"><i class="fas fa-gear"></i><span>Настройки</span></a>
 </nav>
 
-<!-- Модалка просмотра истории -->
-<div class="modal story-modal" id="storyModal">
+<!-- STORY MODAL -->
+<div class="modal" id="storyModal">
     <div class="story-viewer">
-        <button class="close-story" id="closeStory"><i class="fas fa-times"></i></button>
-        <div class="story-progress">
-            <div class="progress-bar" id="storyProgress"></div>
-        </div>
+        <button class="close-story" id="closeStory"><i class="fas fa-xmark"></i></button>
+        <div class="story-progress"><div class="progress-bar" id="storyProgress"></div></div>
         <div class="story-header">
-            <img class="story-avatar-img" id="storyAvatarImg" alt="Avatar">
-            <div class="story-info">
-                <span class="story-username-modal" id="storyUsernameModal"></span>
-                <span class="story-time" id="storyTime"></span>
+            <img class="story-avatar-img-modal" id="storyAvatarImg" alt="">
+            <div>
+                <div class="story-username-modal" id="storyUsernameModal"></div>
+                <div class="story-time" id="storyTime"></div>
             </div>
         </div>
-        <img class="story-image" id="storyImage" alt="Story">
+        <img class="story-image" id="storyImage" alt="">
         <div class="story-reactions">
             <button class="reaction-btn" data-reaction="LIKE"><i class="fas fa-heart"></i></button>
             <button class="reaction-btn" data-reaction="FIRE"><i class="fas fa-fire"></i></button>
-            <button class="reaction-btn" data-reaction="WOW"><i class="fas fa-surprise"></i></button>
-            <button class="reaction-btn" data-reaction="LAUGH"><i class="fas fa-laugh"></i></button>
+            <button class="reaction-btn" data-reaction="WOW"><i class="fas fa-face-surprise"></i></button>
+            <button class="reaction-btn" data-reaction="LAUGH"><i class="fas fa-face-laugh"></i></button>
         </div>
     </div>
 </div>
 
-<!-- Панель реакций на пост -->
+<!-- REACTIONS PANEL -->
 <div class="reactions-panel" id="reactionsPanel">
     <button class="reaction-option" data-reaction="LIKE"><i class="fas fa-heart"></i></button>
     <button class="reaction-option" data-reaction="FIRE"><i class="fas fa-fire"></i></button>
-    <button class="reaction-option" data-reaction="WOW"><i class="fas fa-surprise"></i></button>
-    <button class="reaction-option" data-reaction="LAUGH"><i class="fas fa-laugh"></i></button>
-    <button class="reaction-option" data-reaction="SAD"><i class="fas fa-sad-tear"></i></button>
-    <button class="reaction-option" data-reaction="ANGRY"><i class="fas fa-angry"></i></button>
+    <button class="reaction-option" data-reaction="WOW"><i class="fas fa-face-surprise"></i></button>
+    <button class="reaction-option" data-reaction="LAUGH"><i class="fas fa-face-laugh"></i></button>
+    <button class="reaction-option" data-reaction="SAD"><i class="fas fa-face-sad-tear"></i></button>
+    <button class="reaction-option" data-reaction="ANGRY"><i class="fas fa-face-angry"></i></button>
 </div>
 
 <script>
@@ -115,99 +158,84 @@
         let followingIds = new Set();
         let storyTimer   = null;
 
-        // ✅ Лайки хранятся в localStorage — persist между перезагрузками
-        const likedPosts = new Set(
-            JSON.parse(localStorage.getItem('likedPosts') || '[]')
-        );
-        function saveLikedPosts() {
-            localStorage.setItem('likedPosts', JSON.stringify([...likedPosts]));
-        }
+        const likedPosts = new Set(JSON.parse(localStorage.getItem('likedPosts') || '[]'));
+        function saveLikedPosts() { localStorage.setItem('likedPosts', JSON.stringify([...likedPosts])); }
 
-        // ─────────────────────────────────────────
-        // ИНИЦИАЛИЗАЦИЯ
-        // ─────────────────────────────────────────
+        // ── INIT ──
         (async function init() {
             try {
                 const meRes = await fetch('/api/auth/me', { credentials: 'include' });
-                if (meRes.ok) {
-                    const me = await meRes.json();
-                    myUserId = me.id || me.userId;
-                }
-            } catch (e) { console.warn('Не удалось получить текущего пользователя', e); }
+                if (meRes.ok) { const me = await meRes.json(); myUserId = me.id || me.userId; }
+            } catch (e) { console.warn(e); }
 
             if (myUserId) {
                 try {
-                    const fRes = await fetch(`/api/profiles/user/${myUserId}/followings`, { credentials: 'include' });
+                    const fRes = await fetch(`/api/subscriptions/${myUserId}/followings`, { credentials: 'include' });
                     if (fRes.ok) {
                         const list = await fRes.json();
-                        list.forEach(f => followingIds.add(String(f.userId || f.id)));
+                        list.forEach(f => {
+                            const id = f.followingUserId || f.targetUserId || f.userId || f.id;
+                            if (id) followingIds.add(String(id));
+                        });
                     }
-                } catch (e) { console.warn('Не удалось загрузить подписки', e); }
+                } catch (e) { console.warn(e); }
             }
 
             loadStories();
             loadPosts();
         })();
 
-        // ─────────────────────────────────────────
-        // ИСТОРИИ
-        // ─────────────────────────────────────────
+        // ── STORIES ──
         async function loadStories() {
             try {
                 const res = await fetch('/api/stories', { credentials: 'include' });
-                if (!res.ok) { console.error('Ошибка загрузки историй'); return; }
-                const stories = await res.json();
-                renderStories(stories);
-            } catch (e) { console.error('Ошибка историй:', e); }
+                if (!res.ok) return;
+                renderStories(await res.json());
+            } catch (e) { console.error(e); }
         }
 
         function renderStories(stories) {
             const byUser = {};
-            stories.forEach(s => {
-                if (!byUser[s.userId]) byUser[s.userId] = [];
-                byUser[s.userId].push(s);
-            });
+            stories.forEach(s => { if (!byUser[s.userId]) byUser[s.userId] = []; byUser[s.userId].push(s); });
 
             const uids = Object.keys(byUser).filter(id => id !== myUserId);
             uids.sort((a, b) => {
                 const af = followingIds.has(a), bf = followingIds.has(b);
-                if (af && !bf) return -1;
-                if (!af && bf) return 1;
-                return 0;
+                return af === bf ? 0 : af ? -1 : 1;
             });
 
             uids.forEach(async uid => {
                 const profile = await getProfile(uid);
-                const el = createStoryElement(uid, profile, byUser[uid]);
-                storiesContainer.appendChild(el);
+                storiesContainer.appendChild(createStoryElement(uid, profile, byUser[uid]));
             });
         }
 
         function createStoryElement(uid, profile, userStories) {
             const item = document.createElement('div');
             item.className = 'story-item';
-            item.dataset.uid = uid; // ✅ сохраняем uid на элементе
+            item.dataset.uid = uid;
 
             const isFollowing = followingIds.has(String(uid));
             const latestStory = userStories[0];
+            const badgeHtml = !isFollowing ? `<div class="story-follow-badge"><i class="fas fa-plus"></i></div>` : '';
 
-            const followBadgeHtml = !isFollowing
-                ? `<div class="story-follow-badge"><i class="fas fa-plus"></i></div>`
-                : '';
+            const avatarSrc = profile?.avatarUrl || '/images/default-avatar.png';
+            const name      = profile?.name || '?';
 
             item.innerHTML = `
                 <div class="story-avatar-wrap">
-                    <div class="story-avatar">
-                        <img src="${profile?.avatarUrl || '/images/default-avatar.png'}"
-                             alt="${profile?.name || '?'}"
-                             onerror="this.src='/images/default-avatar.png'">
+                    <div class="story-ring">
+                        <div class="story-ring-inner">
+                            <img class="story-avatar-img" src="${avatarSrc}" alt="${name}"
+                                 onerror="this.src='/images/default-avatar.png'">
+                        </div>
                     </div>
-                    ${followBadgeHtml}
+                    ${badgeHtml}
                 </div>
-                <span class="story-username">${profile?.name || '?'}</span>
+                <span class="story-username">${name}</span>
             `;
 
-            item.querySelector('.story-avatar-wrap').addEventListener('click', e => {
+            item.querySelector('.story-ring').addEventListener('click', e => {
                 if (e.target.closest('.story-follow-badge')) return;
                 openStory(latestStory, userStories, profile);
             });
@@ -215,51 +243,38 @@
             const badge = item.querySelector('.story-follow-badge');
             if (badge) {
                 badge.addEventListener('click', async e => {
-                e.stopPropagation();
-
-                 try {
-                    const res = await fetch(`/api/subscriptions/${uid}/subscribe`, {
-                    method: 'POST',
-                    credentials: 'include'
-                 });
-
-                  if (res.ok) {
-                         followingIds.add(String(uid));
-                         badge.remove();
-                         document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`)
-                .forEach(btn => btn.remove());
-                 }
-
-                 } catch (err) {
-               console.error('Ошибка подписки', err);
-              }
-            });
+                    e.stopPropagation();
+                    try {
+                        const res = await fetch(`/api/subscriptions/${uid}/subscribe`, { method: 'POST', credentials: 'include' });
+                        const ok  = res.ok || res.status === 409;
+                        if (ok) {
+                            followingIds.add(String(uid));
+                            badge.remove();
+                            document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`).forEach(b => b.remove());
+                        }
+                    } catch (err) { console.error(err); }
+                });
             }
-
             return item;
         }
 
-        // ─────────────────────────────────────────
-        // ПРОСМОТР ИСТОРИИ
-        // ─────────────────────────────────────────
+        // ── STORY VIEWER ──
         function openStory(story, allStories, profile) {
-            document.getElementById('storyImage').src                 = story.photoUrl;
-            document.getElementById('storyAvatarImg').src             = profile?.avatarUrl || '/images/default-avatar.png';
+            document.getElementById('storyImage').src          = story.photoUrl;
+            document.getElementById('storyAvatarImg').src      = profile?.avatarUrl || '/images/default-avatar.png';
             document.getElementById('storyUsernameModal').textContent = profile?.name || '?';
-            document.getElementById('storyTime').textContent          = formatTime(story.createdAt);
+            document.getElementById('storyTime').textContent   = formatTime(story.createdAt);
 
-            const progressBar = document.getElementById('storyProgress');
-            progressBar.style.width = '0%';
+            const bar = document.getElementById('storyProgress');
+            bar.style.width = '0%';
             storyModal.classList.add('show');
-
             markStoryViewed(story.id);
 
             if (storyTimer) clearInterval(storyTimer);
-            let progress = 0;
+            let p = 0;
             storyTimer = setInterval(() => {
-                progress += 0.5;
-                progressBar.style.width = progress + '%';
-                if (progress >= 100) { clearInterval(storyTimer); closeStoryModal(); }
+                p += 0.5; bar.style.width = p + '%';
+                if (p >= 100) { clearInterval(storyTimer); closeStoryModal(); }
             }, 30);
 
             document.querySelectorAll('.reaction-btn').forEach(btn => {
@@ -275,40 +290,34 @@
         closeStoryBtn.addEventListener('click', closeStoryModal);
         storyModal.addEventListener('click', e => { if (e.target === storyModal) closeStoryModal(); });
 
-        async function markStoryViewed(storyId) {
-            try { await fetch(`/api/stories/${storyId}/view`, { method: 'POST', credentials: 'include' }); }
-            catch (e) { console.error('Ошибка отметки просмотра', e); }
+        async function markStoryViewed(id) {
+            try { await fetch(`/api/stories/${id}/view`, { method: 'POST', credentials: 'include' }); } catch {}
         }
-
-        async function reactToStory(storyId, reaction) {
+        async function reactToStory(id, reaction) {
             try {
-                await fetch(`/api/stories/${storyId}/reaction`, {
+                await fetch(`/api/stories/${id}/reaction`, {
                     method: 'POST', credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ reaction })
                 });
-            } catch (e) { console.error('Ошибка реакции на историю', e); }
+            } catch {}
         }
 
-        // ─────────────────────────────────────────
-        // ПОСТЫ
-        // ─────────────────────────────────────────
+        // ── POSTS ──
         async function loadPosts() {
             try {
                 const res = await fetch('/api/posts/feed', { credentials: 'include' });
-                if (!res.ok) throw new Error('Ошибка загрузки постов');
-                const posts = await res.json();
-                renderPosts(posts);
-            } catch (e) {
-                console.error('Ошибка постов:', e);
-                postsContainer.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:40px">Не удалось загрузить посты</p>';
+                if (!res.ok) throw new Error();
+                renderPosts(await res.json());
+            } catch {
+                postsContainer.innerHTML = `<p style="text-align:center;color:var(--muted);padding:40px">Пока нет постов</p>`;
             }
         }
 
         async function renderPosts(posts) {
             postsContainer.innerHTML = '';
             if (!posts.length) {
-                postsContainer.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:40px">Пока нет постов</p>';
+                postsContainer.innerHTML = `<p style="text-align:center;color:var(--muted);padding:40px">Пока нет постов в ленте</p>`;
                 return;
             }
             for (const post of posts) {
@@ -325,30 +334,24 @@
             const isOwn       = String(post.userId) === String(myUserId);
             const isFollowing = followingIds.has(String(post.userId));
             const reactions   = await getReactionsCount(post.id);
-
-            // ✅ Восстанавливаем состояние лайка из localStorage
-            const isLiked = likedPosts.has(post.id);
+            const isLiked     = likedPosts.has(post.id);
 
             card.innerHTML = `
                 <div class="post-header">
                     <div class="post-author" onclick="window.location.href='/profile/${post.userId}'">
-                        <img src="${profile?.avatarUrl || '/images/default-avatar.png'}"
-                             alt="${profile?.name || '?'}" class="post-avatar"
+                        <img class="post-avatar"
+                             src="${profile?.avatarUrl || '/images/default-avatar.png'}"
+                             alt="${profile?.name || '?'}"
                              onerror="this.src='/images/default-avatar.png'">
-                        <div class="post-author-info">
-                            <span class="post-author-name">${profile?.name || '?'} ${profile?.surname || ''}</span>
-                            <span class="post-time">${formatTime(post.createdAt)}</span>
+                        <div>
+                            <div class="post-author-name">${profile?.name || '?'} ${profile?.surname || ''}</div>
+                            <div class="post-time">${formatTime(post.createdAt)}</div>
                         </div>
                     </div>
-                    ${!isOwn && !isFollowing ? `
-                    <button class="follow-btn" data-uid="${post.userId}">
-                        Подписаться
-                    </button>` : ''}
+                    ${!isOwn && !isFollowing ? `<button class="follow-btn" data-uid="${post.userId}">Подписаться</button>` : ''}
                 </div>
-
-                <img src="${post.photoUrl}" alt="Post" class="post-image"
+                <img class="post-image" src="${post.photoUrl}" alt=""
                      onerror="this.style.display='none'">
-
                 <div class="post-content">
                     ${post.description ? `<p class="post-description">${post.description}</p>` : ''}
                     <div class="post-actions">
@@ -360,63 +363,44 @@
                             <i class="fas fa-comment"></i>
                             <span class="action-count">${post.commentsCount || 0}</span>
                         </button>
-                        <button class="action-btn"><i class="fas fa-share"></i></button>
-                        <button class="action-btn"><i class="fas fa-bookmark"></i></button>
+                        <button class="action-btn"><i class="fas fa-share-nodes"></i></button>
+                        <button class="action-btn" style="margin-left:auto"><i class="fas fa-bookmark"></i></button>
                     </div>
                 </div>
             `;
 
-            // ✅ Подписка — кнопка исчезает сразу после успешного запроса
+            // Follow
             const followBtn = card.querySelector('.follow-btn');
             if (followBtn) {
                 followBtn.addEventListener('click', async () => {
-                const uid = followBtn.dataset.uid;
-
-                 try {
-                      const res = await fetch(`/api/subscriptions/${uid}/subscribe`, {
-                      method: 'POST',
-                      credentials: 'include'
-                 });
-
-                  if (res.ok) {
-                   followingIds.add(String(uid));
-                   document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`).forEach(btn => btn.remove());
-                   document.querySelectorAll(`.story-item[data-uid="${uid}"] .story-follow-badge`).forEach(b => b.remove());
-             }
-
-            } catch (e) {
-                console.error('Ошибка подписки', e);
-             }
-});
+                    const uid = followBtn.dataset.uid;
+                    const res = await fetch(`/api/subscriptions/${uid}/subscribe`, { method: 'POST', credentials: 'include' });
+                    if (res.ok || res.status === 409) {
+                        followingIds.add(String(uid));
+                        document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`).forEach(b => b.remove());
+                        document.querySelectorAll(`.story-item[data-uid="${uid}"] .story-follow-badge`).forEach(b => b.remove());
+                    }
+                });
             }
 
-            // ✅ Лайк — toggle с сохранением в localStorage
+            // Like
             const likeBtn = card.querySelector('.like-btn');
-            let rTimeout;
-
-            likeBtn.addEventListener('mouseenter', () => {
-                rTimeout = setTimeout(() => showReactionsPanel(post.id, likeBtn), 500);
-            });
-            likeBtn.addEventListener('mouseleave', () => clearTimeout(rTimeout));
+            let rt;
+            likeBtn.addEventListener('mouseenter', () => { rt = setTimeout(() => showReactionsPanel(post.id, likeBtn), 500); });
+            likeBtn.addEventListener('mouseleave', () => clearTimeout(rt));
             likeBtn.addEventListener('click', () => toggleReaction(post.id, 'LIKE', likeBtn));
 
             return card;
         }
 
-        // ─────────────────────────────────────────
-        // РЕАКЦИИ НА ПОСТ
-        // ─────────────────────────────────────────
+        // ── REACTIONS ──
         function showReactionsPanel(postId, button) {
             reactionsPanel.classList.add('show');
-            const rect = button.getBoundingClientRect();
-            reactionsPanel.style.left = Math.max(10, rect.left) + 'px';
+            const r = button.getBoundingClientRect();
+            reactionsPanel.style.left = Math.max(10, r.left) + 'px';
             reactionsPanel.style.transform = 'none';
-
             reactionsPanel.querySelectorAll('.reaction-option').forEach(btn => {
-                btn.onclick = () => {
-                    reactToPost(postId, btn.dataset.reaction);
-                    reactionsPanel.classList.remove('show');
-                };
+                btn.onclick = () => { reactToPost(postId, btn.dataset.reaction); reactionsPanel.classList.remove('show'); };
             });
         }
 
@@ -426,80 +410,62 @@
         });
 
         async function toggleReaction(postId, reaction, button) {
-            try {
-                const res = await fetch(`/api/posts/${postId}/reaction`, {
-                    method: 'POST', credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reaction })
-                });
-                if (res.ok) {
-                    const cnt = button.querySelector('.action-count');
-                    if (likedPosts.has(postId)) {
-                        // ✅ Снять лайк
-                        likedPosts.delete(postId);
-                        button.classList.remove('liked');
-                        cnt.textContent = Math.max(0, parseInt(cnt.textContent) - 1);
-                    } else {
-                        // ✅ Поставить лайк
-                        likedPosts.add(postId);
-                        button.classList.add('liked');
-                        cnt.textContent = parseInt(cnt.textContent) + 1;
-                    }
-                    saveLikedPosts();
+            const res = await fetch(`/api/posts/${postId}/reaction`, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reaction })
+            });
+            if (res.ok) {
+                const cnt = button.querySelector('.action-count');
+                if (likedPosts.has(postId)) {
+                    likedPosts.delete(postId); button.classList.remove('liked');
+                    cnt.textContent = Math.max(0, parseInt(cnt.textContent) - 1);
+                } else {
+                    likedPosts.add(postId); button.classList.add('liked');
+                    cnt.textContent = parseInt(cnt.textContent) + 1;
                 }
-            } catch (e) { console.error('Ошибка реакции', e); }
+                saveLikedPosts();
+            }
         }
 
         async function reactToPost(postId, reaction) {
-            try {
-                const res = await fetch(`/api/posts/${postId}/reaction`, {
-                    method: 'POST', credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reaction })
-                });
-                if (res.ok) {
-                    // ✅ Любая реакция из панели активирует лайк
-                    if (!likedPosts.has(postId)) {
-                        likedPosts.add(postId);
-                        saveLikedPosts();
-                        const likeBtn = document.querySelector(`.like-btn[data-post-id="${postId}"]`);
-                        if (likeBtn) {
-                            likeBtn.classList.add('liked');
-                            const cnt = likeBtn.querySelector('.action-count');
-                            cnt.textContent = parseInt(cnt.textContent) + 1;
-                        }
-                    }
-                }
-            } catch (e) { console.error('Ошибка реакции', e); }
+            const res = await fetch(`/api/posts/${postId}/reaction`, {
+                method: 'POST', credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reaction })
+            });
+            if (res.ok && !likedPosts.has(postId)) {
+                likedPosts.add(postId); saveLikedPosts();
+                const lb = document.querySelector(`.like-btn[data-post-id="${postId}"]`);
+                if (lb) { lb.classList.add('liked'); lb.querySelector('.action-count').textContent = parseInt(lb.querySelector('.action-count').textContent) + 1; }
+            }
         }
 
-        // ─────────────────────────────────────────
-        // ВСПОМОГАТЕЛЬНЫЕ
-        // ─────────────────────────────────────────
+        // ── HELPERS ──
         async function getProfile(uid) {
             try {
                 const res = await fetch(`/api/profiles/user/${uid}`, { credentials: 'include' });
-                return res.ok ? await res.json() : { name: '?', avatarUrl: null };
-            } catch (e) { return { name: '?', avatarUrl: null }; }
+                return res.ok ? await res.json() : null;
+            } catch { return null; }
         }
 
         async function getReactionsCount(postId) {
             try {
                 const res = await fetch(`/api/posts/${postId}/reactions/count`, { credentials: 'include' });
                 return res.ok ? await res.json() : 0;
-            } catch (e) { return 0; }
+            } catch { return 0; }
         }
 
         function formatTime(ts) {
             if (!ts) return '';
-            const diff = Math.floor((Date.now() - new Date(ts)) / 1000);
-            if (diff < 60)    return 'Только что';
-            if (diff < 3600)  return Math.floor(diff / 60) + ' мин назад';
-            if (diff < 86400) return Math.floor(diff / 3600) + ' ч назад';
-            return Math.floor(diff / 86400) + ' д назад';
+            const d = Math.floor((Date.now() - new Date(ts)) / 1000);
+            if (d < 60)    return 'только что';
+            if (d < 3600)  return Math.floor(d/60) + ' мин';
+            if (d < 86400) return Math.floor(d/3600) + ' ч';
+            return Math.floor(d/86400) + ' д';
         }
 
-        addStoryBtn.addEventListener('click', () => { window.location.href = '/stories/create'; });
+        addStoryBtn.addEventListener('click', () => window.location.href = '/stories/create');
 
         console.log('✅ Инициализация завершена');
     });

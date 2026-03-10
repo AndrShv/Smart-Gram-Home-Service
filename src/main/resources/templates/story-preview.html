@@ -3,110 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartGram — Предпросмотр истории</title>
+  <title>Предпросмотр — SmartGram</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
-    :root { --bg:#090a0f; --cyan:#00d4ff; --violet:#7b2ff7; --pink:#f107a3; --text:#f0f4ff; --muted:rgba(240,244,255,0.45); --border:rgba(0,212,255,0.18); }
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden}
-    .space-bg{position:fixed;inset:0;background:radial-gradient(ellipse at 30% 20%,#0d1a2e 0%,#090a0f 70%);z-index:-2}
-    .nebula{position:fixed;inset:0;z-index:-1;pointer-events:none}
-    .nebula::before{content:'';position:absolute;width:700px;height:700px;background:radial-gradient(circle,rgba(123,47,247,0.15) 0%,transparent 70%);top:-150px;right:-150px;animation:drift 12s ease-in-out infinite alternate}
-    .nebula::after{content:'';position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(0,212,255,0.1) 0%,transparent 70%);bottom:-150px;left:-100px;animation:drift 18s ease-in-out infinite alternate-reverse}
-    @keyframes drift{from{transform:translate(0,0)}to{transform:translate(50px,40px)}}
-    .stars{position:fixed;inset:0;z-index:-1}
-    .stars::before,.stars::after{content:'';position:absolute;inset:0;background-image:radial-gradient(1px 1px at 10% 20%,#fff,transparent),radial-gradient(1px 1px at 30% 70%,rgba(255,255,255,.7),transparent),radial-gradient(1px 1px at 60% 15%,#fff,transparent),radial-gradient(2px 2px at 80% 60%,rgba(255,255,255,.5),transparent);background-size:500px 500px;animation:twinkle 7s ease-in-out infinite}
-    .stars::after{background-size:700px 700px;animation-duration:10s;animation-direction:reverse;opacity:.4}
-    @keyframes twinkle{0%,100%{opacity:1}50%{opacity:.3}}
-
-    .top-bar{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(9,10,15,0.92);backdrop-filter:blur(24px);border-bottom:1px solid var(--border)}
-    .top-bar-inner{max-width:440px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
-    .back-btn{width:40px;height:40px;border-radius:12px;background:rgba(0,212,255,0.08);border:1px solid var(--border);color:var(--cyan);display:flex;align-items:center;justify-content:center;text-decoration:none;transition:all .25s;font-size:15px}
-    .back-btn:hover{background:rgba(0,212,255,0.18);border-color:var(--cyan)}
-    .page-title{font-family:'Syne',sans-serif;font-size:17px;font-weight:700;background:linear-gradient(135deg,var(--cyan),var(--violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-
-    .main-wrap{width:100%;max-width:440px;padding:80px 20px 30px;display:flex;flex-direction:column;gap:20px}
-
-    /* Story card */
-    .story-card{border-radius:24px;overflow:hidden;border:1px solid rgba(0,212,255,0.15);box-shadow:0 20px 60px rgba(0,0,0,.6)}
-    .story-frame{position:relative;width:100%;padding-top:177.78%}
-    .story-frame-inner{position:absolute;inset:0}
-    #previewImg{width:100%;height:100%;object-fit:cover;display:block}
-    .story-gradient{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.3) 0%,transparent 30%,transparent 55%,rgba(0,0,0,.75) 100%)}
-    .story-progress{position:absolute;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.2);z-index:5}
-    .story-progress-fill{height:100%;background:#fff;width:0%;animation:prog 6s linear forwards}
-    @keyframes prog{from{width:0%}to{width:100%}}
-
-    .story-top{position:absolute;top:14px;left:14px;right:14px;display:flex;align-items:center;gap:10px;z-index:5}
-    .avatar-ring{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--pink),var(--violet));padding:2px;flex-shrink:0}
-    .avatar-ring img{width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid #000}
-    .story-meta{flex:1}
-    .story-username{font-size:13px;font-weight:600;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);display:block}
-    .story-ts{font-size:11px;color:rgba(255,255,255,.65)}
-
-    .overlay-text-el{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Syne',sans-serif;font-size:clamp(18px,5vw,26px);font-weight:800;color:#fff;text-align:center;text-shadow:0 2px 20px rgba(0,0,0,.8);padding:0 20px;max-width:90%;word-break:break-word;z-index:5;display:none}
-
-    .story-bottom{position:absolute;bottom:14px;left:14px;right:14px;z-index:5;display:flex;flex-direction:column;gap:6px}
-    .location-badge,.music-badge{display:none;align-items:center;gap:6px;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:4px 12px;font-size:12px;color:rgba(255,255,255,.85);width:fit-content}
-    .music-icon-spin{animation:spin 3s linear infinite;display:inline-block}
-    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-    .story-desc-el{font-size:13px;color:rgba(255,255,255,.9);text-shadow:0 1px 6px rgba(0,0,0,.7);display:none;line-height:1.4}
-    .tags-row{display:flex;flex-wrap:wrap;gap:5px}
-    .story-tag{background:rgba(0,0,0,.4);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:3px 10px;font-size:11px;color:rgba(255,255,255,.85)}
-
-    /* AI section */
-    .ai-section{background:rgba(15,20,35,0.9);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;padding:14px 16px;display:none}
-    .ai-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
-    .ai-chips{display:flex;flex-wrap:wrap;gap:6px}
-    .chip{border-radius:20px;padding:4px 12px;font-size:12px}
-    .chip-cyan{background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.22);color:var(--cyan)}
-    .chip-violet{background:rgba(123,47,247,.1);border:1px solid rgba(123,47,247,.25);color:#b07dff}
-    .chip-pink{background:rgba(241,7,163,.08);border:1px solid rgba(241,7,163,.2);color:#f588cc}
-
-    /* Actions */
-    .actions{display:flex;gap:12px}
-    .btn{flex:1;padding:15px;border-radius:14px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:8px}
-    .btn-back{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--muted)}
-    .btn-back:hover{background:rgba(255,255,255,.1);color:var(--text)}
-    .btn-publish{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#fff;box-shadow:0 4px 20px rgba(0,212,255,.3)}
-    .btn-publish:hover:not(:disabled){opacity:.9;transform:translateY(-2px)}
-    .btn-publish:disabled{opacity:.45;cursor:not-allowed;transform:none}
-    .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
-    .btn-publish.loading .spinner{display:block}
-    .btn-publish.loading .btn-label{display:none}
-
-    /* Success */
-    .success-overlay{position:fixed;inset:0;z-index:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(9,10,15,.96);opacity:0;pointer-events:none;transition:opacity .4s}
-    .success-overlay.show{opacity:1;pointer-events:all}
-    .success-circle{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--violet));display:flex;align-items:center;justify-content:center;font-size:40px;animation:pop .5s cubic-bezier(.34,1.56,.64,1)}
-    @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
-    .success-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800}
-    .success-sub{font-size:14px;color:var(--muted)}
-
-    /* Toast */
-    .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:#ff4757;color:#fff;padding:12px 24px;border-radius:12px;font-size:14px;z-index:700;transition:transform .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;max-width:90%;text-align:center}
-    .toast.show{transform:translateX(-50%) translateY(0)}
-
-    .no-data{text-align:center;padding:60px 20px;color:var(--muted)}
-    .no-data a{color:var(--cyan);text-decoration:none}
-  </style>
+    <link rel="stylesheet" th:href="@{/css/story-preview.css}">
 </head>
 <body>
-<div class="space-bg"></div><div class="nebula"></div><div class="stars"></div>
+<div class="space-background"><div class="stars"></div><div class="stars2"></div><div class="stars3"></div></div>
+<div class="aurora"><div class="aurora-blob"></div><div class="aurora-blob"></div></div>
 
 <header class="top-bar">
   <div class="top-bar-inner">
     <a href="/stories/create" class="back-btn"><i class="fas fa-arrow-left"></i></a>
     <span class="page-title">Предпросмотр</span>
-    <div style="width:40px"></div>
+    <div style="width:38px"></div>
   </div>
 </header>
 
 <div class="main-wrap">
-
   <div class="no-data" id="noData" style="display:none">
-    <p>Нет данных.<br><a href="/stories/create">← Вернуться к созданию</a></p>
+    <p style="font-size:36px;margin-bottom:16px;opacity:.3">📷</p>
+    <p style="margin-bottom:12px">Нет данных для предпросмотра</p>
+    <a href="/stories/create">← Вернуться к созданию</a>
   </div>
 
   <div class="story-card" id="storyCard">
@@ -115,37 +34,26 @@
         <img id="previewImg" src="" alt="История">
         <div class="story-gradient"></div>
         <div class="story-progress"><div class="story-progress-fill" id="progressFill"></div></div>
-
         <div class="story-top">
-          <div class="avatar-ring">
-            <img id="previewAvatar" src="/images/default-avatar.png" alt="avatar">
-          </div>
+          <div class="avatar-ring"><img id="previewAvatar" src="/images/default-avatar.png" alt="avatar"></div>
           <div class="story-meta">
-            <span class="story-username">Вы</span>
+            <span class="story-username" id="previewUsername">Вы</span>
             <span class="story-ts">Только что · 24ч</span>
           </div>
         </div>
-
         <div class="overlay-text-el" id="overlayTextEl"></div>
-
         <div class="story-bottom">
-          <div class="location-badge" id="locationBadge">
-            <i class="fas fa-map-marker-alt"></i>
-            <span id="locationText"></span>
-          </div>
+          <div class="location-badge" id="locationBadge"><i class="fas fa-location-dot"></i><span id="locationText"></span></div>
           <p class="story-desc-el" id="descEl"></p>
           <div class="tags-row" id="tagsRow"></div>
-          <div class="music-badge" id="musicBadge">
-            <span class="music-icon-spin">♫</span>
-            <span id="musicText"></span>
-          </div>
+          <div class="music-badge" id="musicBadge"><span class="music-icon-spin">♫</span><span id="musicText"></span></div>
         </div>
       </div>
     </div>
   </div>
 
   <div class="ai-section" id="aiSection">
-    <div class="ai-title">✦ AI теги и настроение</div>
+    <div class="ai-title">✦ Теги и параметры</div>
     <div class="ai-chips" id="aiChips"></div>
   </div>
 
@@ -169,142 +77,103 @@
 
 <script>
   (function() {
-    // ── читаем из sessionStorage (все в отдельных именах, без location) ──
     var photo64     = sessionStorage.getItem('story_photo_base64');
-    var photoName   = sessionStorage.getItem('story_photo_name')    || 'photo.jpg';
-    var photoType   = sessionStorage.getItem('story_photo_type')    || 'image/jpeg';
-    var storyDesc   = sessionStorage.getItem('story_description')   || '';
-    var storyPlace  = sessionStorage.getItem('story_location')      || '';  // НЕ location!
-    var storyOverlay= sessionStorage.getItem('story_overlayText')   || '';
-    var storyMusic  = sessionStorage.getItem('story_musicCaption')  || '';
+    var photoName   = sessionStorage.getItem('story_photo_name')   || 'photo.jpg';
+    var photoType   = sessionStorage.getItem('story_photo_type')   || 'image/jpeg';
+    var storyDesc   = sessionStorage.getItem('story_description')  || '';
+    var storyPlace  = sessionStorage.getItem('story_location')     || '';
+    var storyOverlay= sessionStorage.getItem('story_overlayText')  || '';
+    var storyMusic  = sessionStorage.getItem('story_musicCaption') || '';
     var storyPublic = sessionStorage.getItem('story_isPublic') !== 'false';
 
     if (!photo64) {
-      document.getElementById('storyCard').style.display  = 'none';
-      document.getElementById('aiSection').style.display  = 'none';
-      document.querySelector('.actions').style.display    = 'none';
-      document.getElementById('noData').style.display     = 'block';
+      document.getElementById('storyCard').style.display = 'none';
+      document.getElementById('aiSection').style.display = 'none';
+      document.querySelector('.actions').style.display   = 'none';
+      document.getElementById('noData').style.display    = 'block';
       return;
     }
 
-    // Фото
     document.getElementById('previewImg').src = photo64;
 
-    // Overlay текст
-    if (storyOverlay) {
-      var otEl = document.getElementById('overlayTextEl');
-      otEl.textContent = storyOverlay;
-      otEl.style.display = 'block';
-    }
+    // Load current user avatar/name
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(me => {
+        if (!me) return;
+        return fetch(`/api/profiles/user/${me.id || me.userId}`, { credentials: 'include' });
+      })
+      .then(r => r && r.ok ? r.json() : null)
+      .then(profile => {
+        if (!profile) return;
+        if (profile.avatarUrl) document.getElementById('previewAvatar').src = `/api/profiles/${profile.id}/avatar`;
+        var name = profile.name || 'Вы';
+        document.getElementById('previewUsername').textContent = name.toLowerCase() + '_' + (profile.surname || '').toLowerCase();
+      })
+      .catch(() => {});
 
-    // Описание
-    if (storyDesc) {
-      var dEl = document.getElementById('descEl');
-      dEl.textContent = storyDesc;
-      dEl.style.display = 'block';
-    }
+    if (storyOverlay) { var el=document.getElementById('overlayTextEl'); el.textContent=storyOverlay; el.style.display='block'; }
+    if (storyDesc)    { var el=document.getElementById('descEl');        el.textContent=storyDesc;    el.style.display='block'; }
+    if (storyPlace)   { document.getElementById('locationText').textContent=storyPlace; document.getElementById('locationBadge').style.display='inline-flex'; }
+    if (storyMusic)   { document.getElementById('musicText').textContent=storyMusic;    document.getElementById('musicBadge').style.display='inline-flex'; }
 
-    // Место
-    if (storyPlace) {
-      document.getElementById('locationText').textContent = storyPlace;
-      document.getElementById('locationBadge').style.display = 'inline-flex';
-    }
-
-    // Музыка
-    if (storyMusic) {
-      document.getElementById('musicText').textContent = storyMusic;
-      document.getElementById('musicBadge').style.display = 'inline-flex';
-    }
-
-    // ── AI теги ──
-    var combined = (storyDesc + ' ' + storyPlace + ' ' + storyOverlay).toLowerCase();
+    // Tags
+    var combined = (storyDesc+' '+storyPlace+' '+storyOverlay).toLowerCase();
     var tagMap = [
-      { kw:['море','пляж','ocean','sea','beach'],  label:'🌊 море',         cls:'chip-cyan'   },
-      { kw:['город','city','urban','улица'],        label:'🏙 город',        cls:'chip-cyan'   },
-      { kw:['природа','лес','nature','forest'],     label:'🌿 природа',      cls:'chip-cyan'   },
-      { kw:['еда','food','ресторан','кафе'],        label:'🍽 еда',          cls:'chip-cyan'   },
-      { kw:['путешест','travel','поездк','trip'],   label:'✈️ путешествие',  cls:'chip-cyan'   },
-      { kw:['закат','рассвет','sunset','sunrise'],  label:'🌅 закат',        cls:'chip-pink'   },
-      { kw:['музык','music','концерт'],             label:'🎵 музыка',       cls:'chip-violet' },
-      { kw:['спорт','фитнес','sport','fitness'],    label:'💪 спорт',        cls:'chip-violet' },
+      { kw:['море','пляж','ocean','sea','beach'],  label:'море',        cls:'chip-cyan'   },
+      { kw:['город','city','urban','улица'],        label:'город',       cls:'chip-cyan'   },
+      { kw:['природа','лес','nature','forest'],     label:'природа',     cls:'chip-cyan'   },
+      { kw:['еда','food','ресторан','кафе'],        label:'еда',         cls:'chip-cyan'   },
+      { kw:['путешест','travel','поездк'],          label:'путешествие', cls:'chip-cyan'   },
+      { kw:['закат','рассвет','sunset','sunrise'],  label:'закат',       cls:'chip-rose'   },
+      { kw:['музык','music','концерт'],             label:'музыка',      cls:'chip-violet' },
+      { kw:['спорт','фитнес','sport','fitness'],    label:'спорт',       cls:'chip-violet' },
     ];
-    var found = tagMap.filter(function(t){ return t.kw.some(function(k){ return combined.includes(k); }); });
-
-    // Теги на картинке
+    var found = tagMap.filter(t => t.kw.some(k => combined.includes(k)));
     var tagsRow = document.getElementById('tagsRow');
-    found.slice(0,4).forEach(function(t) {
-      var s = document.createElement('span');
-      s.className = 'story-tag';
-      s.textContent = '#' + t.label.replace(/[^\wа-яА-ЯёЁ ]/gu,'').trim().split(' ').pop();
-      tagsRow.appendChild(s);
+    found.slice(0,4).forEach(t => {
+      var s=document.createElement('span'); s.className='story-tag'; s.textContent='#'+t.label; tagsRow.appendChild(s);
     });
 
-    // AI chips
+    var chipsEl = document.getElementById('aiChips');
     var allChips = found.concat([
       { label: storyPublic ? '🌍 Публичная' : '🔒 Приватная', cls: storyPublic ? 'chip-cyan' : 'chip-violet' },
-      { label: '⏳ 24 часа', cls: 'chip-pink' }
+      { label: '⏳ 24 часа', cls: 'chip-rose' }
     ]);
-    var chipsEl = document.getElementById('aiChips');
-    allChips.forEach(function(t) {
-      var c = document.createElement('span');
-      c.className = 'chip ' + t.cls;
-      c.textContent = t.label;
-      chipsEl.appendChild(c);
+    allChips.forEach(t => {
+      var c=document.createElement('span'); c.className='chip '+t.cls; c.textContent=t.label; chipsEl.appendChild(c);
     });
     document.getElementById('aiSection').style.display = 'block';
 
-    // ── ПУБЛИКАЦИЯ ──
     document.getElementById('publishBtn').addEventListener('click', async function() {
       var btn = document.getElementById('publishBtn');
-      btn.disabled = true;
-      btn.classList.add('loading');
-
+      btn.disabled = true; btn.classList.add('loading');
       try {
-        // base64 → Blob → File
         var fetchRes = await fetch(photo64);
         var blob     = await fetchRes.blob();
         var file     = new File([blob], photoName, { type: photoType });
-
-        var formData = new FormData();
-        formData.append('photo',         file);
-        formData.append('description',   storyDesc);
-        formData.append('location',      storyPlace);
-        formData.append('overlayText',   storyOverlay);
-        formData.append('musicCaption',  storyMusic);
-        formData.append('isPublic',      storyPublic);
-
-        var res = await fetch('/api/stories', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include'
-        });
-
-        if (!res.ok) {
-          var errText = await res.text();
-          throw new Error(errText || 'Ошибка ' + res.status);
-        }
-
-        // Очищаем sessionStorage
-        ['story_photo_base64','story_photo_name','story_photo_type',
-         'story_description','story_location','story_overlayText',
-         'story_musicCaption','story_isPublic'].forEach(function(k){ sessionStorage.removeItem(k); });
-
+        var fd = new FormData();
+        fd.append('photo',        file);
+        fd.append('description',  storyDesc);
+        fd.append('location',     storyPlace);
+        fd.append('overlayText',  storyOverlay);
+        fd.append('musicCaption', storyMusic);
+        fd.append('isPublic',     storyPublic);
+        var res = await fetch('/api/stories', { method:'POST', body:fd, credentials:'include' });
+        if (!res.ok) throw new Error(await res.text() || 'Ошибка ' + res.status);
+        ['story_photo_base64','story_photo_name','story_photo_type','story_description',
+         'story_location','story_overlayText','story_musicCaption','story_isPublic'].forEach(k => sessionStorage.removeItem(k));
         document.getElementById('successOverlay').classList.add('show');
-        setTimeout(function(){ window.location.href = '/home'; }, 2200);
-
+        setTimeout(() => window.location.href = '/home', 2200);
       } catch(err) {
-        console.error('Ошибка публикации:', err);
         showToast('Ошибка: ' + err.message);
-        btn.disabled = false;
-        btn.classList.remove('loading');
+        btn.disabled=false; btn.classList.remove('loading');
       }
     });
 
     function showToast(msg) {
-      var t = document.getElementById('toast');
-      t.textContent = msg;
-      t.classList.add('show');
-      setTimeout(function(){ t.classList.remove('show'); }, 4000);
+      var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 4000);
     }
   })();
 </script>

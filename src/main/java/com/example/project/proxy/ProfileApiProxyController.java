@@ -5,6 +5,7 @@ import com.example.project.clients.ProfileClient;
 import com.example.project.clients.SubscriptionClient;
 import com.example.project.dto.profile.ProfileDTO;
 import com.example.project.dto.profile.SubscriberDTO;
+import com.example.project.dto.profile.SubscriptionDTO;
 import com.example.project.dto.user.UserResponseDTO;
 import io.minio.MinioClient;
 import lombok.RequiredArgsConstructor;
@@ -159,7 +160,11 @@ public class ProfileApiProxyController {
             subscriptionClient.subscribe(targetUserId);
             return ResponseEntity.ok().build();
         } catch (Exception e) {
-            log.error("Ошибка подписки: {}", e.getMessage());
+            String msg = e.getMessage();
+            if (msg != null && msg.contains("уже подписаны")) {
+                return ResponseEntity.status(409).build();
+            }
+            log.error("Ошибка подписки: {}", msg);
             return ResponseEntity.status(500).build();
         }
     }
@@ -172,6 +177,15 @@ public class ProfileApiProxyController {
         } catch (Exception e) {
             log.error("Ошибка отписки: {}", e.getMessage());
             return ResponseEntity.status(500).build();
+        }
+    }
+    @GetMapping("/api/subscriptions/{userId}/followings")
+    public ResponseEntity<List<SubscriptionDTO>> getFollowings(@PathVariable UUID userId) {
+        try {
+            return ResponseEntity.ok(subscriptionClient.getFollowings(userId));
+        } catch (Exception e) {
+            log.error("Ошибка получения подписок: {}", e.getMessage());
+            return ResponseEntity.ok(List.of());
         }
     }
 }

@@ -13,5 +13,7 @@ import java.util.UUID;
 public interface StoryRepository extends JpaRepository<Story, UUID> {
     List<Story> findByExpireAtAfter(LocalDateTime now);
     List<Story> findByUserIdAndExpireAtAfterOrderByCreatedAtDesc(UUID userId, LocalDateTime now);
+    List<Story> findByExpireAtAfterAndIsPublicTrue(LocalDateTime now);
+
 
 }
