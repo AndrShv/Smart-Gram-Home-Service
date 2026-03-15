@@ -1,15 +1,13 @@
 package com.example.project.entity;
 
-
+import com.example.project.enums.StoryCategory;
+import com.example.project.enums.StoryMood;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,14 +22,13 @@ public class Story {
     @Id
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(name = "id", columnDefinition = "BINARY(16)", updatable = false, nullable = false)
+    @Column(columnDefinition = "BINARY(16)", updatable = false, nullable = false)
     private UUID id;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-
-    @Column(name = "description", length = 100)
+    @Column(length = 100)
     private String description;
 
     @Column(name = "photo_url", length = 512)
@@ -43,9 +40,42 @@ public class Story {
     @Column(name = "expire_at", nullable = false)
     private LocalDateTime expireAt;
 
+    // Теги (например: ["закат", "море", "лето"])
+    @ElementCollection
+    @CollectionTable(name = "story_tags", joinColumns = @JoinColumn(name = "story_id"))
+    @Column(name = "tag")
+    private List<String> tags;
 
-    @OneToMany
-    @JoinColumn(name = "viewer_id")
+    // Категория (например: "Путешествия", "Еда", "Спорт")
+    @Column(name = "category", length = 64)
+    private StoryCategory category;
+
+    // Геолокация (например: "Одесса, Украина")
+    @Column(name = "location", length = 128)
+    private String location;
+
+    @Column(name = "mood", length = 64)
+    private StoryMood mood;
+
+    @Column(name = "overlay_text", length = 128)
+    private String overlayText;
+
+    @Column(name = "music_caption", length = 128)
+    private String musicCaption;
+
+    @Column(name = "is_public", nullable = false)
+    @Builder.Default
+    private boolean isPublic = true;
+
+
+
+    @ToString.Exclude
+    @JsonIgnore
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryViewer> viewers;
 
+    @ToString.Exclude
+    @JsonIgnore
+    @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StoryReaction> reactions;
 }
