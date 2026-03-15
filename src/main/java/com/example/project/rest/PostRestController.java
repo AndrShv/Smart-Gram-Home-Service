@@ -7,7 +7,9 @@ import com.example.project.exceptions.UnauthorizedException;
 import com.example.project.interfaces.PostCrudService;
 import com.example.project.interfaces.PostReactionService;
 import com.example.project.mappers.PostMapper;
+import com.example.project.metrics.PostApiMetricsService;
 import com.example.project.service.MinioService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -16,8 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import jakarta.validation.Valid;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -36,10 +36,11 @@ public class PostRestController {
     private final PostReactionService postReactionService;
     private final PostMapper postMapper;
     private final MinioService minioService;
+    private final PostApiMetricsService apiMetrics;
 
-    /* ================= GET FEED (лента постов) ================= */
     @GetMapping("/feed")
     public ResponseEntity<List<PostDTO>> getFeed() {
+        apiMetrics.feedRequest();
         UUID userId = getCurrentUserId();
         List<PostDTO> postDTOs = postService.getAllPosts().stream()
                 .filter(p -> !p.getUserId().equals(userId))
@@ -49,30 +50,21 @@ public class PostRestController {
         return ResponseEntity.ok(postDTOs);
     }
 
-    /* ================= CREATE POST ================= */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<PostDTO> createPost(
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "location", required = false) String location,
             @RequestParam(value = "isPublic", defaultValue = "true") boolean isPublic,
-            @RequestPart("photo") MultipartFile photo
-    ) {
+            @RequestPart("photo") MultipartFile photo) throws Exception {
         log.info("REST: создание нового поста");
+        apiMetrics.createRequest();
 
         UUID userId = getCurrentUserId();
-
         byte[] photoBytes;
-        try {
-            photoBytes = photo.getBytes();
-        } catch (IOException e) {
-            throw new RuntimeException("Не удалось прочитать файл", e);
-        }
+        try { photoBytes = photo.getBytes(); }
+        catch (IOException e) { throw new RuntimeException("Не удалось прочитать файл", e); }
 
-        String photoUrl = minioService.uploadPostPhotoBytes(
-                photoBytes,
-                photo.getOriginalFilename(),
-                photo.getContentType()
-        );
+        String photoUrl = minioService.uploadPostPhotoBytes(photoBytes, photo.getOriginalFilename(), photo.getContentType());
 
         PostDTO postDTO = new PostDTO();
         postDTO.setDescription(description);
@@ -83,87 +75,56 @@ public class PostRestController {
         postDTO.setPhotoBytes(photoBytes);
         postDTO.setPhotoFileName(photo.getOriginalFilename());
 
-
         Post createdPost = postService.createPost(postDTO);
-        PostDTO responseDTO = postMapper.toDto(createdPost);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(postMapper.toDto(createdPost));
     }
 
-    /* ================= GET POST BY ID ================= */
     @GetMapping("/{postId}")
-    public ResponseEntity<PostDTO> getPost(@PathVariable UUID postId) {
-        log.info("REST: получение поста с ID {}", postId);
-        Post post = postService.getPostById(postId);
-        PostDTO responseDTO = postMapper.toDto(post);
-        return ResponseEntity.ok(responseDTO);
+    public ResponseEntity<PostDTO> getPost(@PathVariable UUID postId) throws Exception {
+        apiMetrics.getRequest();
+        return ResponseEntity.ok(postMapper.toDto(postService.getPostById(postId)));
     }
 
-    /* ================= UPDATE POST ================= */
     @PutMapping("/{postId}")
     public ResponseEntity<Void> updatePost(@PathVariable UUID postId, @RequestBody @Valid PostDTO postDTO) {
-        log.info("REST: обновление поста с ID {}", postId);
+        apiMetrics.updateRequest();
         postService.updatePost(postId, postDTO);
         return ResponseEntity.ok().build();
     }
 
-    /* ================= DELETE POST ================= */
     @DeleteMapping("/{postId}")
     public ResponseEntity<Void> deletePost(@PathVariable UUID postId) {
-        log.info("REST: удаление поста с ID {}", postId);
+        apiMetrics.deleteRequest();
         postService.deletePost(postId);
         return ResponseEntity.noContent().build();
     }
 
-    /* ================= REACT TO POST ================= */
     @PostMapping("/{postId}/reaction")
-    public ResponseEntity<Void> reactToPost(
-            @PathVariable UUID postId,
-            @RequestBody @Valid PostReactionRequestDTO dto
-    ) {
-        log.info("REST: реакция {} на пост {}", dto.getReaction(), postId);
+    public ResponseEntity<Void> reactToPost(@PathVariable UUID postId, @RequestBody @Valid PostReactionRequestDTO dto) {
         postReactionService.reactToPost(postId, dto.getReaction());
         return ResponseEntity.ok().build();
     }
 
-    /* ================= DELETE REACTION ================= */
     @DeleteMapping("/{postId}/reaction")
     public ResponseEntity<Void> deleteReaction(@PathVariable UUID postId) {
-        log.info("REST: удаление реакции с поста {}", postId);
         postReactionService.deleteReaction(postId);
         return ResponseEntity.noContent().build();
     }
 
-    /* ================= GET REACTIONS COUNT ================= */
     @GetMapping("/{postId}/reactions/count")
     public ResponseEntity<Long> getReactionsCount(@PathVariable UUID postId) {
-        log.info("REST: получение количества реакций для поста {}", postId);
-
-        long count = postReactionService.countReactions(postId);
-
-        return ResponseEntity.ok(count);
+        return ResponseEntity.ok(postReactionService.countReactions(postId));
     }
 
-    /* ================= GET USER POSTS ================= */
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<PostDTO>> getUserPosts(@PathVariable UUID userId) {
-        log.info("REST: получение постов пользователя {}", userId);
-
-        List<Post> posts = postService.getPostsByUserId(userId);
-
-        List<PostDTO> postDTOs = posts.stream()
-                .map(postMapper::toDto)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(postDTOs);
+        apiMetrics.getRequest();
+        return ResponseEntity.ok(postService.getPostsByUserId(userId).stream().map(postMapper::toDto).collect(Collectors.toList()));
     }
-
 
     @PutMapping("/privacy/all")
     public ResponseEntity<Void> setAllPostsPrivacy(@RequestParam boolean isPublic) {
-        UUID userId = getCurrentUserId();
-        log.info("REST: установка приватности постов пользователя {} -> isPublic={}", userId, isPublic);
-        postService.setAllPostsPrivacy(userId, isPublic);
+        postService.setAllPostsPrivacy(getCurrentUserId(), isPublic);
         return ResponseEntity.ok().build();
     }
 
@@ -174,11 +135,12 @@ public class PostRestController {
         boolean isPrivate = !posts.isEmpty() && posts.stream().noneMatch(Post::isPublic);
         return ResponseEntity.ok(Map.of("isPrivate", isPrivate));
     }
+
     @GetMapping("/search")
     public ResponseEntity<List<PostDTO>> searchPosts(@RequestParam String query) {
+        apiMetrics.searchRequest();
         String lower = query.toLowerCase();
-        List<Post> all = postService.getAllPosts();
-        List<PostDTO> result = all.stream()
+        List<PostDTO> result = postService.getAllPosts().stream()
                 .filter(p -> p.isPublic() && (
                         (p.getDescription() != null && p.getDescription().toLowerCase().contains(lower)) ||
                                 (p.getTags() != null && p.getTags().stream().anyMatch(t -> t.toLowerCase().contains(lower))) ||
@@ -191,25 +153,16 @@ public class PostRestController {
 
     @GetMapping("/search/tags")
     public ResponseEntity<List<PostDTO>> searchByTag(@RequestParam String tag) {
-        List<Post> posts = postService.searchByTag(tag);
-        return ResponseEntity.ok(posts.stream().map(postMapper::toDto).collect(Collectors.toList()));
+        apiMetrics.searchRequest();
+        return ResponseEntity.ok(postService.searchByTag(tag).stream().map(postMapper::toDto).collect(Collectors.toList()));
     }
 
-
-
-
-    // === ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ===
     private UUID getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new UnauthorizedException("Пользователь не авторизован");
         }
-        try {
-            return UUID.fromString(authentication.getName());
-        } catch (Exception e) {
-            throw new UnauthorizedException("Пользователь не авторизован");
-        }
+        try { return UUID.fromString(authentication.getName()); }
+        catch (Exception e) { throw new UnauthorizedException("Пользователь не авторизован"); }
     }
-
-
 }

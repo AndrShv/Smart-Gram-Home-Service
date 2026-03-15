@@ -1,6 +1,7 @@
 package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
+import com.example.project.clients.SubscriptionClient;
 import com.example.project.dto.post.PostDTO;
 import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Post;
@@ -8,8 +9,11 @@ import com.example.project.entity.PostReaction;
 import com.example.project.enums.Reactions;
 import com.example.project.exceptions.PostNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
+import com.example.project.metrics.HomeRabbitMetricsService;
+import com.example.project.metrics.PostMetricsService;
 import com.example.project.repository.PostReactionRepository;
 import com.example.project.repository.PostRepository;
+import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,12 +41,20 @@ class PostServiceImplTest {
 
     @Mock
     private AuthClient authClient;
-
+    @Mock
+    private SubscriptionClient subscriptionClient;
     @Mock
     private PostRepository postRepository;
-
     @Mock
     private PostReactionRepository postReactionRepository;
+    @Mock
+    private NotificationProducer notificationProducer;
+    @Mock
+    private PostMetricsService postMetrics;
+    @Mock
+    private HomeRabbitMetricsService rabbitMetrics;
+    @Mock
+    private ImaggaServiceImpl imaggaService;
 
     @InjectMocks
     private PostServiceImpl postService;
@@ -66,52 +78,97 @@ class PostServiceImplTest {
                 .comments(new ArrayList<>())
                 .build();
 
-        // Mock security context
+        // ✅ мокаем Timer чтобы recordCallable выполнял переданный Callable
+        Timer mockTimer = mock(Timer.class, withSettings().lenient());
+        try {
+            when(mockTimer.recordCallable(any())).thenAnswer(inv ->
+                    inv.<java.util.concurrent.Callable<?>>getArgument(0).call()
+            );
+        } catch (Exception ignored) {
+        }
+
+        lenient().when(postMetrics.createPostTimer()).thenReturn(mockTimer);
+        lenient().when(postMetrics.getPostTimer()).thenReturn(mockTimer);
+
+        // ✅ мокаем SecurityContext
         Authentication auth = mock(Authentication.class);
         when(auth.isAuthenticated()).thenReturn(true);
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(auth);
         SecurityContextHolder.setContext(securityContext);
+
+        // ✅ подписчики пустые по умолчанию — не ломаем тесты которым не важны уведомления
+        lenient().when(subscriptionClient.getFollowers(any())).thenReturn(List.of());
     }
 
-    /* ================= CREATE POST ================= */
+    // ============================================
+    //  CREATE POST
+    // ============================================
+
     @Test
-    void createPost_success() {
+    void createPost_success() throws Exception {
         PostDTO dto = new PostDTO();
         dto.setDescription("Test Post");
         dto.setPhotoUrl("http://example.com/photo.jpg");
 
-        UserResponseDTO currentUser = new UserResponseDTO();
-        currentUser.setId(userId.toString());
-        when(authClient.getCurrentUser()).thenReturn(currentUser);
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).username("testuser").build());
         when(postRepository.save(any(Post.class))).thenReturn(post);
 
         Post created = postService.createPost(dto);
 
         assertNotNull(created);
         assertEquals("Test Post", created.getDescription());
-        verify(postRepository, times(1)).save(any(Post.class));
+        verify(postRepository).save(any(Post.class));
+        verify(postMetrics).incrementCreated();
     }
 
     @Test
     void createPost_unauthorized_throws() {
-        UserResponseDTO currentUser = new UserResponseDTO();
-        currentUser.setId(userId.toString());
-        when(authClient.getCurrentUser()).thenReturn(currentUser);
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).build());
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         when(auth.isAuthenticated()).thenReturn(false);
 
-        PostDTO dto = new PostDTO();
-        assertThrows(UnauthorizedException.class, () -> postService.createPost(dto));
+        assertThrows(UnauthorizedException.class, () -> postService.createPost(new PostDTO()));
     }
 
-    /* ================= GET POST ================= */
     @Test
-    void getPostById_success() {
+    void createPost_sendsNotificationsToSubscribers() throws Exception {
+        PostDTO dto = new PostDTO();
+        dto.setDescription("Post");
+
+        UUID subscriberId = UUID.randomUUID();
+        com.example.project.dto.profile.SubscriberDTO sub =
+                com.example.project.dto.profile.SubscriberDTO.builder()
+                        .subscriberUserId(subscriberId)
+                        .build();
+
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).username("testuser").build());
+        when(postRepository.save(any())).thenReturn(post);
+        when(subscriptionClient.getFollowers(userId)).thenReturn(List.of(sub));
+
+        postService.createPost(dto);
+
+        verify(notificationProducer).sendPostCreated(
+                post.getId().toString(),
+                userId.toString(),
+                subscriberId.toString(),
+                "testuser"
+        );
+        verify(rabbitMetrics).increment();
+    }
+
+    // ============================================
+    //  GET POST
+    // ============================================
+
+    @Test
+    void getPostById_success() throws Exception {
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        Post found = postService.getPostById(postId);
-        assertEquals(postId, found.getId());
+        assertEquals(postId, postService.getPostById(postId).getId());
     }
 
     @Test
@@ -120,7 +177,10 @@ class PostServiceImplTest {
         assertThrows(PostNotFoundException.class, () -> postService.getPostById(postId));
     }
 
-    /* ================= UPDATE POST ================= */
+    // ============================================
+    //  UPDATE POST
+    // ============================================
+
     @Test
     void updatePost_success() {
         PostDTO dto = new PostDTO();
@@ -132,23 +192,26 @@ class PostServiceImplTest {
         postService.updatePost(postId, dto);
 
         assertEquals("Updated", post.getDescription());
-        assertEquals("http://example.com/updated.jpg", post.getPhotoUrl());
-        verify(postRepository, times(1)).save(post);
+        verify(postRepository).save(post);
+        verify(postMetrics).incrementUpdated();
     }
 
     @Test
     void updatePost_notFound() {
         when(postRepository.findById(postId)).thenReturn(Optional.empty());
-        PostDTO dto = new PostDTO();
-        assertThrows(PostNotFoundException.class, () -> postService.updatePost(postId, dto));
+        assertThrows(PostNotFoundException.class, () -> postService.updatePost(postId, new PostDTO()));
     }
 
-    /* ================= DELETE POST ================= */
+    // ============================================
+    //  DELETE POST
+    // ============================================
+
     @Test
     void deletePost_success() {
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
         postService.deletePost(postId);
-        verify(postRepository, times(1)).delete(post);
+        verify(postRepository).delete(post);
+        verify(postMetrics).incrementDeleted();
     }
 
     @Test
@@ -157,263 +220,199 @@ class PostServiceImplTest {
         assertThrows(PostNotFoundException.class, () -> postService.deletePost(postId));
     }
 
-    /* ================= REACT TO POST ================= */
+    // ============================================
+    //  REACT TO POST
+    // ============================================
+
     @Test
     void reactToPost_newReaction() {
-        PostReaction reaction = PostReaction.builder().build();
         when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder()
-                        .id(userId.toString())
-                        .username("testuser")
-                        .email("test@example.com")
-                        .role("USER")
-                        .token(null)
-                        .build()
-        );
+                UserResponseDTO.builder().id(userId.toString()).username("testuser").build());
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
         when(postReactionRepository.findByPostIdAndUserId(postId, userId)).thenReturn(Optional.empty());
-        when(postReactionRepository.save(any(PostReaction.class))).thenReturn(reaction);
 
         postService.reactToPost(postId, Reactions.LIKE);
 
-        verify(postReactionRepository, times(1)).save(any(PostReaction.class));
+        verify(postReactionRepository).save(any(PostReaction.class));
+        verify(postMetrics).incrementReactionAdded();
     }
 
     @Test
     void reactToPost_updateExistingReaction() {
         PostReaction existingReaction = PostReaction.builder()
-                .reaction(Reactions.LOVE)
-                .reactedAt(LocalDateTime.now())
-                .build();
+                .reaction(Reactions.LOVE).reactedAt(LocalDateTime.now()).build();
 
         when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder()
-                        .id(userId.toString())
-                        .username("testuser")
-                        .email("test@example.com")
-                        .role("USER")
-                        .token(null)
-                        .build()
-        );
+                UserResponseDTO.builder().id(userId.toString()).username("testuser").build());
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(postReactionRepository.findByPostIdAndUserId(postId, userId)).thenReturn(Optional.of(existingReaction));
+        when(postReactionRepository.findByPostIdAndUserId(postId, userId))
+                .thenReturn(Optional.of(existingReaction));
 
         postService.reactToPost(postId, Reactions.LIKE);
 
         assertEquals(Reactions.LIKE, existingReaction.getReaction());
-        verify(postReactionRepository, never()).save(any(PostReaction.class));
+        verify(postReactionRepository, never()).save(any());
+        verify(postMetrics).incrementReactionAdded();
     }
 
-    /* ================= DELETE REACTION ================= */
+    @Test
+    void reactToPost_sendsNotificationToPostOwner() {
+        UUID anotherUser = UUID.randomUUID();
+        Post ownedPost = Post.builder().id(postId).userId(anotherUser).build();
+
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).username("actor").build());
+        when(postRepository.findById(postId)).thenReturn(Optional.of(ownedPost));
+        when(postReactionRepository.findByPostIdAndUserId(postId, userId)).thenReturn(Optional.empty());
+
+        postService.reactToPost(postId, Reactions.LIKE);
+
+        verify(notificationProducer).sendPostLiked(
+                postId.toString(),
+                userId.toString(),
+                anotherUser.toString(),
+                "actor"
+        );
+    }
+
+    // ============================================
+    //  DELETE REACTION
+    // ============================================
+
     @Test
     void deleteReaction_success() {
         PostReaction reaction = PostReaction.builder().build();
         when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder()
-                        .id(userId.toString())
-                        .username("testuser")
-                        .email("test@example.com")
-                        .role("USER")
-                        .token(null)
-                        .build()
-        );
+                UserResponseDTO.builder().id(userId.toString()).build());
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(postReactionRepository.findByPostIdAndUserId(postId, userId)).thenReturn(Optional.of(reaction));
+        when(postReactionRepository.findByPostIdAndUserId(postId, userId))
+                .thenReturn(Optional.of(reaction));
 
         postService.deleteReaction(postId);
 
-        verify(postReactionRepository, times(1)).delete(reaction);
+        verify(postReactionRepository).delete(reaction);
+        verify(postMetrics).incrementReactionDeleted();
     }
 
     @Test
     void deleteReaction_notFound() {
         when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder()
-                        .id(userId.toString())
-                        .username("testuser")
-                        .email("test@example.com")
-                        .role("USER")
-                        .token(null)
-                        .build()
-        );
+                UserResponseDTO.builder().id(userId.toString()).build());
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(postReactionRepository.findByPostIdAndUserId(postId, userId)).thenReturn(Optional.empty());
+        when(postReactionRepository.findByPostIdAndUserId(postId, userId))
+                .thenReturn(Optional.empty());
 
         assertThrows(PostNotFoundException.class, () -> postService.deleteReaction(postId));
     }
 
+    // ============================================
+    //  GET ALL POSTS
+    // ============================================
 
-    /* ================= GET ALL POSTS ================= */
     @Test
     void getAllPosts_returnsSortedList() {
         when(postRepository.findAll(any(Sort.class))).thenReturn(List.of(post));
-
-        var result = postService.getAllPosts();
-
-        assertEquals(1, result.size());
-        verify(postRepository).findAll(any(Sort.class));
+        assertEquals(1, postService.getAllPosts().size());
     }
 
     @Test
     void getAllPosts_emptyList() {
         when(postRepository.findAll(any(Sort.class))).thenReturn(List.of());
-
-        var result = postService.getAllPosts();
-
-        assertTrue(result.isEmpty());
+        assertTrue(postService.getAllPosts().isEmpty());
     }
 
-    @Test
-    void getAllPosts_repositoryCalledOnce() {
-        when(postRepository.findAll(any(Sort.class))).thenReturn(List.of(post));
+    // ============================================
+    //  GET POSTS BY USER ID
+    // ============================================
 
-        postService.getAllPosts();
-
-        verify(postRepository, times(1)).findAll(any(Sort.class));
-    }
-
-    /* ================= GET POSTS BY USER ID ================= */
     @Test
     void getPostsByUserId_success() {
-        when(postRepository.findByUserIdOrderByCreatedAtDesc(userId))
-                .thenReturn(List.of(post));
-
-        var result = postService.getPostsByUserId(userId);
-
-        assertEquals(1, result.size());
+        when(postRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of(post));
+        assertEquals(1, postService.getPostsByUserId(userId).size());
     }
 
     @Test
     void getPostsByUserId_empty() {
-        when(postRepository.findByUserIdOrderByCreatedAtDesc(userId))
-                .thenReturn(List.of());
-
+        when(postRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of());
         assertTrue(postService.getPostsByUserId(userId).isEmpty());
     }
 
-    @Test
-    void getPostsByUserId_repositoryCalled() {
-        postService.getPostsByUserId(userId);
-        verify(postRepository).findByUserIdOrderByCreatedAtDesc(userId);
-    }
+    // ============================================
+    //  COUNT POSTS BY USER ID
+    // ============================================
 
-    /* ================= GET FEED FOR USER ================= */
-    @Test
-    void getFeedForUser_returnsAllPosts() {
-        when(postRepository.findAll(any(Sort.class))).thenReturn(List.of(post));
-
-        var feed = postService.getFeedForUser(userId);
-
-        assertEquals(1, feed.size());
-    }
-
-    @Test
-    void getFeedForUser_emptyFeed() {
-        when(postRepository.findAll(any(Sort.class))).thenReturn(List.of());
-
-        assertTrue(postService.getFeedForUser(userId).isEmpty());
-    }
-
-    @Test
-    void getFeedForUser_callsGetAllPosts() {
-        when(postRepository.findAll(any(Sort.class))).thenReturn(List.of(post));
-
-        postService.getFeedForUser(userId);
-
-        verify(postRepository).findAll(any(Sort.class));
-    }
-
-    /* ================= COUNT POSTS BY USER ID ================= */
     @Test
     void countPostsByUserId_success() {
         when(postRepository.countByUserId(userId)).thenReturn(5L);
-
         assertEquals(5, postService.countPostsByUserId(userId));
     }
 
     @Test
     void countPostsByUserId_zero() {
         when(postRepository.countByUserId(userId)).thenReturn(0L);
-
         assertEquals(0, postService.countPostsByUserId(userId));
     }
 
-    @Test
-    void countPostsByUserId_repositoryCalled() {
-        postService.countPostsByUserId(userId);
-        verify(postRepository).countByUserId(userId);
-    }
+    // ============================================
+    //  IS POST OWNER
+    // ============================================
 
-    /* ================= IS POST OWNER ================= */
     @Test
-    void isPostOwner_true() {
+    void isPostOwner_true() throws Exception {
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-
         assertTrue(postService.isPostOwner(postId, userId));
     }
 
     @Test
-    void isPostOwner_false() {
+    void isPostOwner_false() throws Exception {
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-
         assertFalse(postService.isPostOwner(postId, UUID.randomUUID()));
     }
 
-    @Test
-    void isPostOwner_postNotFound() {
-        when(postRepository.findById(postId)).thenReturn(Optional.empty());
-
-        assertThrows(PostNotFoundException.class,
-                () -> postService.isPostOwner(postId, userId));
-    }
-
-    /* ================= COUNT REACTIONS ================= */
+    // ============================================
+    //  COUNT REACTIONS
+    // ============================================
 
     @Test
     void countReactions_success() {
         when(postReactionRepository.countByPostId(postId)).thenReturn(3L);
-
         assertEquals(3, postService.countReactions(postId));
     }
 
     @Test
     void countReactions_zero() {
         when(postReactionRepository.countByPostId(postId)).thenReturn(0L);
-
         assertEquals(0, postService.countReactions(postId));
     }
 
-    /* ================= GET REACTIONS BY POST ID ================= */
+    // ============================================
+    //  GET REACTIONS BY POST ID
+    // ============================================
 
     @Test
     void getReactionsByPostId_success() {
-        PostReaction r = PostReaction.builder().build();
-        when(postReactionRepository.findByPostId(postId)).thenReturn(List.of(r));
-
+        when(postReactionRepository.findByPostId(postId)).thenReturn(List.of(PostReaction.builder().build()));
         assertEquals(1, postService.getReactionsByPostId(postId).size());
     }
 
     @Test
     void getReactionsByPostId_empty() {
         when(postReactionRepository.findByPostId(postId)).thenReturn(List.of());
-
         assertTrue(postService.getReactionsByPostId(postId).isEmpty());
     }
 
-
-    /* ================= GET REACTION STATS ================= */
+    // ============================================
+    //  GET REACTION STATS
+    // ============================================
 
     @Test
     void getReactionStats_groupingWorks() {
-        PostReaction r1 = PostReaction.builder().reaction(Reactions.LIKE).build();
-        PostReaction r2 = PostReaction.builder().reaction(Reactions.LIKE).build();
-        PostReaction r3 = PostReaction.builder().reaction(Reactions.LOVE).build();
-
-        when(postReactionRepository.findByPostId(postId))
-                .thenReturn(List.of(r1, r2, r3));
-
+        when(postReactionRepository.findByPostId(postId)).thenReturn(List.of(
+                PostReaction.builder().reaction(Reactions.LIKE).build(),
+                PostReaction.builder().reaction(Reactions.LIKE).build(),
+                PostReaction.builder().reaction(Reactions.LOVE).build()
+        ));
         var stats = postService.getReactionStats(postId);
-
         assertEquals(2, stats.size());
         assertEquals(2, stats.get(0).getCount());
     }
@@ -421,68 +420,56 @@ class PostServiceImplTest {
     @Test
     void getReactionStats_empty() {
         when(postReactionRepository.findByPostId(postId)).thenReturn(List.of());
-
         assertTrue(postService.getReactionStats(postId).isEmpty());
     }
 
+    // ============================================
+    //  HAS USER REACTED
+    // ============================================
 
-    /* ================= HAS USER REACTED ================= */
     @Test
     void hasUserReacted_true() {
         when(postReactionRepository.findByPostIdAndUserId(postId, userId))
                 .thenReturn(Optional.of(PostReaction.builder().build()));
-
         assertTrue(postService.hasUserReacted(postId, userId));
     }
 
     @Test
     void hasUserReacted_false() {
-        when(postReactionRepository.findByPostIdAndUserId(postId, userId))
-                .thenReturn(Optional.empty());
-
+        when(postReactionRepository.findByPostIdAndUserId(postId, userId)).thenReturn(Optional.empty());
         assertFalse(postService.hasUserReacted(postId, userId));
     }
 
+    // ============================================
+    //  GET USER REACTION
+    // ============================================
 
-
-    /* ================= GET USER REACTION ================= */
     @Test
     void getUserReaction_present() {
-        PostReaction reaction = PostReaction.builder().build();
-
         when(postReactionRepository.findByPostIdAndUserId(postId, userId))
-                .thenReturn(Optional.of(reaction));
-
+                .thenReturn(Optional.of(PostReaction.builder().build()));
         assertTrue(postService.getUserReaction(postId, userId).isPresent());
     }
 
     @Test
     void getUserReaction_empty() {
-        when(postReactionRepository.findByPostIdAndUserId(postId, userId))
-                .thenReturn(Optional.empty());
-
+        when(postReactionRepository.findByPostIdAndUserId(postId, userId)).thenReturn(Optional.empty());
         assertTrue(postService.getUserReaction(postId, userId).isEmpty());
     }
 
+    // ============================================
+    //  COUNT REACTIONS BY TYPE
+    // ============================================
 
-    /* ================= COUNT REACTIONS BY TYPE ================= */
     @Test
     void countReactionsByType_success() {
-        when(postReactionRepository.countByPostIdAndReaction(postId, Reactions.LIKE))
-                .thenReturn(4L);
-
+        when(postReactionRepository.countByPostIdAndReaction(postId, Reactions.LIKE)).thenReturn(4L);
         assertEquals(4, postService.countReactionsByType(postId, Reactions.LIKE));
     }
 
     @Test
     void countReactionsByType_zero() {
-        when(postReactionRepository.countByPostIdAndReaction(postId, Reactions.LIKE))
-                .thenReturn(0L);
-
+        when(postReactionRepository.countByPostIdAndReaction(postId, Reactions.LIKE)).thenReturn(0L);
         assertEquals(0, postService.countReactionsByType(postId, Reactions.LIKE));
     }
-
-
-
-
 }

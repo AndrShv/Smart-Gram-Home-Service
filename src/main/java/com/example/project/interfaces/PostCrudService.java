@@ -8,13 +8,13 @@ import java.util.UUID;
 
 public interface PostCrudService {
 
-    Post createPost(PostDTO post);
+    Post createPost(PostDTO post) throws Exception;
 
     void updatePost(UUID postId, PostDTO post);
 
     void deletePost(UUID postId);
 
-    Post getPostById(UUID postId);
+    Post getPostById(UUID postId) throws Exception;
 
     List<Post> getAllPosts();
 
@@ -24,7 +24,7 @@ public interface PostCrudService {
 
     long countPostsByUserId(UUID userId);
 
-    boolean isPostOwner(UUID postId, UUID userId);
+    boolean isPostOwner(UUID postId, UUID userId) throws Exception;
 
     void setAllPostsPrivacy(UUID userId, boolean isPublic);
 

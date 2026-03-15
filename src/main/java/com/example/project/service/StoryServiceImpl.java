@@ -1,8 +1,10 @@
 package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
+import com.example.project.clients.SubscriptionClient;
 import com.example.project.dto.story.StoryDTO;
 import com.example.project.dto.count.StoryReactionCountDTO;
+import com.example.project.dto.profile.SubscriberDTO;
 import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Story;
 import com.example.project.entity.StoryReaction;
@@ -16,6 +18,8 @@ import com.example.project.exceptions.UnauthorizedException;
 import com.example.project.interfaces.ImaggaService;
 import com.example.project.interfaces.StoryCrudService;
 import com.example.project.interfaces.StoryReactionService;
+import com.example.project.metrics.HomeRabbitMetricsService;
+import com.example.project.metrics.StoryMetricsService;
 import com.example.project.repository.StoryReactionRepository;
 import com.example.project.repository.StoryRepository;
 import com.example.project.repository.StoryViewerRepository;
@@ -28,10 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -40,245 +41,232 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class StoryServiceImpl implements StoryCrudService, StoryReactionService {
 
-
     private static final long STORY_LIFETIME_HOURS = 24;
 
     private final AuthClient authClient;
+    private final SubscriptionClient subscriptionClient;
     private final StoryRepository storyRepository;
     private final StoryViewerRepository storyViewerRepository;
     private final StoryReactionRepository storyReactionRepository;
     private final ImaggaService imaggaService;
-
+    private final NotificationProducer notificationProducer;
+    private final StoryMetricsService storyMetrics;
+    private final HomeRabbitMetricsService rabbitMetrics;
 
     @Override
     @Transactional
-    public Story createStory(StoryDTO storyDTO) {
+    public Story createStory(StoryDTO storyDTO) throws Exception {
         log.info("Создание новой истории");
 
-        UserResponseDTO currentUser = authClient.getCurrentUser();
-        UUID userId = UUID.fromString(currentUser.getId());
+        return storyMetrics.createStoryTimer().recordCallable(() -> {
+            UserResponseDTO currentUser = authClient.getCurrentUser();
+            UUID userId = UUID.fromString(currentUser.getId());
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new UnauthorizedException("JWT истёк");
-        }
-
-        List<String> tags = new ArrayList<>();
-        String category = String.valueOf(StoryCategory.OTHER);;
-        String mood = String.valueOf(StoryMood.NEUTRAL);
-
-        if (storyDTO.getPhotoBytes() != null && storyDTO.getPhotoFileName() != null) {
-            try {
-                tags = imaggaService.extractTagsFromBytes(storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
-                List<String> colors = imaggaService.extractColorsFromBytes(storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
-                category = mapTagsToCategory(tags);
-                mood = mapColorsToMood(colors);
-            } catch (Exception e) {
-                log.warn("Imagga не смог сгенерировать теги/цвета: {}", e.getMessage());
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) {
+                throw new UnauthorizedException("JWT истёк");
             }
-        }
 
-        Story story = Story.builder()
-                .userId(userId)
-                .description(storyDTO.getDescription())
-                .photoUrl(storyDTO.getPhotoUrl())
-                .createdAt(LocalDateTime.now())
-                .expireAt(LocalDateTime.now().plusHours(STORY_LIFETIME_HOURS))
-                .tags(tags.isEmpty() ? storyDTO.getTags() : tags)
-                .category(StoryCategory.valueOf(category))
-                .location(storyDTO.getLocation())
-                .mood(StoryMood.valueOf(mood))
-                .overlayText(storyDTO.getOverlayText())
-                .musicCaption(storyDTO.getMusicCaption())
-                .isPublic(storyDTO.isPublic())
-                .viewers(new ArrayList<>())
-                .build();
+            List<String> tags = new ArrayList<>();
+            String category = StoryCategory.OTHER.name();
+            String mood = StoryMood.NEUTRAL.name();
 
-        storyRepository.save(story);
-        log.info("✅ История успешно создана для пользователя с ID: {}", userId);
-        return story;
+            if (storyDTO.getPhotoBytes() != null && storyDTO.getPhotoFileName() != null) {
+                try {
+                    tags = imaggaService.extractTagsFromBytes(storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
+                    List<String> colors = imaggaService.extractColorsFromBytes(storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
+                    category = mapTagsToCategory(tags);
+                    mood = mapColorsToMood(colors);
+                } catch (Exception e) {
+                    log.warn("Imagga не смог сгенерировать теги/цвета: {}", e.getMessage());
+                }
+            }
+
+            Story story = Story.builder()
+                    .userId(userId)
+                    .description(storyDTO.getDescription())
+                    .photoUrl(storyDTO.getPhotoUrl())
+                    .createdAt(LocalDateTime.now())
+                    .expireAt(LocalDateTime.now().plusHours(STORY_LIFETIME_HOURS))
+                    .tags(tags.isEmpty() ? storyDTO.getTags() : tags)
+                    .category(StoryCategory.valueOf(category))
+                    .location(storyDTO.getLocation())
+                    .mood(StoryMood.valueOf(mood))
+                    .overlayText(storyDTO.getOverlayText())
+                    .musicCaption(storyDTO.getMusicCaption())
+                    .isPublic(storyDTO.isPublic())
+                    .viewers(new ArrayList<>())
+                    .build();
+
+            Story savedStory = storyRepository.save(story);
+            storyMetrics.incrementCreated();
+
+            try {
+                List<UUID> subscriberIds = subscriptionClient.getFollowers(userId)
+                        .stream()
+                        .map(SubscriberDTO::getSubscriberUserId)
+                        .toList();
+
+                for (UUID subscriberId : subscriberIds) {
+                    notificationProducer.sendStoryCreated(
+                            savedStory.getId().toString(),
+                            userId.toString(),
+                            subscriberId.toString(),
+                            currentUser.getUsername() != null ? currentUser.getUsername() : userId.toString()
+                    );
+                    rabbitMetrics.increment();
+                }
+                log.info("Отправлено {} уведомлений о новой истории", subscriberIds.size());
+            } catch (Exception e) {
+                log.warn("Не удалось отправить уведомления о story: {}", e.getMessage());
+            }
+
+            log.info("✅ История успешно создана для пользователя с ID: {}", userId);
+            return savedStory;
+        });
     }
 
     @Override
     public void deleteStory(UUID storyId) {
         log.info("Удаление истории с ID: {}", storyId);
-        Story story = storyRepository.findById(storyId)
+        storyRepository.findById(storyId)
                 .orElseThrow(() -> {
                     log.warn("❌ История с ID: {} не найдена", storyId);
                     return new StoryNotFoundException("История с ID " + storyId + " не найдена");
                 });
-
+        storyRepository.deleteById(storyId);
+        storyMetrics.incrementDeleted();
     }
 
     @Override
     public void viewStory(UUID storyId, UUID viewerId) {
-        log.info("Пользователь с ID: {} просматривает историю с ID: {}", viewerId, storyId);
-        UUID storyUUID = UUID.fromString(String.valueOf(storyId));
-        Story story = storyRepository.findById(storyUUID)
-                .orElseThrow(() -> {
-                    log.warn("❌ История с ID: {} не найдена", storyId);
-                    return new StoryNotFoundException("История с ID " + storyId + " не найдена");
-                });
-
+        log.info("Пользователь {} просматривает историю {}", viewerId, storyId);
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new StoryNotFoundException("История с ID " + storyId + " не найдена"));
 
         if (story.getExpireAt().isBefore(LocalDateTime.now())) {
-            log.warn("❌ История с ID: {} истекла и не может быть просмотрена", storyId);
-            throw new StoryIsNotAviableByTimeException("История с ID " + storyId + " истекла и не может быть просмотрена");
+            throw new StoryIsNotAviableByTimeException("История истекла");
         }
-
-        if (story.getViewers().contains(viewerId)) {
-            log.info("Пользователь с ID: {} уже просматривал историю с ID: {}", viewerId, storyId);
+        if (storyViewerRepository.existsByStoryIdAndViewerId(storyId, viewerId)) {
             return;
         }
 
-        log.info("Проверка, просматривал ли пользователь с ID: {} историю с ID: {}", viewerId, storyId);
-        boolean alreadyViewed = storyViewerRepository.existsByStoryIdAndViewerId(storyId, viewerId);
-
-        if (alreadyViewed) {
-            return;
-        }
-
-        log.info("Добавление просмотра истории с ID: {} пользователем с ID: {}", storyId, viewerId);
         StoryViewer viewer = new StoryViewer();
         viewer.setStory(story);
         viewer.setViewerId(viewerId);
         viewer.setViewedAt(LocalDateTime.now());
-        log.info("Сохранение просмотра истории с ID: {} пользователем с ID: {} в репозиторий", storyId, viewerId);
-
         storyViewerRepository.save(viewer);
+        storyMetrics.incrementViewed();
 
+        // Уведомление автору истории
+        try {
+            if (!story.getUserId().equals(viewerId)) {
+                notificationProducer.sendStoryViewed(
+                        storyId.toString(),
+                        viewerId.toString(),
+                        story.getUserId().toString(),
+                        viewerId.toString()
+                );
+                rabbitMetrics.increment();
+            }
+        } catch (Exception e) {
+            log.warn("Не удалось отправить уведомление о просмотре story: {}", e.getMessage());
+        }
     }
 
     @Override
     public boolean hasViewed(UUID storyId, UUID viewerId) {
-        log.info("Проверка, просматривал ли пользователь с ID: {} историю с ID: {}", viewerId, storyId);
         return storyViewerRepository.existsByStoryIdAndViewerId(storyId, viewerId);
     }
 
     @Override
     public long countViews(UUID storyId) {
-        log.info("Подсчет количества просмотров истории с ID: {}", storyId);
         return storyViewerRepository.countByStoryId(storyId);
     }
 
     @Transactional
     public void reactToStory(UUID storyId, Reactions reaction) {
-
-        log.info("Попытка достать текущего пользователя из AuthClient для реакции на историю с ID: {}", storyId);
         UserResponseDTO currentUser = authClient.getCurrentUser();
-
         UUID userId = UUID.fromString(currentUser.getId());
-        log.info("Получин пользователь с ID: {} для реакции на историю с ID: {}", userId, storyId);
 
-
-        log.info("Попытка достать историю с ID: {} для реакции", storyId);
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new StoryNotFoundException("Story not found"));
 
+        Optional<StoryReaction> existing = storyReactionRepository.findByStoryIdAndUserId(storyId, userId);
 
-        log.info("Проверка, истекла ли история с ID: {} для реакции", storyId);
-        Optional<StoryReaction> existing =
-                storyReactionRepository.findByStoryIdAndUserId(storyId, userId);
-
-
-        log.info("Проверка наличия существующей реакции пользователя с ID: {} на историю с ID: {}", userId, storyId);
         if (existing.isPresent()) {
             existing.get().setReaction(reaction);
             existing.get().setReactedAt(LocalDateTime.now());
+            storyMetrics.incrementReactionAdded();
             return;
         }
 
-        log.info("Добавление новой реакции пользователя с ID: {} на историю с ID: {}", userId, storyId);
         StoryReaction storyReaction = StoryReaction.builder()
                 .story(story)
                 .userId(userId)
                 .reaction(reaction)
                 .reactedAt(LocalDateTime.now())
                 .build();
-
-
         storyReactionRepository.save(storyReaction);
-        log.info("✅ Реакция пользователя с ID: {} на историю с ID: {} успешно сохранена", userId, storyId);
+        storyMetrics.incrementReactionAdded();
     }
 
     @Override
     public void deleteReaction(UUID storyId) {
-        log.info("Попытка достать текущего пользователя из AuthClient для удаления реакции на историю с ID: {}", storyId);
         UserResponseDTO currentUser = authClient.getCurrentUser();
         UUID userId = UUID.fromString(currentUser.getId());
 
-        log.info("Получин пользователь с ID: {} для удаления реакции на историю с ID: {}", userId, storyId);
-
         Story story = storyRepository.findById(storyId)
-                .orElseThrow(() -> {
-                    log.warn("❌ История с ID: {} не найдена для удаления реакции", storyId);
-                    return new StoryNotFoundException("История с ID " + storyId + " не найдена");
-                });
-
-        Optional<StoryReaction> existing = Optional
-                .ofNullable(storyReactionRepository.findByStoryIdAndUserId(storyId, userId)
-                        .orElseThrow(() -> {
-                            log.warn("❌ Реакция пользователя с ID: {} на историю с ID: {} не найдена для удаления", userId, storyId);
-                            return new StoryNotFoundException("Реакция пользователя с ID " + userId + " на историю с ID " + storyId + " не найдена");
-                        }));
+                .orElseThrow(() -> new StoryNotFoundException("История с ID " + storyId + " не найдена"));
 
         if (story.getExpireAt().isBefore(LocalDateTime.now())) {
-            log.warn("❌ История с ID: {} истекла и реакция не может быть удалена", storyId);
-            throw new StoryIsNotAviableByTimeException("История с ID " + storyId + " истекла и реакция не может быть удалена");
-        }
-        if (existing.isPresent()) {
-            log.info("Удаление реакции пользователя с ID: {} на историю с ID: {}", userId, storyId);
-            storyReactionRepository.delete(existing.get());
-            log.info("✅ Реакция пользователя с ID: {} на историю с ID: {} успешно удалена", userId, storyId);
+            throw new StoryIsNotAviableByTimeException("История истекла");
         }
 
+        StoryReaction existing = storyReactionRepository.findByStoryIdAndUserId(storyId, userId)
+                .orElseThrow(() -> new StoryNotFoundException("Реакция не найдена"));
+
+        storyReactionRepository.delete(existing);
+        storyMetrics.incrementReactionDeleted();
     }
 
     @Override
     public List<StoryReactionCountDTO> getReactionStats(UUID storyId) {
-        log.info("Получение статистики реакций для истории с ID: {}", storyId);
         return storyReactionRepository.countReactionsByStory(storyId)
                 .stream()
-                .map(r -> new StoryReactionCountDTO(
-                        (Reactions) r[0],
-                        (Long) r[1]
-                ))
+                .map(r -> new StoryReactionCountDTO((Reactions) r[0], (Long) r[1]))
                 .toList();
     }
 
     @Override
     public List<Story> getAllActiveStories() {
-        log.info("Получение всех активных историй");
-        LocalDateTime now = LocalDateTime.now();
-        return storyRepository.findByExpireAtAfter(now);
+        return storyRepository.findByExpireAtAfter(LocalDateTime.now());
     }
 
     @Override
     public List<Story> getStoriesByUserId(UUID userId) {
-        log.info("Получение историй пользователя с ID: {}", userId);
-        LocalDateTime now = LocalDateTime.now();
-        return storyRepository.findByUserIdAndExpireAtAfterOrderByCreatedAtDesc(userId, now);
+        return storyRepository.findByUserIdAndExpireAtAfterOrderByCreatedAtDesc(userId, LocalDateTime.now());
     }
 
     @Override
     public Story getStoryById(UUID storyId) {
-        log.info("Получение истории с ID: {}", storyId);
         return storyRepository.findById(storyId)
-                .orElseThrow(() -> {
-                    log.warn("❌ История с ID: {} не найдена", storyId);
-                    return new StoryNotFoundException("История с ID " + storyId + " не найдена");
-                });
+                .orElseThrow(() -> new StoryNotFoundException("История с ID " + storyId + " не найдена"));
     }
+
     @Override
     @Transactional
     public void setAllStoriesPrivacy(UUID userId, boolean isPublic) {
-        log.info("Установка приватности историй пользователя {}: isPublic={}", userId, isPublic);
-        List<Story> stories = storyRepository.findByUserIdAndExpireAtAfterOrderByCreatedAtDesc(
-                userId, LocalDateTime.now()
-        );
-        stories.forEach(story -> story.setPublic(isPublic));
+        List<Story> stories = storyRepository.findByUserIdAndExpireAtAfterOrderByCreatedAtDesc(userId, LocalDateTime.now());
+        stories.forEach(s -> s.setPublic(isPublic));
         storyRepository.saveAll(stories);
     }
+
+    public List<Story> getAllStories() {
+        return storyRepository.findByExpireAtAfterAndIsPublicTrue(LocalDateTime.now());
+    }
+
+    // ── helpers ──────────────────────────────────────────
 
     private String mapTagsToCategory(List<String> tags) {
         if (tags == null) return StoryCategory.OTHER.name();
@@ -290,10 +278,8 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
 
     private String mapColorsToMood(List<String> colors) {
         if (colors == null || colors.isEmpty()) return StoryMood.NEUTRAL.name();
-
-        boolean hasBright = colors.stream().anyMatch(c -> isBrightColor(c));
-        boolean hasDark = colors.stream().anyMatch(c -> isDarkColor(c));
-
+        boolean hasBright = colors.stream().anyMatch(this::isBrightColor);
+        boolean hasDark   = colors.stream().anyMatch(this::isDarkColor);
         if (hasBright && !hasDark) return StoryMood.HAPPY.name();
         if (!hasBright && hasDark) return StoryMood.SAD.name();
         return StoryMood.NEUTRAL.name();
@@ -305,23 +291,8 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
             int g = Integer.parseInt(hex.substring(3, 5), 16);
             int b = Integer.parseInt(hex.substring(5, 7), 16);
             return (r + g + b) / 3 > 127;
-        } catch (Exception e) {
-            return false;
-        }
+        } catch (Exception e) { return false; }
     }
 
-    private boolean isDarkColor(String hex) {
-        return !isBrightColor(hex);
-    }
-
-
-    public List<Story> getAllStories() {
-        return storyRepository.findByExpireAtAfterAndIsPublicTrue(LocalDateTime.now());
-    }
-
-
-
-
+    private boolean isDarkColor(String hex) { return !isBrightColor(hex); }
 }
-
-

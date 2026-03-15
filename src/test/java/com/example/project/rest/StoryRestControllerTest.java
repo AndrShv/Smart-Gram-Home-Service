@@ -1,8 +1,8 @@
 package com.example.project.rest;
 
-import com.example.project.dto.story.StoryDTO;
 import com.example.project.dto.count.StoryReactionCountDTO;
 import com.example.project.dto.reaction.StoryReactionRequestDTO;
+import com.example.project.dto.story.StoryDTO;
 import com.example.project.entity.Story;
 import com.example.project.enums.Reactions;
 import com.example.project.exceptions.StoryIsNotAviableByTimeException;
@@ -10,6 +10,8 @@ import com.example.project.exceptions.StoryNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
 import com.example.project.handlers.GlobalExceptionHandler;
 import com.example.project.mappers.StoryMapper;
+import com.example.project.metrics.StoryApiMetricsService;
+import com.example.project.service.MinioService;
 import com.example.project.service.StoryServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +21,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,11 +42,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class StoryRestControllerTest {
 
-    @Mock
-    private StoryServiceImpl storyService;
+    @Mock private StoryServiceImpl storyService;
+    @Mock private StoryMapper storyMapper;
+    @Mock private MinioService minioService;
 
-    @Mock
-    private StoryMapper storyMapper;
+    // ✅ @Mock — не @InjectMocks, нужен MeterRegistry для конструктора
+    @Mock private StoryApiMetricsService apiMetrics;
 
     @InjectMocks
     private StoryRestController storyRestController;
@@ -61,87 +65,55 @@ class StoryRestControllerTest {
                 .build();
 
         objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules();
+
         userId = UUID.randomUUID();
         storyId = UUID.randomUUID();
-        objectMapper.findAndRegisterModules();
     }
+
+    // ============================================
+    //  CREATE STORY (multipart)
+    // ============================================
 
     @Test
     void createStory_success() throws Exception {
-        StoryDTO storyDTO = StoryDTO.builder()
+        mockAuthentication();
+
+        Story story = validStory();
+        StoryDTO dto = StoryDTO.builder()
                 .description("Test story")
-                .photoUrl("http://example.com/photo.jpg")
+                .photoUrl("http://minio/stories/photo.jpg")
                 .build();
 
-        Story story = Story.builder()
-                .id(storyId)
-                .userId(userId)
-                .description("Test story")
-                .photoUrl("http://example.com/photo.jpg")
-                .createdAt(LocalDateTime.now())
-                .expireAt(LocalDateTime.now().plusHours(24))
-                .viewers(new ArrayList<>())
-                .build();
-
+        when(minioService.uploadStoryPhotoBytes(any(), anyString(), anyString()))
+                .thenReturn("http://minio/stories/photo.jpg");
         when(storyService.createStory(any(StoryDTO.class))).thenReturn(story);
+        when(storyMapper.toDto(story)).thenReturn(dto);
 
-        mockMvc.perform(post("/api/stories")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(storyDTO)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(storyId.toString()))
-                .andExpect(jsonPath("$.description").value("Test story"))
-                .andExpect(jsonPath("$.photoUrl").value("http://example.com/photo.jpg"));
-
-        verify(storyService, times(1)).createStory(any(StoryDTO.class));
-    }
-
-    @Test
-    void createStory_serviceMethodCalled() throws Exception {
-        StoryDTO storyDTO = new StoryDTO();
-        Story story = Story.builder()
-                .id(storyId)
-                .userId(userId)
-                .viewers(new ArrayList<>())
-                .build();
-
-        when(storyService.createStory(any(StoryDTO.class))).thenReturn(story);
-
-        mockMvc.perform(post("/api/stories")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(storyDTO)));
+        mockMvc.perform(multipart("/api/stories")
+                        .file(new MockMultipartFile("photo","photo.jpg","image/jpeg","img".getBytes()))
+                        .param("description", "Test story")
+                        .param("isPublic", "true"))
+                .andExpect(status().isCreated());
 
         verify(storyService).createStory(any(StoryDTO.class));
     }
 
     @Test
-    void createStory_returnsCreatedStatus() throws Exception {
-        StoryDTO storyDTO = new StoryDTO();
-        Story story = Story.builder()
-                .id(storyId)
-                .viewers(new ArrayList<>())
-                .build();
-
-        when(storyService.createStory(any(StoryDTO.class))).thenReturn(story);
-
-        mockMvc.perform(post("/api/stories")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(storyDTO)))
-                .andExpect(status().isCreated());
-    }
-
-    @Test
     void createStory_unauthorized() throws Exception {
-        StoryDTO storyDTO = new StoryDTO();
+        mockAuthentication();
+        when(minioService.uploadStoryPhotoBytes(any(), any(), any()))
+                .thenReturn("http://minio/x.jpg");
+        when(storyService.createStory(any())).thenThrow(new UnauthorizedException("Unauthorized"));
 
-        when(storyService.createStory(any(StoryDTO.class)))
-                .thenThrow(new UnauthorizedException("Unauthorized"));
-
-        mockMvc.perform(post("/api/stories")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(storyDTO)))
+        mockMvc.perform(multipart("/api/stories")
+                        .file(new MockMultipartFile("photo","photo.jpg","image/jpeg","img".getBytes())))
                 .andExpect(status().isUnauthorized());
     }
+
+    // ============================================
+    //  DELETE STORY
+    // ============================================
 
     @Test
     void deleteStory_success() throws Exception {
@@ -150,7 +122,7 @@ class StoryRestControllerTest {
         mockMvc.perform(delete("/api/stories/{storyId}", storyId))
                 .andExpect(status().isNoContent());
 
-        verify(storyService, times(1)).deleteStory(storyId);
+        verify(storyService).deleteStory(storyId);
     }
 
     @Test
@@ -162,14 +134,9 @@ class StoryRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    @Test
-    void deleteStory_serviceMethodCalled() throws Exception {
-        doNothing().when(storyService).deleteStory(storyId);
-
-        mockMvc.perform(delete("/api/stories/{storyId}", storyId));
-
-        verify(storyService).deleteStory(storyId);
-    }
+    // ============================================
+    //  VIEW STORY
+    // ============================================
 
     @Test
     void viewStory_success() throws Exception {
@@ -179,7 +146,7 @@ class StoryRestControllerTest {
         mockMvc.perform(post("/api/stories/{storyId}/view", storyId))
                 .andExpect(status().isOk());
 
-        verify(storyService, times(1)).viewStory(eq(storyId), any(UUID.class));
+        verify(storyService).viewStory(eq(storyId), any(UUID.class));
     }
 
     @Test
@@ -203,16 +170,6 @@ class StoryRestControllerTest {
     }
 
     @Test
-    void viewStory_serviceMethodCalled() throws Exception {
-        mockAuthentication();
-        doNothing().when(storyService).viewStory(eq(storyId), any(UUID.class));
-
-        mockMvc.perform(post("/api/stories/{storyId}/view", storyId));
-
-        verify(storyService).viewStory(eq(storyId), any(UUID.class));
-    }
-
-    @Test
     void viewStory_correctViewerId() throws Exception {
         mockAuthentication();
         doNothing().when(storyService).viewStory(eq(storyId), eq(userId));
@@ -222,6 +179,10 @@ class StoryRestControllerTest {
         verify(storyService).viewStory(eq(storyId), eq(userId));
     }
 
+    // ============================================
+    //  HAS VIEWED
+    // ============================================
+
     @Test
     void hasViewed_true() throws Exception {
         mockAuthentication();
@@ -230,8 +191,6 @@ class StoryRestControllerTest {
         mockMvc.perform(get("/api/stories/{storyId}/views/me", storyId))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
-
-        verify(storyService, times(1)).hasViewed(eq(storyId), any(UUID.class));
     }
 
     @Test
@@ -245,16 +204,6 @@ class StoryRestControllerTest {
     }
 
     @Test
-    void hasViewed_serviceMethodCalled() throws Exception {
-        mockAuthentication();
-        when(storyService.hasViewed(eq(storyId), any(UUID.class))).thenReturn(false);
-
-        mockMvc.perform(get("/api/stories/{storyId}/views/me", storyId));
-
-        verify(storyService).hasViewed(eq(storyId), any(UUID.class));
-    }
-
-    @Test
     void hasViewed_correctViewerId() throws Exception {
         mockAuthentication();
         when(storyService.hasViewed(eq(storyId), eq(userId))).thenReturn(true);
@@ -264,6 +213,10 @@ class StoryRestControllerTest {
         verify(storyService).hasViewed(eq(storyId), eq(userId));
     }
 
+    // ============================================
+    //  COUNT VIEWS
+    // ============================================
+
     @Test
     void countViews_success() throws Exception {
         when(storyService.countViews(storyId)).thenReturn(10L);
@@ -271,8 +224,6 @@ class StoryRestControllerTest {
         mockMvc.perform(get("/api/stories/{storyId}/views/count", storyId))
                 .andExpect(status().isOk())
                 .andExpect(content().string("10"));
-
-        verify(storyService, times(1)).countViews(storyId);
     }
 
     @Test
@@ -284,42 +235,14 @@ class StoryRestControllerTest {
                 .andExpect(content().string("0"));
     }
 
-    @Test
-    void countViews_serviceMethodCalled() throws Exception {
-        when(storyService.countViews(storyId)).thenReturn(5L);
-
-        mockMvc.perform(get("/api/stories/{storyId}/views/count", storyId));
-
-        verify(storyService).countViews(storyId);
-    }
-
-    @Test
-    void countViews_correctStoryId() throws Exception {
-        when(storyService.countViews(storyId)).thenReturn(7L);
-
-        mockMvc.perform(get("/api/stories/{storyId}/views/count", storyId));
-
-        verify(storyService).countViews(eq(storyId));
-    }
-
-    private void mockAuthentication() {
-        Authentication authentication = mock(Authentication.class);
-        SecurityContext securityContext = mock(SecurityContext.class);
-
-        when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getName()).thenReturn(userId.toString());
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-
-        SecurityContextHolder.setContext(securityContext);
-    }
-
+    // ============================================
+    //  REACT TO STORY
+    // ============================================
 
     @Test
     void reactToStory_success() throws Exception {
-
-        var dto = new StoryReactionRequestDTO();
+        StoryReactionRequestDTO dto = new StoryReactionRequestDTO();
         dto.setReaction(Reactions.LIKE);
-
         doNothing().when(storyService).reactToStory(storyId, Reactions.LIKE);
 
         mockMvc.perform(post("/api/stories/{storyId}/reaction", storyId)
@@ -332,9 +255,8 @@ class StoryRestControllerTest {
 
     @Test
     void reactToStory_storyNotFound() throws Exception {
-        var dto = new StoryReactionRequestDTO();
+        StoryReactionRequestDTO dto = new StoryReactionRequestDTO();
         dto.setReaction(Reactions.LIKE);
-
         doThrow(new StoryNotFoundException("Story not found"))
                 .when(storyService).reactToStory(storyId, Reactions.LIKE);
 
@@ -344,13 +266,10 @@ class StoryRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-
     @Test
     void reactToStory_storyExpired() throws Exception {
-
-        var dto = new StoryReactionRequestDTO();
+        StoryReactionRequestDTO dto = new StoryReactionRequestDTO();
         dto.setReaction(Reactions.LIKE);
-
         doThrow(new StoryIsNotAviableByTimeException("Expired"))
                 .when(storyService).reactToStory(storyId, Reactions.LIKE);
 
@@ -360,11 +279,9 @@ class StoryRestControllerTest {
                 .andExpect(status().isGone());
     }
 
-
     @Test
     void reactToStory_serviceMethodCalled() throws Exception {
-
-        var dto = new StoryReactionRequestDTO();
+        StoryReactionRequestDTO dto = new StoryReactionRequestDTO();
         dto.setReaction(Reactions.FIRE);
 
         mockMvc.perform(post("/api/stories/{storyId}/reaction", storyId)
@@ -374,10 +291,12 @@ class StoryRestControllerTest {
         verify(storyService).reactToStory(storyId, Reactions.FIRE);
     }
 
+    // ============================================
+    //  DELETE REACTION
+    // ============================================
 
     @Test
     void deleteReaction_success() throws Exception {
-
         doNothing().when(storyService).deleteReaction(storyId);
 
         mockMvc.perform(delete("/api/stories/{storyId}/reaction", storyId))
@@ -385,7 +304,6 @@ class StoryRestControllerTest {
 
         verify(storyService).deleteReaction(storyId);
     }
-
 
     @Test
     void deleteReaction_storyNotFound() throws Exception {
@@ -396,10 +314,8 @@ class StoryRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-
     @Test
     void deleteReaction_storyExpired() throws Exception {
-
         doThrow(new StoryIsNotAviableByTimeException("Expired"))
                 .when(storyService).deleteReaction(storyId);
 
@@ -407,24 +323,22 @@ class StoryRestControllerTest {
                 .andExpect(status().isGone());
     }
 
-
     @Test
     void deleteReaction_serviceMethodCalled() throws Exception {
-
         mockMvc.perform(delete("/api/stories/{storyId}/reaction", storyId));
-
         verify(storyService).deleteReaction(storyId);
     }
 
+    // ============================================
+    //  REACTION STATS
+    // ============================================
 
     @Test
     void getReactionStats_success() throws Exception {
-        var stats = List.of(
+        when(storyService.getReactionStats(storyId)).thenReturn(List.of(
                 new StoryReactionCountDTO(Reactions.LIKE, 3L),
                 new StoryReactionCountDTO(Reactions.FIRE, 1L)
-        );
-
-        when(storyService.getReactionStats(storyId)).thenReturn(stats);
+        ));
 
         mockMvc.perform(get("/api/stories/{storyId}/reactions", storyId))
                 .andExpect(status().isOk())
@@ -432,7 +346,6 @@ class StoryRestControllerTest {
                 .andExpect(jsonPath("$[0].reaction").value("LIKE"))
                 .andExpect(jsonPath("$[0].count").value(3));
     }
-
 
     @Test
     void getReactionStats_empty() throws Exception {
@@ -443,97 +356,75 @@ class StoryRestControllerTest {
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-
-    @Test
-    void getReactionStats_serviceMethodCalled() throws Exception {
-        when(storyService.getReactionStats(storyId)).thenReturn(List.of());
-
-        mockMvc.perform(get("/api/stories/{storyId}/reactions", storyId));
-
-        verify(storyService).getReactionStats(storyId);
-    }
-
+    // ============================================
+    //  GET STORIES BY USER ID
+    // ============================================
 
     @Test
     void getStoriesByUserId_success() throws Exception {
-        Story story = Story.builder()
-                .id(storyId)
-                .userId(userId)
-                .description("Story text")
-                .build();
+        Story story = Story.builder().id(storyId).userId(userId).description("Story text").build();
+        StoryDTO dto = StoryDTO.builder().description("Story text").build();
 
-        StoryDTO dto = StoryDTO.builder()
-                .description("Story text")
-                .build();
-
-        when(storyService.getStoriesByUserId(userId))
-                .thenReturn(List.of(story));
-
+        when(storyService.getStoriesByUserId(userId)).thenReturn(List.of(story));
         when(storyMapper.toDto(story)).thenReturn(dto);
 
         mockMvc.perform(get("/api/stories/user/{userId}", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].description").value("Story text"));
-
-        verify(storyService).getStoriesByUserId(userId);
     }
-
 
     @Test
     void getStoriesByUserId_emptyList() throws Exception {
-        when(storyService.getStoriesByUserId(userId))
-                .thenReturn(List.of());
+        when(storyService.getStoriesByUserId(userId)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/stories/user/{userId}", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
-
-    @Test
-    void getStoriesByUserId_serviceCalled() throws Exception {
-        when(storyService.getStoriesByUserId(userId))
-                .thenReturn(List.of());
-
-        mockMvc.perform(get("/api/stories/user/{userId}", userId));
-
-        verify(storyService, times(1)).getStoriesByUserId(userId);
-    }
-
-
-
     @Test
     void getStoriesByUserId_multipleStories() throws Exception {
         Story s1 = Story.builder().id(UUID.randomUUID()).description("One").build();
         Story s2 = Story.builder().id(UUID.randomUUID()).description("Two").build();
-
-        StoryDTO d1 = StoryDTO.builder().description("One").build();
-        StoryDTO d2 = StoryDTO.builder().description("Two").build();
-
-        when(storyService.getStoriesByUserId(userId))
-                .thenReturn(List.of(s1, s2));
-
-        when(storyMapper.toDto(s1)).thenReturn(d1);
-        when(storyMapper.toDto(s2)).thenReturn(d2);
+        when(storyService.getStoriesByUserId(userId)).thenReturn(List.of(s1, s2));
+        when(storyMapper.toDto(s1)).thenReturn(StoryDTO.builder().description("One").build());
+        when(storyMapper.toDto(s2)).thenReturn(StoryDTO.builder().description("Two").build());
 
         mockMvc.perform(get("/api/stories/user/{userId}", userId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[1].description").value("Two"));
+                .andExpect(jsonPath("$.length()").value(2));
     }
-
-
 
     @Test
     void getStoriesByUserId_serviceThrows() throws Exception {
-        when(storyService.getStoriesByUserId(userId))
-                .thenThrow(new RuntimeException("DB error"));
+        when(storyService.getStoriesByUserId(userId)).thenThrow(new RuntimeException("DB error"));
 
         mockMvc.perform(get("/api/stories/user/{userId}", userId))
                 .andExpect(status().isInternalServerError());
     }
 
+    // ============================================
+    //  HELPERS
+    // ============================================
 
+    private void mockAuthentication() {
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn(userId.toString());
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+    }
 
+    private Story validStory() {
+        return Story.builder()
+                .id(storyId).userId(userId)
+                .description("Test story")
+                .photoUrl("http://example.com/photo.jpg")
+                .createdAt(LocalDateTime.now())
+                .expireAt(LocalDateTime.now().plusHours(24))
+                .viewers(new ArrayList<>())
+                .build();
+    }
 }

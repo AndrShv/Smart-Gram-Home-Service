@@ -78,6 +78,11 @@ public class RabbitMqConfig {
         return new TopicExchange("auth.exchange", true, false);
     }
 
+    @Bean
+    public TopicExchange notificationExchange() {
+        return new TopicExchange("notification.exchange", true, false);
+    }
+
 
 
     // --- Queues ---
@@ -95,6 +100,13 @@ public class RabbitMqConfig {
         return new Queue("profile.smart.gram.queue", true);
     }
 
+    @Bean
+    public Queue notificationQueue() {
+        return new Queue("notification.smart.gram.queue", true);
+    }
+
+
+
 
     // --- Bindings ---
     @Bean
@@ -109,6 +121,10 @@ public class RabbitMqConfig {
     @Bean
     public Binding bindingProfile(Queue profileQueue, TopicExchange profileExchange) {
         return BindingBuilder.bind(profileQueue).to(profileExchange).with("profile.#");
+    }
+    @Bean
+    public Binding bindingNotification(Queue notificationQueue, TopicExchange notificationExchange) {
+        return BindingBuilder.bind(notificationQueue).to(notificationExchange).with("notification.#");
     }
 
 }

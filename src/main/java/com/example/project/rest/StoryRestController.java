@@ -5,6 +5,7 @@ import com.example.project.dto.count.StoryReactionCountDTO;
 import com.example.project.dto.reaction.StoryReactionRequestDTO;
 import com.example.project.entity.Story;
 import com.example.project.mappers.StoryMapper;
+import com.example.project.metrics.StoryApiMetricsService;
 import com.example.project.service.MinioService;
 import com.example.project.service.StoryServiceImpl;
 import jakarta.validation.Valid;
@@ -28,17 +29,18 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/stories")
 @RequiredArgsConstructor
 public class StoryRestController {
+
     private final StoryServiceImpl storyService;
     private final StoryMapper storyMapper;
     private final MinioService minioService;
-
-
+    private final StoryApiMetricsService apiMetrics;
 
     @GetMapping
     public ResponseEntity<List<StoryDTO>> getAllStories() {
+        apiMetrics.getRequest();
         UUID userId = getCurrentUserId();
         List<StoryDTO> storyDTOs = storyService.getAllStories().stream()
-                .filter(s -> !s.getUserId().equals(userId.toString())) // ← без своих
+                .filter(s -> !s.getUserId().equals(userId))
                 .map(storyMapper::toDto)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(storyDTOs);
@@ -51,24 +53,16 @@ public class StoryRestController {
             @RequestParam(value = "overlayText", required = false) String overlayText,
             @RequestParam(value = "musicCaption", required = false) String musicCaption,
             @RequestParam(value = "isPublic", defaultValue = "true") boolean isPublic,
-            @RequestPart("photo") MultipartFile photo
-    ) {
+            @RequestPart("photo") MultipartFile photo) throws Exception {
         log.info("REST: создание сторис");
+        apiMetrics.createRequest();
 
         UUID userId = getCurrentUserId();
-
         byte[] photoBytes;
-        try {
-            photoBytes = photo.getBytes();
-        } catch (IOException e) {
-            throw new RuntimeException("Не удалось прочитать файл", e);
-        }
+        try { photoBytes = photo.getBytes(); }
+        catch (IOException e) { throw new RuntimeException("Не удалось прочитать файл", e); }
 
-        String photoUrl = minioService.uploadStoryPhotoBytes(
-                photoBytes,
-                photo.getOriginalFilename(),
-                photo.getContentType()
-        );
+        String photoUrl = minioService.uploadStoryPhotoBytes(photoBytes, photo.getOriginalFilename(), photo.getContentType());
 
         StoryDTO storyDTO = new StoryDTO();
         storyDTO.setDescription(description);
@@ -82,84 +76,60 @@ public class StoryRestController {
         storyDTO.setPhotoFileName(photo.getOriginalFilename());
 
         Story createdStory = storyService.createStory(storyDTO);
-        StoryDTO responseDTO = storyMapper.toDto(createdStory);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(storyMapper.toDto(createdStory));
     }
 
     @DeleteMapping("/{storyId}")
     public ResponseEntity<Void> deleteStory(@PathVariable UUID storyId) {
-        log.info("REST: удаление сторис {}", storyId);
+        apiMetrics.deleteRequest();
         storyService.deleteStory(storyId);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{storyId}/view")
     public ResponseEntity<Void> viewStory(@PathVariable UUID storyId) {
-        UUID viewerId = getCurrentUserId();
-        log.info("REST: пользователь {} смотрит сторис {}", viewerId, storyId);
-        storyService.viewStory(storyId, viewerId);
+        apiMetrics.viewRequest();
+        storyService.viewStory(storyId, getCurrentUserId());
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{storyId}/views/me")
     public ResponseEntity<Boolean> hasViewed(@PathVariable UUID storyId) {
-        UUID viewerId = getCurrentUserId();
-        log.info("REST: проверка, смотрел ли пользователь {} сторис {}", viewerId, storyId);
-        boolean viewed = storyService.hasViewed(storyId, viewerId);
-        log.info("REST: результат проверки просмотра: {}", viewed);
-
-        return ResponseEntity.ok(viewed);
-
+        return ResponseEntity.ok(storyService.hasViewed(storyId, getCurrentUserId()));
     }
 
     @GetMapping("/{storyId}/views/count")
     public ResponseEntity<Long> countViews(@PathVariable UUID storyId) {
-        long count = storyService.countViews(storyId);
-        log.info("REST: количество просмотров сторис {}: {}", storyId, count);
-        return ResponseEntity.ok(count);
+        return ResponseEntity.ok(storyService.countViews(storyId));
     }
 
     @PostMapping("/{storyId}/reaction")
-    public ResponseEntity<Void> reactToStory(
-            @PathVariable UUID storyId,
-            @RequestBody @Valid StoryReactionRequestDTO dto
-    ) {
-        log.info("REST: реакция {} на историю {}", dto.getReaction(), storyId);
+    public ResponseEntity<Void> reactToStory(@PathVariable UUID storyId, @RequestBody @Valid StoryReactionRequestDTO dto) {
+        apiMetrics.reactionRequest();
         storyService.reactToStory(storyId, dto.getReaction());
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{storyId}/reaction")
-    public ResponseEntity<Void> deleteReaction(
-            @PathVariable UUID storyId
-    ) {
-        log.info("REST: удаление реакции с истории {}", storyId);
+    public ResponseEntity<Void> deleteReaction(@PathVariable UUID storyId) {
         storyService.deleteReaction(storyId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{storyId}/reactions")
     public ResponseEntity<List<StoryReactionCountDTO>> getReactionStats(@PathVariable UUID storyId) {
-        log.info("REST: получение статистики реакций для истории {}", storyId);
         return ResponseEntity.ok(storyService.getReactionStats(storyId));
     }
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<StoryDTO>> getStoriesByUserId(@PathVariable UUID userId) {
-        log.info("REST: получение историй пользователя {}", userId);
-        List<Story> stories = storyService.getStoriesByUserId(userId);
-        List<StoryDTO> storyDTOs = stories.stream()
-                .map(storyMapper::toDto)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(storyDTOs);
+        apiMetrics.getRequest();
+        return ResponseEntity.ok(storyService.getStoriesByUserId(userId).stream().map(storyMapper::toDto).collect(Collectors.toList()));
     }
 
     @PutMapping("/privacy/all")
     public ResponseEntity<Void> setAllStoriesPrivacy(@RequestParam boolean isPublic) {
-        UUID userId = getCurrentUserId();
-        log.info("REST: установка приватности историй пользователя {} -> isPublic={}", userId, isPublic);
-        storyService.setAllStoriesPrivacy(userId, isPublic);
+        storyService.setAllStoriesPrivacy(getCurrentUserId(), isPublic);
         return ResponseEntity.ok().build();
     }
 
@@ -168,10 +138,6 @@ public class StoryRestController {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new RuntimeException("Пользователь не авторизован");
         }
-
         return UUID.fromString(authentication.getName());
     }
-
-
-
 }

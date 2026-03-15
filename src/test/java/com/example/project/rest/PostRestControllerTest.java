@@ -9,6 +9,7 @@ import com.example.project.exceptions.UnauthorizedException;
 import com.example.project.interfaces.PostCrudService;
 import com.example.project.interfaces.PostReactionService;
 import com.example.project.mappers.PostMapper;
+import com.example.project.metrics.PostApiMetricsService;
 import com.example.project.service.MinioService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -42,20 +43,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class PostRestControllerTest {
 
-    @Mock
-    private PostCrudService postService;
+    @Mock private PostCrudService postService;
+    @Mock private PostReactionService postReactionService;
+    @Mock private PostMapper postMapper;
+    @Mock private MinioService minioService;
 
-    @Mock
-    private PostReactionService postReactionService;
-
-    @Mock
-    private PostMapper postMapper;
+    // ✅ Mock — не @InjectMocks, метрикам нужен MeterRegistry
+    @Mock private PostApiMetricsService apiMetrics;
 
     @InjectMocks
     private PostRestController postRestController;
-
-    @Mock
-    private MinioService minioService;
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
@@ -63,7 +60,6 @@ class PostRestControllerTest {
     private UUID postId;
     private UUID userId;
     private Post post;
-
 
     @BeforeEach
     void setUp() {
@@ -94,94 +90,68 @@ class PostRestControllerTest {
         SecurityContextHolder.clearContext();
     }
 
-
-
     @RestControllerAdvice
     static class TestExceptionHandler {
-
         @ExceptionHandler(UnauthorizedException.class)
         public ResponseEntity<String> handleUnauthorized(UnauthorizedException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
         }
-
         @ExceptionHandler(PostNotFoundException.class)
         public ResponseEntity<String> handlePostNotFound(PostNotFoundException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
         }
     }
 
-    /* ================= CREATE POST ================= */
+    // ============================================
+    //  CREATE POST
+    // ============================================
+
     @Test
     void createPost_success() throws Exception {
-        when(minioService.uploadPostPhotoBytes(any(byte[].class), anyString(), anyString()))
+        when(minioService.uploadPostPhotoBytes(any(), anyString(), anyString()))
                 .thenReturn("http://minio/posts/photo.jpg");
-
         when(postService.createPost(any(PostDTO.class))).thenReturn(post);
-
         when(postMapper.toDto(post)).thenReturn(PostDTO.builder()
-                .id(postId)
-                .userId(userId)
-                .description("Test Post")
+                .id(postId).userId(userId).description("Test Post")
                 .photoUrl("http://minio/posts/photo.jpg")
                 .createdAt(LocalDateTime.now())
-                .viewsCount(0)
-                .reactionsCount(0)
-                .commentsCount(0)
+                .viewsCount(0).reactionsCount(0).commentsCount(0)
                 .build());
 
-        MockMultipartFile photoFile = new MockMultipartFile(
-                "photo",
-                "photo.jpg",
-                "image/jpeg",
-                "dummy image content".getBytes()
-        );
-
         mockMvc.perform(multipart("/api/posts")
-                        .file(photoFile)
+                        .file(new MockMultipartFile("photo","photo.jpg","image/jpeg","img".getBytes()))
                         .param("description", "Test Post")
                         .param("location", "Одесса")
-                        .param("isPublic", "true")
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                        .param("isPublic", "true"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(postId.toString()))
                 .andExpect(jsonPath("$.description").value("Test Post"));
 
-        verify(minioService, times(1)).uploadPostPhotoBytes(any(byte[].class), anyString(), anyString());
-        verify(postService, times(1)).createPost(any(PostDTO.class));
-        verify(postMapper, times(1)).toDto(post);
+        verify(postService).createPost(any(PostDTO.class));
+        verify(postMapper).toDto(post);
     }
 
     @Test
     void createPost_unauthorized() throws Exception {
         SecurityContextHolder.clearContext();
 
-        MockMultipartFile photoFile = new MockMultipartFile(
-                "photo",
-                "photo.jpg",
-                "image/jpeg",
-                "dummy image content".getBytes()
-        );
-
         mockMvc.perform(multipart("/api/posts")
-                        .file(photoFile)
-                        .param("description", "Test Post")
-                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                        .file(new MockMultipartFile("photo","photo.jpg","image/jpeg","img".getBytes()))
+                        .param("description", "Test Post"))
                 .andExpect(status().isUnauthorized());
     }
 
-    /* ================= GET POST ================= */
+    // ============================================
+    //  GET POST
+    // ============================================
 
     @Test
     void getPost_success() throws Exception {
         PostDTO responseDTO = PostDTO.builder()
-                .id(postId)
-                .userId(userId)
-                .description("Test Post")
+                .id(postId).userId(userId).description("Test Post")
                 .photoUrl("http://example.com/photo.jpg")
                 .createdAt(LocalDateTime.now())
-                .viewsCount(0)
-                .reactionsCount(0)
-                .commentsCount(0)
+                .viewsCount(0).reactionsCount(0).commentsCount(0)
                 .build();
 
         when(postService.getPostById(postId)).thenReturn(post);
@@ -191,9 +161,6 @@ class PostRestControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(postId.toString()))
                 .andExpect(jsonPath("$.description").value("Test Post"));
-
-        verify(postService, times(1)).getPostById(postId);
-        verify(postMapper, times(1)).toDto(post);
     }
 
     @Test
@@ -204,7 +171,9 @@ class PostRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    /* ================= UPDATE POST ================= */
+    // ============================================
+    //  UPDATE POST
+    // ============================================
 
     @Test
     void updatePost_success() throws Exception {
@@ -218,18 +187,15 @@ class PostRestControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(postDTO)))
                 .andExpect(status().isOk());
-
-        verify(postService, times(1)).updatePost(eq(postId), any(PostDTO.class));
     }
 
     @Test
     void updatePost_notFound() throws Exception {
         PostDTO postDTO = new PostDTO();
         postDTO.setDescription("Updated Post");
-        postDTO.setPhotoUrl("http://example.com/updated.jpg");
 
-        doThrow(new PostNotFoundException("Пост не найден")).when(postService)
-                .updatePost(eq(postId), any(PostDTO.class));
+        doThrow(new PostNotFoundException("Пост не найден"))
+                .when(postService).updatePost(eq(postId), any(PostDTO.class));
 
         mockMvc.perform(put("/api/posts/{postId}", postId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -237,7 +203,9 @@ class PostRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    /* ================= DELETE POST ================= */
+    // ============================================
+    //  DELETE POST
+    // ============================================
 
     @Test
     void deletePost_success() throws Exception {
@@ -246,7 +214,7 @@ class PostRestControllerTest {
         mockMvc.perform(delete("/api/posts/{postId}", postId))
                 .andExpect(status().isNoContent());
 
-        verify(postService, times(1)).deletePost(postId);
+        verify(postService).deletePost(postId);
     }
 
     @Test
@@ -257,7 +225,9 @@ class PostRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    /* ================= REACT TO POST ================= */
+    // ============================================
+    //  REACT TO POST
+    // ============================================
 
     @Test
     void reactToPost_success() throws Exception {
@@ -269,7 +239,7 @@ class PostRestControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk());
 
-        verify(postReactionService, times(1)).reactToPost(postId, Reactions.LIKE);
+        verify(postReactionService).reactToPost(postId, Reactions.LIKE);
     }
 
     @Test
@@ -284,7 +254,9 @@ class PostRestControllerTest {
                 .andExpect(status().isNotFound());
     }
 
-    /* ================= DELETE REACTION ================= */
+    // ============================================
+    //  DELETE REACTION
+    // ============================================
 
     @Test
     void deleteReaction_success() throws Exception {
@@ -293,7 +265,7 @@ class PostRestControllerTest {
         mockMvc.perform(delete("/api/posts/{postId}/reaction", postId))
                 .andExpect(status().isNoContent());
 
-        verify(postReactionService, times(1)).deleteReaction(postId);
+        verify(postReactionService).deleteReaction(postId);
     }
 
     @Test

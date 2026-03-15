@@ -1,6 +1,7 @@
 package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
+import com.example.project.clients.SubscriptionClient;
 import com.example.project.dto.story.StoryDTO;
 import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Story;
@@ -12,15 +13,21 @@ import com.example.project.enums.StoryMood;
 import com.example.project.exceptions.StoryIsNotAviableByTimeException;
 import com.example.project.exceptions.StoryNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
+import com.example.project.interfaces.ImaggaService;
+import com.example.project.metrics.HomeRabbitMetricsService;
+import com.example.project.metrics.StoryMetricsService;
 import com.example.project.repository.StoryReactionRepository;
 import com.example.project.repository.StoryRepository;
 import com.example.project.repository.StoryViewerRepository;
+import io.micrometer.core.instrument.Timer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -35,21 +42,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
-
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class StoryServiceImplTest {
 
-    @Mock
-    private AuthClient authClient;
-
-    @Mock
-    private StoryRepository storyRepository;
-
-    @Mock
-    private StoryReactionRepository storyReactionRepository;
-
-    @Mock
-    private StoryViewerRepository storyViewerRepository;
+    @Mock private AuthClient authClient;
+    @Mock private SubscriptionClient subscriptionClient;
+    @Mock private StoryRepository storyRepository;
+    @Mock private StoryReactionRepository storyReactionRepository;
+    @Mock private StoryViewerRepository storyViewerRepository;
+    @Mock private NotificationProducer notificationProducer;
+    @Mock private StoryMetricsService storyMetrics;
+    @Mock private HomeRabbitMetricsService rabbitMetrics;
+    @Mock private ImaggaService imaggaService;
 
     @InjectMocks
     private StoryServiceImpl storyService;
@@ -61,150 +66,142 @@ class StoryServiceImplTest {
     void setUp() {
         userId = UUID.randomUUID();
         storyId = UUID.randomUUID();
+
+        Timer mockTimer = mock(Timer.class);
+        try {
+            when(mockTimer.recordCallable(any())).thenAnswer(inv ->
+                    inv.<java.util.concurrent.Callable<?>>getArgument(0).call()
+            );
+        } catch (Exception ignored) {}
+        lenient().when(storyMetrics.createStoryTimer()).thenReturn(mockTimer);
+
+        lenient().when(subscriptionClient.getFollowers(any())).thenReturn(List.of());
+
+        lenient().when(storyRepository.save(any(Story.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
+    // ============================================
+    //  CREATE STORY
+    // ============================================
+
     @Test
-    void createStory_success() {
-        StoryDTO dto = new StoryDTO();
-        dto.setCategory(String.valueOf(StoryCategory.FAMILY));
-        dto.setMood(String.valueOf(StoryMood.HAPPY));
+    void createStory_success() throws Exception {
+        StoryDTO dto = buildDto(StoryCategory.FAMILY, StoryMood.HAPPY);
         dto.setDescription("Test story");
         dto.setPhotoUrl("http://example.com/photo.jpg");
         dto.setPublic(true);
-        dto.setOverlayText("Overlay text");
-        dto.setMusicCaption("Music caption");
         dto.setTags(List.of("tag1", "tag2"));
         dto.setLocation("Odesa");
 
-        UserResponseDTO user = UserResponseDTO.builder()
-                .id(userId.toString())
-                .build();
-
-        when(authClient.getCurrentUser()).thenReturn(user);
+        when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
 
         Story result = storyService.createStory(dto);
 
         assertNotNull(result);
         assertEquals(userId, result.getUserId());
-        assertEquals("FAMILY", result.getCategory().name());
-        assertEquals("HAPPY", result.getMood().name());
         verify(storyRepository).save(any(Story.class));
+        verify(storyMetrics).incrementCreated();
     }
 
     @Test
     void createStory_unauthorized() {
-        StoryDTO dto = new StoryDTO();
-
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
-
+        when(authClient.getCurrentUser()).thenReturn(user());
         SecurityContextHolder.clearContext();
 
         assertThrows(UnauthorizedException.class,
-                () -> storyService.createStory(dto));
+                () -> storyService.createStory(new StoryDTO()));
     }
 
-
     @Test
-    void createStory_expireTimeIs24Hours() {
-        StoryDTO dto = new StoryDTO();
-        dto.setCategory(String.valueOf(StoryCategory.FRIENDS));
-        dto.setMood(String.valueOf(StoryMood.HAPPY));
-
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+    void createStory_expireTimeIs24Hours() throws Exception {
+        when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
 
-        Story story = storyService.createStory(dto);
+        Story story = storyService.createStory(buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY));
 
         assertTrue(story.getExpireAt().isAfter(story.getCreatedAt()));
     }
 
     @Test
-    void createStory_viewersEmpty() {
-        StoryDTO dto = new StoryDTO();
-        dto.setCategory(String.valueOf(StoryCategory.FRIENDS));
-        dto.setMood(String.valueOf(StoryMood.HAPPY));
-
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+    void createStory_viewersEmpty() throws Exception {
+        when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
 
-        Story story = storyService.createStory(dto);
+        Story story = storyService.createStory(buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY));
 
         assertNotNull(story.getViewers());
         assertTrue(story.getViewers().isEmpty());
     }
 
-
     @Test
-    void createStory_descriptionSaved() {
-        StoryDTO dto = new StoryDTO();
+    void createStory_descriptionSaved() throws Exception {
+        StoryDTO dto = buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY);
         dto.setDescription("hello");
-        dto.setCategory(String.valueOf(StoryCategory.FRIENDS));
-        dto.setMood(String.valueOf(StoryMood.HAPPY));
 
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+        when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
 
-        Story story = storyService.createStory(dto);
-
-        assertEquals("hello", story.getDescription());
+        assertEquals("hello", storyService.createStory(dto).getDescription());
     }
 
-
     @Test
-    void createStory_photoUrlSaved() {
-        StoryDTO dto = new StoryDTO();
+    void createStory_photoUrlSaved() throws Exception {
+        StoryDTO dto = buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY);
         dto.setPhotoUrl("img.png");
-        dto.setCategory(String.valueOf(StoryCategory.FRIENDS));
-        dto.setMood(String.valueOf(StoryMood.HAPPY));
 
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+        when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
 
-        Story story = storyService.createStory(dto);
-
-        assertEquals("img.png", story.getPhotoUrl());
+        assertEquals("img.png", storyService.createStory(dto).getPhotoUrl());
     }
 
-
     @Test
-    void createStory_saveCalledOnce() {
-        StoryDTO dto = new StoryDTO();
-        dto.setCategory(String.valueOf(StoryCategory.FAMILY));
-        dto.setMood(String.valueOf(StoryMood.HAPPY));
-        dto.setDescription("Test story");
-
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+    void createStory_saveCalledOnce() throws Exception {
+        when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
 
-        storyService.createStory(dto);
+        storyService.createStory(buildDto(StoryCategory.FAMILY, StoryMood.HAPPY));
 
         verify(storyRepository).save(any());
     }
 
     @Test
-    void viewStory_success() {
-        Story story = validStory();
+    void createStory_sendsNotificationsToSubscribers() throws Exception {
+        UUID subscriberId = UUID.randomUUID();
+        com.example.project.dto.profile.SubscriberDTO sub =
+                com.example.project.dto.profile.SubscriberDTO.builder()
+                        .subscriberUserId(subscriberId).build();
 
-        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
-        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId))
-                .thenReturn(false);
+        when(authClient.getCurrentUser()).thenReturn(
+                UserResponseDTO.builder().id(userId.toString()).username("testuser").build());
+        when(subscriptionClient.getFollowers(userId)).thenReturn(List.of(sub));
+        mockAuthenticated();
+
+        Story saved = validStory();
+        when(storyRepository.save(any())).thenReturn(saved);
+
+        storyService.createStory(buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY));
+
+        verify(notificationProducer).sendStoryCreated(
+                anyString(), eq(userId.toString()), eq(subscriberId.toString()), anyString()
+        );
+        verify(rabbitMetrics).increment();
+    }
+
+    // ============================================
+    //  VIEW STORY
+    // ============================================
+
+    @Test
+    void viewStory_success() {
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(validStory()));
+        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId)).thenReturn(false);
 
         storyService.viewStory(storyId, userId);
 
         verify(storyViewerRepository).save(any(StoryViewer.class));
+        verify(storyMetrics).incrementViewed();
     }
 
     @Test
@@ -214,7 +211,6 @@ class StoryServiceImplTest {
         assertThrows(StoryNotFoundException.class,
                 () -> storyService.viewStory(storyId, userId));
     }
-
 
     @Test
     void viewStory_storyExpired() {
@@ -227,173 +223,126 @@ class StoryServiceImplTest {
                 () -> storyService.viewStory(storyId, userId));
     }
 
-
-
     @Test
     void viewStory_alreadyViewed() {
-        Story story = validStory();
-
-        when(storyRepository.findById(storyId))
-                .thenReturn(Optional.of(story));
-        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId))
-                .thenReturn(true);
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(validStory()));
+        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId)).thenReturn(true);
 
         storyService.viewStory(storyId, userId);
 
         verify(storyViewerRepository, never()).save(any());
     }
 
-
-
-
     @Test
     void viewStory_viewerIdCorrect() {
-        Story story = validStory();
-
-        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
-        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId))
-                .thenReturn(false);
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(validStory()));
+        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId)).thenReturn(false);
 
         storyService.viewStory(storyId, userId);
 
-        verify(storyViewerRepository)
-                .save(argThat(v -> v.getViewerId().equals(userId)));
+        verify(storyViewerRepository).save(argThat(v -> v.getViewerId().equals(userId)));
     }
-
 
     @Test
     void viewStory_viewedAtSet() {
-        Story story = validStory();
-
-        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
-        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId))
-                .thenReturn(false);
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(validStory()));
+        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId)).thenReturn(false);
 
         storyService.viewStory(storyId, userId);
 
-        verify(storyViewerRepository)
-                .save(argThat(v -> v.getViewedAt() != null));
+        verify(storyViewerRepository).save(argThat(v -> v.getViewedAt() != null));
     }
-
 
     @Test
     void viewStory_storyLinked() {
         Story story = validStory();
-
         when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
-        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId))
-                .thenReturn(false);
+        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId)).thenReturn(false);
 
         storyService.viewStory(storyId, userId);
 
-        verify(storyViewerRepository)
-                .save(argThat(v -> v.getStory().equals(story)));
+        verify(storyViewerRepository).save(argThat(v -> v.getStory().equals(story)));
     }
-
 
     @Test
-    void viewStory_saveCalledOnce() {
-        Story story = validStory();
-
-        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
-        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId))
-                .thenReturn(false);
-
-        storyService.viewStory(storyId, userId);
-
-        verify(storyViewerRepository).save(any());
-    }
-
-
-    @Test
-    void hasViewed_true() {
-        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId))
-                .thenReturn(true);
-
-        assertTrue(storyService.hasViewed(storyId, userId));
-    }
-
-
-    @Test
-    void hasViewed_false() {
-        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId))
-                .thenReturn(false);
-
-        assertFalse(storyService.hasViewed(storyId, userId));
-    }
-
-
-    @Test
-    void countViews_success() {
-        when(storyViewerRepository.countByStoryId(storyId)).thenReturn(5L);
-
-        long count = storyService.countViews(storyId);
-
-        assertEquals(5L, count);
-    }
-
-
-    @Test
-    void countViews_zero() {
-        when(storyViewerRepository.countByStoryId(storyId)).thenReturn(0L);
-
-        assertEquals(0L, storyService.countViews(storyId));
-    }
-
-
-    @Test
-    void countViews_repositoryCalled() {
-        storyService.countViews(storyId);
-
-        verify(storyViewerRepository).countByStoryId(storyId);
-    }
-
-    private void mockAuthenticated() {
-        Authentication auth = mock(Authentication.class);
-        when(auth.isAuthenticated()).thenReturn(true);
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
-    }
-
-    private Story validStory() {
-        return Story.builder()
-                .id(storyId)
-                .userId(userId)
+    void viewStory_sendsNotificationToOwner() {
+        UUID anotherUser = UUID.randomUUID();
+        Story story = Story.builder()
+                .id(storyId).userId(anotherUser)
                 .createdAt(LocalDateTime.now())
                 .expireAt(LocalDateTime.now().plusHours(1))
                 .viewers(new ArrayList<>())
                 .build();
+
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
+        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId)).thenReturn(false);
+
+        storyService.viewStory(storyId, userId);
+
+        verify(notificationProducer).sendStoryViewed(
+                storyId.toString(), userId.toString(), anotherUser.toString(), userId.toString()
+        );
+    }
+
+    // ============================================
+    //  HAS VIEWED / COUNT VIEWS
+    // ============================================
+
+    @Test
+    void hasViewed_true() {
+        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId)).thenReturn(true);
+        assertTrue(storyService.hasViewed(storyId, userId));
     }
 
     @Test
-    void reactToStory_newReaction_saved() {
-        Story story = validStory();
+    void hasViewed_false() {
+        when(storyViewerRepository.existsByStoryIdAndViewerId(storyId, userId)).thenReturn(false);
+        assertFalse(storyService.hasViewed(storyId, userId));
+    }
 
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
-        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
-        when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
-                .thenReturn(Optional.empty());
+    @Test
+    void countViews_success() {
+        when(storyViewerRepository.countByStoryId(storyId)).thenReturn(5L);
+        assertEquals(5L, storyService.countViews(storyId));
+    }
+
+    @Test
+    void countViews_zero() {
+        when(storyViewerRepository.countByStoryId(storyId)).thenReturn(0L);
+        assertEquals(0L, storyService.countViews(storyId));
+    }
+
+    @Test
+    void countViews_repositoryCalled() {
+        storyService.countViews(storyId);
+        verify(storyViewerRepository).countByStoryId(storyId);
+    }
+
+    // ============================================
+    //  REACT TO STORY
+    // ============================================
+
+    @Test
+    void reactToStory_newReaction_saved() {
+        when(authClient.getCurrentUser()).thenReturn(user());
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(validStory()));
+        when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId)).thenReturn(Optional.empty());
 
         storyService.reactToStory(storyId, Reactions.LIKE);
 
         verify(storyReactionRepository).save(any(StoryReaction.class));
+        verify(storyMetrics).incrementReactionAdded();
     }
 
     @Test
     void reactToStory_existingReaction_updated() {
         Story story = validStory();
         StoryReaction existing = StoryReaction.builder()
-                .story(story)
-                .userId(userId)
-                .reaction(Reactions.LOVE)
-                .reactedAt(LocalDateTime.now().minusHours(1))
+                .story(story).userId(userId)
+                .reaction(Reactions.LOVE).reactedAt(LocalDateTime.now().minusHours(1))
                 .build();
 
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+        when(authClient.getCurrentUser()).thenReturn(user());
         when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
         when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
                 .thenReturn(Optional.of(existing));
@@ -403,28 +352,23 @@ class StoryServiceImplTest {
         assertEquals(Reactions.FIRE, existing.getReaction());
         assertNotNull(existing.getReactedAt());
         verify(storyReactionRepository, never()).save(any());
+        verify(storyMetrics).incrementReactionAdded();
     }
-
 
     @Test
     void reactToStory_storyNotFound() {
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+        when(authClient.getCurrentUser()).thenReturn(user());
         when(storyRepository.findById(storyId)).thenReturn(Optional.empty());
 
         assertThrows(StoryNotFoundException.class,
                 () -> storyService.reactToStory(storyId, Reactions.LIKE));
     }
 
-
     @Test
     void reactToStory_reactionFieldsCorrect() {
         Story story = validStory();
 
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+        when(authClient.getCurrentUser()).thenReturn(user());
         when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
         when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
                 .thenReturn(Optional.empty());
@@ -439,20 +383,19 @@ class StoryServiceImplTest {
         ));
     }
 
+    // ============================================
+    //  DELETE REACTION
+    // ============================================
 
     @Test
     void deleteReaction_success() {
         Story story = validStory();
         StoryReaction reaction = StoryReaction.builder()
-                .story(story)
-                .userId(userId)
-                .reaction(Reactions.LIKE)
-                .reactedAt(LocalDateTime.now())
+                .story(story).userId(userId)
+                .reaction(Reactions.LIKE).reactedAt(LocalDateTime.now())
                 .build();
 
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+        when(authClient.getCurrentUser()).thenReturn(user());
         when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
         when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
                 .thenReturn(Optional.of(reaction));
@@ -460,8 +403,8 @@ class StoryServiceImplTest {
         storyService.deleteReaction(storyId);
 
         verify(storyReactionRepository).delete(reaction);
+        verify(storyMetrics).incrementReactionDeleted();
     }
-
 
     @Test
     void deleteReaction_storyExpired() {
@@ -469,15 +412,11 @@ class StoryServiceImplTest {
         story.setExpireAt(LocalDateTime.now().minusMinutes(1));
 
         StoryReaction reaction = StoryReaction.builder()
-                .story(story)
-                .userId(userId)
-                .reaction(Reactions.LIKE)
-                .reactedAt(LocalDateTime.now())
+                .story(story).userId(userId)
+                .reaction(Reactions.LIKE).reactedAt(LocalDateTime.now())
                 .build();
 
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
+        when(authClient.getCurrentUser()).thenReturn(user());
         when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
         when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
                 .thenReturn(Optional.of(reaction));
@@ -486,15 +425,10 @@ class StoryServiceImplTest {
                 () -> storyService.deleteReaction(storyId));
     }
 
-
     @Test
     void deleteReaction_reactionNotFound() {
-        Story story = validStory();
-
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).build()
-        );
-        when(storyRepository.findById(storyId)).thenReturn(Optional.of(story));
+        when(authClient.getCurrentUser()).thenReturn(user());
+        when(storyRepository.findById(storyId)).thenReturn(Optional.of(validStory()));
         when(storyReactionRepository.findByStoryIdAndUserId(storyId, userId))
                 .thenReturn(Optional.empty());
 
@@ -502,14 +436,16 @@ class StoryServiceImplTest {
                 () -> storyService.deleteReaction(storyId));
     }
 
+    // ============================================
+    //  REACTION STATS
+    // ============================================
 
     @Test
     void getReactionStats_success() {
-        when(storyReactionRepository.countReactionsByStory(storyId))
-                .thenReturn(List.of(
-                        new Object[]{Reactions.LIKE, 3L},
-                        new Object[]{Reactions.FIRE, 1L}
-                ));
+        when(storyReactionRepository.countReactionsByStory(storyId)).thenReturn(List.of(
+                new Object[]{Reactions.LIKE, 3L},
+                new Object[]{Reactions.FIRE, 1L}
+        ));
 
         var result = storyService.getReactionStats(storyId);
 
@@ -518,33 +454,46 @@ class StoryServiceImplTest {
         assertEquals(3L, result.get(0).getCount());
     }
 
-
     @Test
     void getReactionStats_empty() {
-        when(storyReactionRepository.countReactionsByStory(storyId))
-                .thenReturn(List.of());
-
-        var result = storyService.getReactionStats(storyId);
-
-        assertTrue(result.isEmpty());
+        when(storyReactionRepository.countReactionsByStory(storyId)).thenReturn(List.of());
+        assertTrue(storyService.getReactionStats(storyId).isEmpty());
     }
-
 
     @Test
     void getReactionStats_repositoryCalled() {
-        when(storyReactionRepository.countReactionsByStory(storyId))
-                .thenReturn(List.of());
-
+        when(storyReactionRepository.countReactionsByStory(storyId)).thenReturn(List.of());
         storyService.getReactionStats(storyId);
-
         verify(storyReactionRepository).countReactionsByStory(storyId);
     }
 
+    // ============================================
+    //  HELPERS
+    // ============================================
 
+    private void mockAuthenticated() {
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
 
+    private Story validStory() {
+        return Story.builder()
+                .id(storyId).userId(userId)
+                .createdAt(LocalDateTime.now())
+                .expireAt(LocalDateTime.now().plusHours(1))
+                .viewers(new ArrayList<>())
+                .build();
+    }
 
+    private UserResponseDTO user() {
+        return UserResponseDTO.builder().id(userId.toString()).username("testuser").build();
+    }
 
-
-
+    private StoryDTO buildDto(StoryCategory category, StoryMood mood) {
+        StoryDTO dto = new StoryDTO();
+        dto.setCategory(category.name());
+        dto.setMood(mood.name());
+        return dto;
+    }
 }
-

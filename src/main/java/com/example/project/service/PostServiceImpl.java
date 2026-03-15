@@ -11,12 +11,12 @@ import com.example.project.entity.PostReaction;
 import com.example.project.enums.PostCategory;
 import com.example.project.enums.PostMood;
 import com.example.project.enums.Reactions;
-import com.example.project.event.PostCreatingNotifications;
 import com.example.project.exceptions.PostNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
-import com.example.project.interfaces.PostCreatingEventProducer;
 import com.example.project.interfaces.PostCrudService;
 import com.example.project.interfaces.PostReactionService;
+import com.example.project.metrics.HomeRabbitMetricsService;
+import com.example.project.metrics.PostMetricsService;
 import com.example.project.repository.PostReactionRepository;
 import com.example.project.repository.PostRepository;
 import lombok.AllArgsConstructor;
@@ -43,8 +43,9 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     private final PostRepository postRepository;
     private final PostReactionRepository postReactionRepository;
     private final ImaggaServiceImpl imaggaService;
-    private final PostCreatingEventProducer postCreatingEventProducer;
-
+    private final NotificationProducer notificationProducer;
+    private final PostMetricsService postMetrics;
+    private final HomeRabbitMetricsService rabbitMetrics;
 
     // ============================================
     //           CRUD ОПЕРАЦИИ
@@ -52,87 +53,82 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
 
     @Override
     @Transactional
-    public Post createPost(PostDTO post) {
+    public Post createPost(PostDTO post) throws Exception {
         log.info("Создание нового поста");
 
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new UnauthorizedException("JWT истёк");
-        }
-
-
-        UserResponseDTO currentUser = authClient.getCurrentUser();
-        UUID userId = UUID.fromString(currentUser.getId());
-        log.info("Получен пользователь с ID: {}", userId);
-
-        List<String> generatedTags = new ArrayList<>();
-        List<String> dominantColors = new ArrayList<>();
-        PostCategory category = PostCategory.OTHER;
-        PostMood mood = PostMood.NEUTRAL;
-
-        try {
-            if (post.getPhotoBytes() != null && post.getPhotoBytes().length > 0) {
-                generatedTags = imaggaService.extractTagsFromBytes(
-                        post.getPhotoBytes(),
-                        post.getPhotoFileName()
-                );
-                dominantColors = imaggaService.extractColorsFromBytes(
-                        post.getPhotoBytes(),
-                        post.getPhotoFileName()
-                );
-                category = mapTagsToCategory(generatedTags);
-                mood = mapColorsToMood(dominantColors);
+        return postMetrics.createPostTimer().recordCallable(() -> {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) {
+                throw new UnauthorizedException("JWT истёк");
             }
-        } catch (Exception e) {
-            log.warn("Imagga не смог сгенерировать теги/цвета: {}", e.getMessage());
-        }
 
-        String description = post.getDescription();
-        if (description == null || description.isBlank()) {
-            description = "Фото с тегами: " + String.join(", ", generatedTags);
-        }
+            UserResponseDTO currentUser = authClient.getCurrentUser();
+            UUID userId = UUID.fromString(currentUser.getId());
+            log.info("Получен пользователь с ID: {}", userId);
 
-        Post postToSave = Post.builder()
-                .id(UUID.randomUUID())
-                .userId(userId)
-                .description(description)
-                .photoUrl(post.getPhotoUrl())
-                .createdAt(LocalDateTime.now())
-                .tags(generatedTags)
-                .dominantColors(dominantColors)
-                .category(category)
-                .mood(mood)
-                .location(post.getLocation())
-                .isPublic(post.isPublic())
-                .reactions(new ArrayList<>())
-                .comments(new ArrayList<>())
-                .build();
+            List<String> generatedTags = new ArrayList<>();
+            List<String> dominantColors = new ArrayList<>();
+            PostCategory category = PostCategory.OTHER;
+            PostMood mood = PostMood.NEUTRAL;
 
+            try {
+                if (post.getPhotoBytes() != null && post.getPhotoBytes().length > 0) {
+                    generatedTags = imaggaService.extractTagsFromBytes(post.getPhotoBytes(), post.getPhotoFileName());
+                    dominantColors = imaggaService.extractColorsFromBytes(post.getPhotoBytes(), post.getPhotoFileName());
+                    category = mapTagsToCategory(generatedTags);
+                    mood = mapColorsToMood(dominantColors);
+                }
+            } catch (Exception e) {
+                log.warn("Imagga не смог сгенерировать теги/цвета: {}", e.getMessage());
+            }
 
-        List<UUID> subscriberIds = subscriptionClient.getFollowers(UUID.fromString(currentUser.getId()))
-                .stream()
-                .map(SubscriberDTO::getSubscriberUserId)
-                .toList();
+            String description = post.getDescription();
+            if (description == null || description.isBlank()) {
+                description = "Фото с тегами: " + String.join(", ", generatedTags);
+            }
 
-        PostCreatingNotifications notifications = PostCreatingNotifications.builder()
-                .userId(UUID.fromString(currentUser.getId()))
-                .postId(postToSave.getId())
-                .username(currentUser.getUsername())
-                .createdAt(postToSave.getCreatedAt())
-                .subscriberUserId(subscriberIds)
-                .build();
+            Post postToSave = Post.builder()
+                    .id(UUID.randomUUID())
+                    .userId(userId)
+                    .description(description)
+                    .photoUrl(post.getPhotoUrl())
+                    .createdAt(LocalDateTime.now())
+                    .tags(generatedTags)
+                    .dominantColors(dominantColors)
+                    .category(category)
+                    .mood(mood)
+                    .location(post.getLocation())
+                    .isPublic(post.isPublic())
+                    .reactions(new ArrayList<>())
+                    .comments(new ArrayList<>())
+                    .build();
 
+            Post savedPost = postRepository.save(postToSave);
+            postMetrics.incrementCreated();
 
-        postRepository.save(postToSave);
+            try {
+                List<UUID> subscriberIds = subscriptionClient.getFollowers(userId)
+                        .stream()
+                        .map(SubscriberDTO::getSubscriberUserId)
+                        .toList();
 
-        log.info("Пост сохранён в базе данных, отправляем событие в RabbitMQ для уведомлений");
-        postCreatingEventProducer.sendPostCreatingEvent(notifications);
+                for (UUID subscriberId : subscriberIds) {
+                    notificationProducer.sendPostCreated(
+                            savedPost.getId().toString(),
+                            userId.toString(),
+                            subscriberId.toString(),
+                            currentUser.getUsername() != null ? currentUser.getUsername() : userId.toString()
+                    );
+                    rabbitMetrics.increment();
+                }
+                log.info("Отправлено {} уведомлений о новом посте", subscriberIds.size());
+            } catch (Exception e) {
+                log.warn("Не удалось отправить уведомления: {}", e.getMessage());
+            }
 
-        log.info("Событие для уведомлений о новом посте успешно отправлено в RabbitMQ");
-
-        log.info("Пост успешно сохранён с ID: {}", postToSave.getId());
-        return postToSave;
+            log.info("Пост успешно сохранён с ID: {}", savedPost.getId());
+            return savedPost;
+        });
     }
 
     @Override
@@ -147,10 +143,8 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
 
         existingPost.setDescription(post.getDescription());
         existingPost.setPhotoUrl(post.getPhotoUrl());
-
-        log.info("Попытка сохранения обновленного поста с ID: {}", postId);
         postRepository.save(existingPost);
-
+        postMetrics.incrementUpdated();
         log.info("Пост с ID: {} успешно обновлён", postId);
     }
 
@@ -165,17 +159,20 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
                 });
 
         postRepository.delete(existingPost);
+        postMetrics.incrementDeleted();
         log.info("Пост с ID: {} успешно удалён", postId);
     }
 
     @Override
-    public Post getPostById(UUID postId) {
+    public Post getPostById(UUID postId) throws Exception {
         log.info("Получение поста с ID: {}", postId);
-        return postRepository.findById(postId)
-                .orElseThrow(() -> {
-                    log.warn("❌ Пост с ID {} не найден", postId);
-                    return new PostNotFoundException("Пост с ID " + postId + " не найден");
-                });
+        return postMetrics.getPostTimer().recordCallable(() ->
+                postRepository.findById(postId)
+                        .orElseThrow(() -> {
+                            log.warn("❌ Пост с ID {} не найден", postId);
+                            return new PostNotFoundException("Пост с ID " + postId + " не найден");
+                        })
+        );
     }
 
     @Override
@@ -193,7 +190,6 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     @Override
     public List<Post> getFeedForUser(UUID userId) {
         log.info("Получение ленты для пользователя с ID: {}", userId);
-
         return getAllPosts();
     }
 
@@ -204,7 +200,7 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     }
 
     @Override
-    public boolean isPostOwner(UUID postId, UUID userId) {
+    public boolean isPostOwner(UUID postId, UUID userId) throws Exception {
         log.info("Проверка, принадлежит ли пост {} пользователю {}", postId, userId);
         Post post = getPostById(postId);
         return post.getUserId().equals(userId);
@@ -219,7 +215,8 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     public void reactToPost(UUID postId, Reactions reaction) {
         log.info("Попытка реакции {} на пост {}", reaction, postId);
 
-        UUID userId = UUID.fromString(authClient.getCurrentUser().getId());
+        UserResponseDTO currentUser = authClient.getCurrentUser();
+        UUID userId = UUID.fromString(currentUser.getId());
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Пост не найден"));
@@ -228,14 +225,11 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
 
         if (existing.isPresent()) {
             log.info("Обновление реакции пользователя {} на пост {}", userId, postId);
-            PostReaction reactionEntity = existing.get();
-            reactionEntity.setReaction(reaction);
-            reactionEntity.setReactedAt(LocalDateTime.now());
-
+            existing.get().setReaction(reaction);
+            existing.get().setReactedAt(LocalDateTime.now());
+            postMetrics.incrementReactionAdded();
             return;
         }
-
-        log.info("Создание новой реакции пользователя {} на пост {}", userId, postId);
 
         PostReaction newReaction = PostReaction.builder()
                 .post(post)
@@ -243,8 +237,23 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
                 .reaction(reaction)
                 .reactedAt(LocalDateTime.now())
                 .build();
-
         postReactionRepository.save(newReaction);
+        postMetrics.incrementReactionAdded();
+
+        // Уведомление владельцу поста
+        try {
+            if (!post.getUserId().equals(userId)) {
+                notificationProducer.sendPostLiked(
+                        postId.toString(),
+                        userId.toString(),
+                        post.getUserId().toString(),
+                        currentUser.getUsername() != null ? currentUser.getUsername() : userId.toString()
+                );
+                rabbitMetrics.increment();
+            }
+        } catch (Exception e) {
+            log.warn("Не удалось отправить уведомление о реакции: {}", e.getMessage());
+        }
     }
 
     @Override
@@ -253,69 +262,50 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
         log.info("Попытка удаления реакции пользователя с поста {}", postId);
         UUID userId = UUID.fromString(authClient.getCurrentUser().getId());
 
-        Post post = postRepository.findById(postId)
+        postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Пост не найден"));
-
-        log.info("Пост с ID {} найден для удаления реакции", postId);
 
         PostReaction reaction = postReactionRepository
                 .findByPostIdAndUserId(postId, userId)
                 .orElseThrow(() -> new PostNotFoundException("Реакция не найдена"));
 
-        log.info("Реакция пользователя {} на пост {} найдена для удаления", userId, postId);
-        log.info("Удаление реакции пользователя {} с поста {}", userId, postId);
-
         postReactionRepository.delete(reaction);
+        postMetrics.incrementReactionDeleted();
     }
 
     @Override
     public long countReactions(UUID postId) {
-        log.info("Подсчёт реакций на пост {}", postId);
         return postReactionRepository.countByPostId(postId);
     }
 
     @Override
     public List<PostReaction> getReactionsByPostId(UUID postId) {
-        log.info("Получение всех реакций на пост {}", postId);
         return postReactionRepository.findByPostId(postId);
     }
 
     @Override
     public List<PostReactionCountDTO> getReactionStats(UUID postId) {
-        log.info("Получение статистики реакций для поста {}", postId);
-
         List<PostReaction> reactions = postReactionRepository.findByPostId(postId);
-
         Map<Reactions, Long> stats = reactions.stream()
-                .collect(Collectors.groupingBy(
-                        PostReaction::getReaction,
-                        Collectors.counting()
-                ));
-
+                .collect(Collectors.groupingBy(PostReaction::getReaction, Collectors.counting()));
         return stats.entrySet().stream()
-                .map(entry -> PostReactionCountDTO.builder()
-                        .reaction(entry.getKey())
-                        .count(entry.getValue())
-                        .build())
-                .sorted((a, b) -> Long.compare(b.getCount(), a.getCount())) // Сортировка по убыванию
+                .map(e -> PostReactionCountDTO.builder().reaction(e.getKey()).count(e.getValue()).build())
+                .sorted((a, b) -> Long.compare(b.getCount(), a.getCount()))
                 .collect(Collectors.toList());
     }
 
     @Override
     public boolean hasUserReacted(UUID postId, UUID userId) {
-        log.info("Проверка, поставил ли пользователь {} реакцию на пост {}", userId, postId);
         return postReactionRepository.findByPostIdAndUserId(postId, userId).isPresent();
     }
 
     @Override
     public Optional<PostReaction> getUserReaction(UUID postId, UUID userId) {
-        log.info("Получение реакции пользователя {} на пост {}", userId, postId);
         return postReactionRepository.findByPostIdAndUserId(postId, userId);
     }
 
     @Override
     public long countReactionsByType(UUID postId, Reactions reaction) {
-        log.info("Подсчёт реакций типа {} на пост {}", reaction, postId);
         return postReactionRepository.countByPostIdAndReaction(postId, reaction);
     }
 
@@ -324,7 +314,7 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     public void setAllPostsPrivacy(UUID userId, boolean isPublic) {
         log.info("Установка приватности постов пользователя {}: isPublic={}", userId, isPublic);
         List<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId);
-        posts.forEach(post -> post.setPublic(isPublic));
+        posts.forEach(p -> p.setPublic(isPublic));
         postRepository.saveAll(posts);
     }
 
@@ -344,6 +334,10 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
                 .collect(Collectors.toList());
     }
 
+    // ============================================
+    //           HELPERS
+    // ============================================
+
     private PostCategory mapTagsToCategory(List<String> tags) {
         if (tags == null) return PostCategory.OTHER;
         if (tags.stream().anyMatch(t -> t.contains("food") || t.contains("еда"))) return PostCategory.FOOD;
@@ -354,10 +348,8 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
 
     private PostMood mapColorsToMood(List<String> colors) {
         if (colors == null || colors.isEmpty()) return PostMood.NEUTRAL;
-
-        boolean hasBright = colors.stream().anyMatch(c -> isBrightColor(c));
-        boolean hasDark = colors.stream().anyMatch(c -> isDarkColor(c));
-
+        boolean hasBright = colors.stream().anyMatch(this::isBrightColor);
+        boolean hasDark   = colors.stream().anyMatch(this::isDarkColor);
         if (hasBright && !hasDark) return PostMood.HAPPY;
         if (!hasBright && hasDark) return PostMood.SAD;
         return PostMood.NEUTRAL;
@@ -369,12 +361,8 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
             int g = Integer.parseInt(hex.substring(3, 5), 16);
             int b = Integer.parseInt(hex.substring(5, 7), 16);
             return (r + g + b) / 3 > 127;
-        } catch (Exception e) {
-            return false;
-        }
+        } catch (Exception e) { return false; }
     }
 
-    private boolean isDarkColor(String hex) {
-        return !isBrightColor(hex);
-    }
+    private boolean isDarkColor(String hex) { return !isBrightColor(hex); }
 }
