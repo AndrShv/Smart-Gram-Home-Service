@@ -12,6 +12,8 @@ public class HomeApplication {
         public static void main(String[] args) {
             SpringApplication.run(HomeApplication.class, args);
             //docker exec -it homeservice-mysql mysql -u root -p
+            //k6 run --out web-dashboard post-stress-test.js
+            //k6 run --out web-dashboard story-stress-test.js
 
         }
 }
