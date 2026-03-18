@@ -28,4 +28,17 @@ public class ProfilePageController {
         model.addAttribute("userId", userId.toString());
         return "profile";
     }
+    @GetMapping("/{userId}/followers")
+    public String followers(@PathVariable UUID userId, Model model) {
+        log.info("👥 Подписчики пользователя: {}", userId);
+        model.addAttribute("userId", userId.toString());
+        return "followers";
+    }
+
+    @GetMapping("/{userId}/followings")
+    public String followings(@PathVariable UUID userId, Model model) {
+        log.info("👥 Подписки пользователя: {}", userId);
+        model.addAttribute("userId", userId.toString());
+        return "followings";
+    }
 }

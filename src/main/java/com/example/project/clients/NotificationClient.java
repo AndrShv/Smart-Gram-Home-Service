@@ -1,5 +1,5 @@
 package com.example.project.clients;
-/*
+
 import com.example.project.configs.FeignClientInterceptor;
 import com.example.project.dto.notification.NotificationDTO;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -42,5 +42,5 @@ public interface NotificationClient {
 }
 
 
- */
+
 

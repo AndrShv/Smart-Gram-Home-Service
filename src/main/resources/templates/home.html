@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartGram</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+          rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" th:href="@{/css/home.css}">
 </head>
@@ -41,7 +42,8 @@
                         </linearGradient>
                     </defs>
                     <!-- Outer ring -->
-                    <circle cx="18" cy="18" r="16" stroke="url(#lg1)" stroke-width="1.5" stroke-dasharray="4 2" fill="none" opacity=".5"/>
+                    <circle cx="18" cy="18" r="16" stroke="url(#lg1)" stroke-width="1.5" stroke-dasharray="4 2"
+                            fill="none" opacity=".5"/>
                     <!-- Inner circle -->
                     <circle cx="18" cy="18" r="11" fill="url(#lg2)" opacity=".15"/>
                     <!-- S letter -->
@@ -104,10 +106,10 @@
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-    <a href="/home"     class="nav-item active"><i class="fas fa-house"></i><span>Главная</span></a>
-    <a href="/search"   class="nav-item"><i class="fas fa-magnifying-glass"></i><span>Поиск</span></a>
+    <a href="/home" class="nav-item active"><i class="fas fa-house"></i><span>Главная</span></a>
+    <a href="/search" class="nav-item"><i class="fas fa-magnifying-glass"></i><span>Поиск</span></a>
     <a href="/messages" class="nav-item"><i class="fas fa-comment-dots"></i><span>Чаты</span></a>
-    <a href="/profile"  class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
+    <a href="/profile" class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
     <a href="/settings" class="nav-item"><i class="fas fa-gear"></i><span>Настройки</span></a>
 </nav>
 
@@ -115,7 +117,9 @@
 <div class="modal" id="storyModal">
     <div class="story-viewer">
         <button class="close-story" id="closeStory"><i class="fas fa-xmark"></i></button>
-        <div class="story-progress"><div class="progress-bar" id="storyProgress"></div></div>
+        <div class="story-progress">
+            <div class="progress-bar" id="storyProgress"></div>
+        </div>
         <div class="story-header">
             <img class="story-avatar-img-modal" id="storyAvatarImg" alt="">
             <div>
@@ -371,17 +375,39 @@
 
             // Follow
             const followBtn = card.querySelector('.follow-btn');
-            if (followBtn) {
-                followBtn.addEventListener('click', async () => {
-                    const uid = followBtn.dataset.uid;
-                    const res = await fetch(`/api/subscriptions/${uid}/subscribe`, { method: 'POST', credentials: 'include' });
-                    if (res.ok || res.status === 409) {
-                        followingIds.add(String(uid));
-                        document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`).forEach(b => b.remove());
-                        document.querySelectorAll(`.story-item[data-uid="${uid}"] .story-follow-badge`).forEach(b => b.remove());
-                    }
-                });
+if (followBtn) {
+    const uid = followBtn.dataset.uid;
+    // обновляем вид кнопки сразу при рендере
+    updateFollowBtnStyle(followBtn, followingIds.has(String(uid)));
+
+    followBtn.addEventListener('click', async () => {
+        const isNowFollowing = followingIds.has(String(uid));
+        try {
+            if (isNowFollowing) {
+                const res = await fetch(`/api/subscriptions/${uid}/unsubscribe`,
+                    { method: 'DELETE', credentials: 'include' });
+                if (res.ok) {
+                    followingIds.delete(String(uid));
+                    // обновляем ВСЕ кнопки для этого пользователя на странице
+                    document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`)
+                        .forEach(b => updateFollowBtnStyle(b, false));
+                    document.querySelectorAll(`.story-follow-badge[data-uid="${uid}"]`)
+                        .forEach(b => b.style.display = '');
+                }
+            } else {
+                const res = await fetch(`/api/subscriptions/${uid}/subscribe`,
+                    { method: 'POST', credentials: 'include' });
+                if (res.ok || res.status === 409) {
+                    followingIds.add(String(uid));
+                    document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`)
+                        .forEach(b => updateFollowBtnStyle(b, true));
+                    document.querySelectorAll(`.story-follow-badge[data-uid="${uid}"]`)
+                        .forEach(b => b.style.display = 'none');
+                }
             }
+        } catch (err) { console.error(err); }
+    });
+}
 
             // Like
             const likeBtn = card.querySelector('.like-btn');
@@ -469,6 +495,21 @@
 
         console.log('✅ Инициализация завершена');
     });
+
+
+    function updateFollowBtnStyle(btn, isFollowing) {
+    if (isFollowing) {
+        btn.textContent = 'Отписаться';
+        btn.style.color = 'rgba(240,242,255,0.5)';
+        btn.style.background = 'rgba(255,255,255,0.05)';
+        btn.style.borderColor = 'rgba(255,255,255,0.1)';
+    } else {
+        btn.textContent = 'Подписаться';
+        btn.style.color = 'var(--accent1)';
+        btn.style.background = 'rgba(167,139,250,0.12)';
+        btn.style.borderColor = 'rgba(255,255,255,0.18)';
+    }
+}
 </script>
 </body>
 </html>
