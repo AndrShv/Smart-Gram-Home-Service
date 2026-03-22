@@ -22,7 +22,7 @@ import java.util.UUID;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-public class ProfileApiProxyController {
+public class ApiProxyController {
 
     private final AuthClient authClient;
     private final ProfileClient profileClient;

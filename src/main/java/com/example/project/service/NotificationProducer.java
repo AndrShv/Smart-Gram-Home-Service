@@ -89,7 +89,7 @@ public class NotificationProducer {
     private void send(NotificationMessage msg) {
         rabbitTemplate.convertAndSend(
                 String.valueOf(notificationExchange),
-                "notifications." + msg.getType().name().toLowerCase(),
+                "notification." + msg.getType().name().toLowerCase(),
                 msg
         );
         rabbitMetrics.increment();

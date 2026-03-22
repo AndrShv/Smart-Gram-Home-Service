@@ -28,7 +28,6 @@
     <div class="top-bar-content">
         <a href="/home" class="logo">
             <div class="logo-mark">
-                <!-- Кастомный логотип: стилизованная "SG" с орбитой -->
                 <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <defs>
                         <linearGradient id="lg1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
@@ -41,15 +40,11 @@
                             <stop offset="100%" stop-color="#38bdf8"/>
                         </linearGradient>
                     </defs>
-                    <!-- Outer ring -->
                     <circle cx="18" cy="18" r="16" stroke="url(#lg1)" stroke-width="1.5" stroke-dasharray="4 2"
                             fill="none" opacity=".5"/>
-                    <!-- Inner circle -->
                     <circle cx="18" cy="18" r="11" fill="url(#lg2)" opacity=".15"/>
-                    <!-- S letter -->
                     <path d="M13.5 14.5 C13.5 13.1 14.6 12 16 12 H19.5 C20.9 12 22 13.1 22 14.5 C22 15.9 20.9 17 19.5 17 H16.5 C15.1 17 14 18.1 14 19.5 C14 20.9 15.1 22 16.5 22 H20 C21.4 22 22.5 20.9 22.5 19.5"
                           stroke="url(#lg1)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-                    <!-- Orbit dot -->
                     <circle cx="28" cy="10" r="2.5" fill="#f9a8d4" opacity=".9"/>
                 </svg>
             </div>
@@ -60,7 +55,7 @@
         </a>
         <button class="notif-btn" id="notificationsBtn">
             <i class="fas fa-bell"></i>
-            <span class="notif-badge" id="notificationsBadge">3</span>
+            <span class="notif-badge" id="notificationsBadge" style="display:none">0</span>
         </button>
     </div>
 </header>
@@ -106,10 +101,10 @@
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-    <a href="/home" class="nav-item active"><i class="fas fa-house"></i><span>Главная</span></a>
-    <a href="/search" class="nav-item"><i class="fas fa-magnifying-glass"></i><span>Поиск</span></a>
+    <a href="/home"     class="nav-item active"><i class="fas fa-house"></i><span>Главная</span></a>
+    <a href="/search"   class="nav-item"><i class="fas fa-magnifying-glass"></i><span>Поиск</span></a>
     <a href="/messages" class="nav-item"><i class="fas fa-comment-dots"></i><span>Чаты</span></a>
-    <a href="/profile" class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
+    <a href="/profile"  class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
     <a href="/settings" class="nav-item"><i class="fas fa-gear"></i><span>Настройки</span></a>
 </nav>
 
@@ -165,13 +160,25 @@
         const likedPosts = new Set(JSON.parse(localStorage.getItem('likedPosts') || '[]'));
         function saveLikedPosts() { localStorage.setItem('likedPosts', JSON.stringify([...likedPosts])); }
 
+        // ── NOTIFICATIONS BUTTON ──
+        document.getElementById('notificationsBtn').addEventListener('click', () => {
+            window.location.href = 'http://localhost:8084/notifications';
+        });
+
         // ── INIT ──
         (async function init() {
+
+            // 1. Получаем текущего пользователя
             try {
                 const meRes = await fetch('/api/auth/me', { credentials: 'include' });
-                if (meRes.ok) { const me = await meRes.json(); myUserId = me.id || me.userId; }
-            } catch (e) { console.warn(e); }
+                if (meRes.ok) {
+                    const me = await meRes.json();
+                    myUserId = me.id || me.userId;
+                    console.log('✅ myUserId:', myUserId);
+                }
+            } catch (e) { console.warn('❌ /api/auth/me error:', e); }
 
+            // 2. Загружаем подписки СИНХРОННО — до рендера постов
             if (myUserId) {
                 try {
                     const fRes = await fetch(`/api/subscriptions/${myUserId}/followings`, { credentials: 'include' });
@@ -181,12 +188,32 @@
                             const id = f.followingUserId || f.targetUserId || f.userId || f.id;
                             if (id) followingIds.add(String(id));
                         });
+                        console.log('✅ followingIds загружены:', [...followingIds]);
                     }
-                } catch (e) { console.warn(e); }
+                } catch (e) { console.warn('❌ followings error:', e); }
+            } else {
+                console.warn('⚠️ myUserId is null — подписки не загружены');
             }
 
+            // 3. Загружаем кол-во непрочитанных уведомлений
+            try {
+                const cRes = await fetch('/api/notifications/my/unread/count', { credentials: 'include' });
+                if (cRes.ok) {
+                    const count = await cRes.json();
+                    const badge = document.getElementById('notificationsBadge');
+                    if (count > 0) {
+                        badge.textContent = count > 99 ? '99+' : count;
+                        badge.style.display = '';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            } catch (e) { console.warn('❌ unread count error:', e); }
+
+            // 4. Рендерим контент только после загрузки подписок
             loadStories();
-            loadPosts();
+            await loadPosts();
+
         })();
 
         // ── STORIES ──
@@ -202,7 +229,7 @@
             const byUser = {};
             stories.forEach(s => { if (!byUser[s.userId]) byUser[s.userId] = []; byUser[s.userId].push(s); });
 
-            const uids = Object.keys(byUser).filter(id => id !== myUserId);
+            const uids = Object.keys(byUser).filter(id => id !== String(myUserId));
             uids.sort((a, b) => {
                 const af = followingIds.has(a), bf = followingIds.has(b);
                 return af === bf ? 0 : af ? -1 : 1;
@@ -221,7 +248,9 @@
 
             const isFollowing = followingIds.has(String(uid));
             const latestStory = userStories[0];
-            const badgeHtml = !isFollowing ? `<div class="story-follow-badge"><i class="fas fa-plus"></i></div>` : '';
+            const badgeHtml   = !isFollowing
+                ? `<div class="story-follow-badge" data-uid="${uid}"><i class="fas fa-plus"></i></div>`
+                : '';
 
             const avatarSrc = profile?.avatarUrl || '/images/default-avatar.png';
             const name      = profile?.name || '?';
@@ -249,12 +278,13 @@
                 badge.addEventListener('click', async e => {
                     e.stopPropagation();
                     try {
-                        const res = await fetch(`/api/subscriptions/${uid}/subscribe`, { method: 'POST', credentials: 'include' });
-                        const ok  = res.ok || res.status === 409;
-                        if (ok) {
+                        const res = await fetch(`/api/subscriptions/${uid}/subscribe`,
+                            { method: 'POST', credentials: 'include' });
+                        if (res.ok || res.status === 409) {
                             followingIds.add(String(uid));
                             badge.remove();
-                            document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`).forEach(b => b.remove());
+                            document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`)
+                                .forEach(b => updateFollowBtnStyle(b, true));
                         }
                     } catch (err) { console.error(err); }
                 });
@@ -264,10 +294,10 @@
 
         // ── STORY VIEWER ──
         function openStory(story, allStories, profile) {
-            document.getElementById('storyImage').src          = story.photoUrl;
-            document.getElementById('storyAvatarImg').src      = profile?.avatarUrl || '/images/default-avatar.png';
+            document.getElementById('storyImage').src                 = story.photoUrl;
+            document.getElementById('storyAvatarImg').src             = profile?.avatarUrl || '/images/default-avatar.png';
             document.getElementById('storyUsernameModal').textContent = profile?.name || '?';
-            document.getElementById('storyTime').textContent   = formatTime(story.createdAt);
+            document.getElementById('storyTime').textContent          = formatTime(story.createdAt);
 
             const bar = document.getElementById('storyProgress');
             bar.style.width = '0%';
@@ -297,6 +327,7 @@
         async function markStoryViewed(id) {
             try { await fetch(`/api/stories/${id}/view`, { method: 'POST', credentials: 'include' }); } catch {}
         }
+
         async function reactToStory(id, reaction) {
             try {
                 await fetch(`/api/stories/${id}/reaction`, {
@@ -312,7 +343,7 @@
             try {
                 const res = await fetch('/api/posts/feed', { credentials: 'include' });
                 if (!res.ok) throw new Error();
-                renderPosts(await res.json());
+                await renderPosts(await res.json());
             } catch {
                 postsContainer.innerHTML = `<p style="text-align:center;color:var(--muted);padding:40px">Пока нет постов</p>`;
             }
@@ -352,7 +383,7 @@
                             <div class="post-time">${formatTime(post.createdAt)}</div>
                         </div>
                     </div>
-                    ${!isOwn && !isFollowing ? `<button class="follow-btn" data-uid="${post.userId}">Подписаться</button>` : ''}
+                    ${!isOwn ? `<button class="follow-btn" data-uid="${post.userId}">...</button>` : ''}
                 </div>
                 <img class="post-image" src="${post.photoUrl}" alt=""
                      onerror="this.style.display='none'">
@@ -373,43 +404,44 @@
                 </div>
             `;
 
-            // Follow
+            // ── Follow — кнопка всегда рендерится для чужих постов,
+            //             стиль определяется по актуальному followingIds ──
             const followBtn = card.querySelector('.follow-btn');
-if (followBtn) {
-    const uid = followBtn.dataset.uid;
-    // обновляем вид кнопки сразу при рендере
-    updateFollowBtnStyle(followBtn, followingIds.has(String(uid)));
+            if (followBtn) {
+                const uid = followBtn.dataset.uid;
 
-    followBtn.addEventListener('click', async () => {
-        const isNowFollowing = followingIds.has(String(uid));
-        try {
-            if (isNowFollowing) {
-                const res = await fetch(`/api/subscriptions/${uid}/unsubscribe`,
-                    { method: 'DELETE', credentials: 'include' });
-                if (res.ok) {
-                    followingIds.delete(String(uid));
-                    // обновляем ВСЕ кнопки для этого пользователя на странице
-                    document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`)
-                        .forEach(b => updateFollowBtnStyle(b, false));
-                    document.querySelectorAll(`.story-follow-badge[data-uid="${uid}"]`)
-                        .forEach(b => b.style.display = '');
-                }
-            } else {
-                const res = await fetch(`/api/subscriptions/${uid}/subscribe`,
-                    { method: 'POST', credentials: 'include' });
-                if (res.ok || res.status === 409) {
-                    followingIds.add(String(uid));
-                    document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`)
-                        .forEach(b => updateFollowBtnStyle(b, true));
-                    document.querySelectorAll(`.story-follow-badge[data-uid="${uid}"]`)
-                        .forEach(b => b.style.display = 'none');
-                }
+                // Применяем правильный стиль сразу
+                updateFollowBtnStyle(followBtn, followingIds.has(String(uid)));
+
+                followBtn.addEventListener('click', async () => {
+                    const isNowFollowing = followingIds.has(String(uid));
+                    try {
+                        if (isNowFollowing) {
+                            const res = await fetch(`/api/subscriptions/${uid}/unsubscribe`,
+                                { method: 'DELETE', credentials: 'include' });
+                            if (res.ok) {
+                                followingIds.delete(String(uid));
+                                document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`)
+                                    .forEach(b => updateFollowBtnStyle(b, false));
+                                document.querySelectorAll(`.story-follow-badge[data-uid="${uid}"]`)
+                                    .forEach(b => b.style.display = '');
+                            }
+                        } else {
+                            const res = await fetch(`/api/subscriptions/${uid}/subscribe`,
+                                { method: 'POST', credentials: 'include' });
+                            if (res.ok || res.status === 409) {
+                                followingIds.add(String(uid));
+                                document.querySelectorAll(`.follow-btn[data-uid="${uid}"]`)
+                                    .forEach(b => updateFollowBtnStyle(b, true));
+                                document.querySelectorAll(`.story-follow-badge[data-uid="${uid}"]`)
+                                    .forEach(b => b.style.display = 'none');
+                            }
+                        }
+                    } catch (err) { console.error(err); }
+                });
             }
-        } catch (err) { console.error(err); }
-    });
-}
 
-            // Like
+            // ── Like ──
             const likeBtn = card.querySelector('.like-btn');
             let rt;
             likeBtn.addEventListener('mouseenter', () => { rt = setTimeout(() => showReactionsPanel(post.id, likeBtn), 500); });
@@ -463,7 +495,11 @@ if (followBtn) {
             if (res.ok && !likedPosts.has(postId)) {
                 likedPosts.add(postId); saveLikedPosts();
                 const lb = document.querySelector(`.like-btn[data-post-id="${postId}"]`);
-                if (lb) { lb.classList.add('liked'); lb.querySelector('.action-count').textContent = parseInt(lb.querySelector('.action-count').textContent) + 1; }
+                if (lb) {
+                    lb.classList.add('liked');
+                    lb.querySelector('.action-count').textContent =
+                        parseInt(lb.querySelector('.action-count').textContent) + 1;
+                }
             }
         }
 
@@ -486,9 +522,9 @@ if (followBtn) {
             if (!ts) return '';
             const d = Math.floor((Date.now() - new Date(ts)) / 1000);
             if (d < 60)    return 'только что';
-            if (d < 3600)  return Math.floor(d/60) + ' мин';
-            if (d < 86400) return Math.floor(d/3600) + ' ч';
-            return Math.floor(d/86400) + ' д';
+            if (d < 3600)  return Math.floor(d / 60) + ' мин';
+            if (d < 86400) return Math.floor(d / 3600) + ' ч';
+            return Math.floor(d / 86400) + ' д';
         }
 
         addStoryBtn.addEventListener('click', () => window.location.href = '/stories/create');
@@ -496,20 +532,19 @@ if (followBtn) {
         console.log('✅ Инициализация завершена');
     });
 
-
     function updateFollowBtnStyle(btn, isFollowing) {
-    if (isFollowing) {
-        btn.textContent = 'Отписаться';
-        btn.style.color = 'rgba(240,242,255,0.5)';
-        btn.style.background = 'rgba(255,255,255,0.05)';
-        btn.style.borderColor = 'rgba(255,255,255,0.1)';
-    } else {
-        btn.textContent = 'Подписаться';
-        btn.style.color = 'var(--accent1)';
-        btn.style.background = 'rgba(167,139,250,0.12)';
-        btn.style.borderColor = 'rgba(255,255,255,0.18)';
+        if (isFollowing) {
+            btn.textContent = 'Отписаться';
+            btn.style.color = 'rgba(240,242,255,0.5)';
+            btn.style.background = 'rgba(255,255,255,0.05)';
+            btn.style.borderColor = 'rgba(255,255,255,0.1)';
+        } else {
+            btn.textContent = 'Подписаться';
+            btn.style.color = 'var(--accent1)';
+            btn.style.background = 'rgba(167,139,250,0.12)';
+            btn.style.borderColor = 'rgba(255,255,255,0.18)';
+        }
     }
-}
 </script>
 </body>
 </html>

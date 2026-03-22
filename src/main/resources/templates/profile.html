@@ -178,23 +178,25 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', async function () {
+
         // ── определяем чей профиль смотрим ──
-        const pathParts  = window.location.pathname.split('/');
-        const routeUserId = pathParts[pathParts.length - 1]; // /profile/{userId} или /profile
+        const pathParts   = window.location.pathname.split('/');
+        const routeUserId = pathParts[pathParts.length - 1];
         const isOwnRoute  = window.location.pathname === '/profile' || routeUserId === 'profile';
 
-        let myUserId = null;
-        let viewedUserId = null;
-        let isOwnProfile = false;
+        let myUserId         = null;
+        let viewedUserId     = null;
+        let isOwnProfile     = false;
         let currentProfileId = null;
-        let isFollowing = false;
+        let isFollowing      = false;
 
         // ── AUTH ──
         try {
             const r = await fetch('/api/auth/me', { credentials: 'include' });
             if (!r.ok) { window.location.href = '/auth/login'; return; }
             const me = await r.json();
-            myUserId = me.id;
+            myUserId = me.id || me.userId;
+            console.log('✅ myUserId:', myUserId);
         } catch { window.location.href = '/auth/login'; return; }
 
         viewedUserId = isOwnRoute ? myUserId : routeUserId;
@@ -202,48 +204,104 @@
 
         // ── UI переключение своя/чужая страница ──
         if (isOwnProfile) {
-            document.getElementById('editBtn').style.display      = '';
+            document.getElementById('editBtn').style.display         = '';
             document.getElementById('avatarEditBadge').style.display = '';
-            document.getElementById('settingsBtn').style.display  = '';
-            document.getElementById('backBtn').style.display      = 'none';
-            document.getElementById('savedTabBtn').style.display  = '';
-            document.getElementById('addStoryBtn').style.display  = '';
+            document.getElementById('settingsBtn').style.display     = '';
+            document.getElementById('backBtn').style.display         = 'none';
+            document.getElementById('savedTabBtn').style.display     = '';
+            document.getElementById('addStoryBtn').style.display     = '';
+            document.getElementById('followBtn').style.display       = 'none';
         } else {
-            document.getElementById('editBtn').style.display      = 'none';
+            document.getElementById('editBtn').style.display         = 'none';
             document.getElementById('avatarEditBadge').style.display = 'none';
-            document.getElementById('settingsBtn').style.display  = 'none';
-            document.getElementById('backBtn').style.display      = '';
-            document.getElementById('savedTabBtn').style.display  = 'none';
-            document.getElementById('addStoryBtn').style.display  = 'none';
+            document.getElementById('settingsBtn').style.display     = 'none';
+            document.getElementById('backBtn').style.display         = '';
+            document.getElementById('savedTabBtn').style.display     = 'none';
+            document.getElementById('addStoryBtn').style.display     = 'none';
         }
 
-        // ── LOAD ──
+        // ── LOAD профиль и истории параллельно ──
         await Promise.all([loadProfile(viewedUserId), loadStories(viewedUserId)]);
         loadPosts(viewedUserId);
         if (isOwnProfile) setupAvatarUpload();
 
-        // ── подписка на чужой профиль ──
+        // ── ПОДПИСКА — только для чужого профиля ──
         if (!isOwnProfile) {
-            const res = await fetch(`/api/subscriptions/${viewedUserId}/is-subscribed`, { credentials: 'include' });
-            if (res.ok) isFollowing = await res.json();
-            updateFollowBtn();
+            await checkSubscription();
 
             document.getElementById('followBtn').addEventListener('click', async () => {
-                if (isFollowing) {
-                    await fetch(`/api/subscriptions/${viewedUserId}/unsubscribe`,
-                        { method: 'DELETE', credentials: 'include' });
-                    isFollowing = false;
-                    const cnt = document.getElementById('followersCount');
-                    cnt.textContent = Math.max(0, parseInt(cnt.textContent) - 1);
-                } else {
-                    await fetch(`/api/subscriptions/${viewedUserId}/subscribe`,
-                        { method: 'POST', credentials: 'include' });
-                    isFollowing = true;
-                    const cnt = document.getElementById('followersCount');
-                    cnt.textContent = parseInt(cnt.textContent) + 1;
+                const btn = document.getElementById('followBtn');
+                btn.disabled = true; // блокируем пока идёт запрос
+
+                try {
+                    if (isFollowing) {
+                        // Отписываемся
+                        const res = await fetch(`/api/subscriptions/${viewedUserId}/unsubscribe`,
+                            { method: 'DELETE', credentials: 'include' });
+                        if (res.ok) {
+                            isFollowing = false;
+                            const cnt = document.getElementById('followersCount');
+                            cnt.textContent = Math.max(0, parseInt(cnt.textContent) - 1);
+                        }
+                    } else {
+                        // Подписываемся
+                        const res = await fetch(`/api/subscriptions/${viewedUserId}/subscribe`,
+                            { method: 'POST', credentials: 'include' });
+                        // 200 = успешно, 409 = уже подписан — в обоих случаях считаем подписанным
+                        if (res.ok || res.status === 409) {
+                            isFollowing = true;
+                            if (res.ok) { // счётчик увеличиваем только при реальной новой подписке
+                                const cnt = document.getElementById('followersCount');
+                                cnt.textContent = parseInt(cnt.textContent) + 1;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('❌ Ошибка подписки:', e);
+                } finally {
+                    btn.disabled = false;
+                    updateFollowBtn();
                 }
-                updateFollowBtn();
             });
+        }
+
+        // ── Проверяем статус подписки через список подписок текущего юзера ──
+        // Используем /followings вместо /is-subscribed — более надёжный способ
+        async function checkSubscription() {
+            try {
+                // Способ 1: через is-subscribed эндпоинт
+                const res = await fetch(`/api/subscriptions/${viewedUserId}/is-subscribed`,
+                    { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    // API может вернуть boolean или объект { subscribed: true }
+                    isFollowing = typeof data === 'boolean' ? data : (data.subscribed || data.isSubscribed || false);
+                    console.log('✅ is-subscribed response:', data, '→ isFollowing:', isFollowing);
+                    updateFollowBtn();
+                    return;
+                }
+            } catch (e) {
+                console.warn('⚠️ is-subscribed failed, fallback to followings list:', e);
+            }
+
+            // Способ 2 (fallback): проверяем через список подписок
+            try {
+                const res = await fetch(`/api/subscriptions/${myUserId}/followings`,
+                    { credentials: 'include' });
+                if (res.ok) {
+                    const list = await res.json();
+                    console.log('📋 followings list:', JSON.stringify(list));
+                    isFollowing = list.some(f => {
+                        const id = f.followingUserId || f.targetUserId || f.userId || f.id;
+                        return String(id) === String(viewedUserId);
+                    });
+                    console.log('✅ isFollowing (from list):', isFollowing);
+                }
+            } catch (e) {
+                console.error('❌ followings fallback failed:', e);
+            }
+
+            updateFollowBtn();
         }
 
         function updateFollowBtn() {
@@ -251,10 +309,10 @@
             btn.style.display = '';
             if (isFollowing) {
                 btn.textContent = 'Отписаться';
-                btn.className = 'btn-follow unfollow';
+                btn.className   = 'btn-follow unfollow';
             } else {
                 btn.textContent = 'Подписаться';
-                btn.className = 'btn-follow follow';
+                btn.className   = 'btn-follow follow';
             }
         }
 
@@ -285,9 +343,9 @@
                     fetch(`/api/subscriptions/${uid}/followings/count`, { credentials: 'include' }),
                     fetch(`/api/posts/user/${uid}`, { credentials: 'include' })
                 ]);
-                if (!pRes.ok) throw new Error();
-                const profile   = await pRes.json();
-                const followers = flrRes.ok ? await flrRes.json() : 0;
+                if (!pRes.ok) throw new Error('Profile not found');
+                const profile    = await pRes.json();
+                const followers  = flrRes.ok ? await flrRes.json() : 0;
                 const followings = flnRes.ok ? await flnRes.json() : 0;
                 const posts      = postsRes.ok ? await postsRes.json() : [];
                 currentProfileId = profile.id;
@@ -300,7 +358,7 @@
             if (p.avatarUrl && p.avatarUrl !== 'null') {
                 avatar.src = `/api/profiles/${p.id}/avatar?t=${Date.now()}`;
             }
-            avatar.onerror = () => { avatar.onerror=null; avatar.src='/images/default-avatar.png'; };
+            avatar.onerror = () => { avatar.onerror = null; avatar.src = '/images/default-avatar.png'; };
             document.getElementById('profileUsername').textContent =
                 `${p.name.toLowerCase()}_${p.surname.toLowerCase()}`;
             document.getElementById('profileName').textContent = `${p.name} ${p.surname}`;
@@ -380,8 +438,8 @@
                 el.innerHTML = `
                     <img src="${src}" alt="" onerror="this.onerror=null;this.src='/images/default-avatar.png'">
                     <div class="post-grid-overlay">
-                        <div class="overlay-stat"><i class="fas fa-heart"></i><span>${post.reactionsCount||0}</span></div>
-                        <div class="overlay-stat"><i class="fas fa-comment"></i><span>${post.commentsCount||0}</span></div>
+                        <div class="overlay-stat"><i class="fas fa-heart"></i><span>${post.reactionsCount || 0}</span></div>
+                        <div class="overlay-stat"><i class="fas fa-comment"></i><span>${post.commentsCount || 0}</span></div>
                     </div>
                 `;
                 el.onclick = () => openPost(post, src);
@@ -390,10 +448,10 @@
         }
 
         function openPost(post, src) {
-            document.getElementById('modalPostImage').src    = src;
-            document.getElementById('modalUserAvatar').src   = document.getElementById('profileAvatar').src;
-            document.getElementById('modalUsername').textContent  = document.getElementById('profileUsername').textContent;
-            document.getElementById('modalPostTime').textContent  = formatPostTime(post.createdAt);
+            document.getElementById('modalPostImage').src       = src;
+            document.getElementById('modalUserAvatar').src      = document.getElementById('profileAvatar').src;
+            document.getElementById('modalUsername').textContent    = document.getElementById('profileUsername').textContent;
+            document.getElementById('modalPostTime').textContent    = formatPostTime(post.createdAt);
             document.getElementById('modalDescription').textContent = post.description || '';
             document.getElementById('modalLikes').textContent    = post.reactionsCount || 0;
             document.getElementById('modalComments').textContent = post.commentsCount  || 0;
@@ -428,29 +486,40 @@
 
         // ── HELPERS ──
         function formatLocation(l) {
-            return {'USA':'🇺🇸 США','RUSSIA':'🇷🇺 Россия','UK':'🇬🇧 Великобритания',
-                'GERMANY':'🇩🇪 Германия','FRANCE':'🇫🇷 Франция','ITALY':'🇮🇹 Италия',
-                'SPAIN':'🇪🇸 Испания','CANADA':'🇨🇦 Канада','UKRAINE':'🇺🇦 Украина'}[l] || l;
+            return {
+                'USA':     '🇺🇸 США',     'RUSSIA': '🇷🇺 Россия',
+                'UK':      '🇬🇧 Великобритания', 'GERMANY': '🇩🇪 Германия',
+                'FRANCE':  '🇫🇷 Франция', 'ITALY':  '🇮🇹 Италия',
+                'SPAIN':   '🇪🇸 Испания', 'CANADA': '🇨🇦 Канада',
+                'UKRAINE': '🇺🇦 Украина'
+            }[l] || l;
         }
         function formatRelation(s) {
-            return {'SINGLE':'Не в отношениях','IN_A_RELATIONSHIP':'В отношениях',
-                'ENGAGED':'Помолвлен(а)','MARRIED':'Женат/Замужем','IT_IS_COMPLICATED':'Всё сложно'}[s] || s;
+            return {
+                'SINGLE':           'Не в отношениях',
+                'IN_A_RELATIONSHIP':'В отношениях',
+                'ENGAGED':          'Помолвлен(а)',
+                'MARRIED':          'Женат/Замужем',
+                'IT_IS_COMPLICATED':'Всё сложно'
+            }[s] || s;
         }
         function calculateAge(bd) {
-            const t=new Date(), b=new Date(bd); let a=t.getFullYear()-b.getFullYear();
-            if(t.getMonth()<b.getMonth()||(t.getMonth()===b.getMonth()&&t.getDate()<b.getDate()))a--;
+            const t = new Date(), b = new Date(bd);
+            let a = t.getFullYear() - b.getFullYear();
+            if (t.getMonth() < b.getMonth() ||
+               (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--;
             return a;
         }
         function formatStoryTime(ts) {
-            const h=Math.floor((Date.now()-new Date(ts))/3600000);
-            return h<1?'сейчас':h<24?h+'ч':Math.floor(h/24)+'д';
+            const h = Math.floor((Date.now() - new Date(ts)) / 3600000);
+            return h < 1 ? 'сейчас' : h < 24 ? h + 'ч' : Math.floor(h / 24) + 'д';
         }
         function formatPostTime(ts) {
-            const d=Math.floor((Date.now()-new Date(ts))/1000);
-            if(d<60)return'только что';
-            if(d<3600)return Math.floor(d/60)+' мин';
-            if(d<86400)return Math.floor(d/3600)+' ч';
-            return Math.floor(d/86400)+' д';
+            const d = Math.floor((Date.now() - new Date(ts)) / 1000);
+            if (d < 60)    return 'только что';
+            if (d < 3600)  return Math.floor(d / 60) + ' мин';
+            if (d < 86400) return Math.floor(d / 3600) + ' ч';
+            return Math.floor(d / 86400) + ' д';
         }
     });
 </script>

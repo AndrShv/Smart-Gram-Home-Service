@@ -1,6 +1,5 @@
 package com.example.project.dto.story;
 
-import com.example.project.entity.StoryViewer;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -32,7 +31,7 @@ public class StoryDTO {
     private LocalDateTime expireAt;
 
     @NotNull
-    private List<StoryViewer> viewers;
+    private List<StoryViewerDTO> viewers;
 
     @Size(max = 10, message = "Нельзя добавить больше 10 тегов")
     private List<@Size(max = 32) String> tags;
