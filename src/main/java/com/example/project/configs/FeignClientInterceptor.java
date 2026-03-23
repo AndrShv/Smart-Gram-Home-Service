@@ -1,6 +1,5 @@
 package com.example.project.configs;
 
-
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import jakarta.servlet.http.Cookie;
@@ -12,12 +11,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class FeignClientInterceptor implements RequestInterceptor {
 
@@ -42,7 +39,6 @@ public class FeignClientInterceptor implements RequestInterceptor {
         }
     }
 
-
     private String getOAuth2Token() {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -52,8 +48,7 @@ public class FeignClientInterceptor implements RequestInterceptor {
 
                 OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
                         oauthToken.getAuthorizedClientRegistrationId(),
-                        oauthToken.getName()
-                );
+                        oauthToken.getName());
 
                 if (client != null && client.getAccessToken() != null) {
                     log.debug("Using OAuth2 access token");
@@ -69,8 +64,8 @@ public class FeignClientInterceptor implements RequestInterceptor {
 
     private String getJwtFromCookie() {
         try {
-            ServletRequestAttributes attributes =
-                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
+                    .getRequestAttributes();
 
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
@@ -93,8 +88,8 @@ public class FeignClientInterceptor implements RequestInterceptor {
 
     private String getJwtFromHeader() {
         try {
-            ServletRequestAttributes attributes =
-                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder
+                    .getRequestAttributes();
 
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
