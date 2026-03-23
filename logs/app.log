@@ -1,0 +1,238 @@
+2026-03-22T12:22:35.884+02:00  INFO 10091 --- [restartedMain] com.example.project.HomeApplication      : Starting HomeApplication using Java 21.0.7 with PID 10091 (/Users/andrshv/VsCode/Smart-Gram-Home-Service/target/classes started by andrshv in /Users/andrshv/VsCode/Smart-Gram-Home-Service)
+2026-03-22T12:22:35.885+02:00 DEBUG 10091 --- [restartedMain] com.example.project.HomeApplication      : Running with Spring Boot v3.2.1, Spring v6.1.2
+2026-03-22T12:22:35.885+02:00  INFO 10091 --- [restartedMain] com.example.project.HomeApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-03-22T12:22:35.901+02:00  INFO 10091 --- [restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-03-22T12:22:35.901+02:00  INFO 10091 --- [restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-03-22T12:22:36.350+02:00  INFO 10091 --- [restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-22T12:22:36.410+02:00  INFO 10091 --- [restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 57 ms. Found 6 JPA repository interfaces.
+2026-03-22T12:22:36.560+02:00  INFO 10091 --- [restartedMain] o.s.cloud.context.scope.GenericScope     : BeanFactory id=97c8fd76-b836-35b0-94e8-700a23294786
+2026-03-22T12:22:36.905+02:00  INFO 10091 --- [restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8083 (http)
+2026-03-22T12:22:36.910+02:00  INFO 10091 --- [restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-22T12:22:36.910+02:00  INFO 10091 --- [restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.17]
+2026-03-22T12:22:36.928+02:00  INFO 10091 --- [restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-03-22T12:22:36.928+02:00  INFO 10091 --- [restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1027 ms
+2026-03-22T12:22:37.047+02:00 DEBUG 10091 --- [restartedMain] com.example.project.filters.JwtFilter    : Filter 'jwtFilter' configured for use
+2026-03-22T12:22:37.108+02:00  INFO 10091 --- [restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-03-22T12:22:37.127+02:00  INFO 10091 --- [restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.1.Final
+2026-03-22T12:22:37.136+02:00  INFO 10091 --- [restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-03-22T12:22:37.200+02:00  INFO 10091 --- [restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-22T12:22:37.208+02:00  INFO 10091 --- [restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-22T12:22:37.273+02:00  INFO 10091 --- [restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@288827e0
+2026-03-22T12:22:37.274+02:00  INFO 10091 --- [restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-22T12:22:37.622+02:00  INFO 10091 --- [restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-22T12:22:37.689+02:00  INFO 10091 --- [restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-22T12:22:37.785+02:00  WARN 10091 --- [restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-03-22T12:22:37.868+02:00  INFO 10091 --- [restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2026-03-22T12:22:38.338+02:00 ERROR 10091 --- [restartedMain] c.example.project.service.MinioService   : Не удалось установить политику для бакета 'posts': Failed to connect to localhost/[0:0:0:0:0:0:0:1]:9000
+2026-03-22T12:22:38.339+02:00 ERROR 10091 --- [restartedMain] c.example.project.service.MinioService   : Не удалось установить политику для бакета 'stories': Failed to connect to localhost/[0:0:0:0:0:0:0:1]:9000
+2026-03-22T12:22:38.399+02:00  INFO 10091 --- [restartedMain] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-22T12:22:38.617+02:00 DEBUG 10091 --- [restartedMain] swordEncoderAuthenticationManagerBuilder : No authenticationProviders and no parentAuthenticationManager defined. Returning null.
+2026-03-22T12:22:38.947+02:00  INFO 10091 --- [restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint(s) beneath base path '/actuator'
+2026-03-22T12:22:38.973+02:00  INFO 10091 --- [restartedMain] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@1c0e9d6e, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@7013d1c3, org.springframework.security.web.context.SecurityContextHolderFilter@4b24273, org.springframework.security.web.header.HeaderWriterFilter@c7fc9a7, org.springframework.web.filter.CorsFilter@702b420d, org.springframework.security.web.authentication.logout.LogoutFilter@474ff8b7, com.example.project.filters.JwtFilter@865b37b, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@3d7af1cf, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@29cea954, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@6e54f6a0, org.springframework.security.web.session.SessionManagementFilter@4e9cef46, org.springframework.security.web.access.ExceptionTranslationFilter@76a7d87c, org.springframework.security.web.access.intercept.AuthorizationFilter@8a77bcd]
+2026-03-22T12:22:39.310+02:00  INFO 10091 --- [restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8083 (http) with context path ''
+2026-03-22T12:22:39.317+02:00  INFO 10091 --- [restartedMain] com.example.project.HomeApplication      : Started HomeApplication in 3.577 seconds (process running for 3.823)
+2026-03-22T12:22:39.331+02:00  INFO 10091 --- [RMI TCP Connection(3)-127.0.0.1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-03-22T12:22:39.333+02:00  INFO 10091 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-03-22T12:22:39.332+02:00 ERROR 10091 --- [RMI TCP Connection(3)-127.0.0.1] o.s.web.servlet.DispatcherServlet        : Context initialization failed
+
+org.springframework.beans.factory.BeanCreationNotAllowedException: Error creating bean with name 'requestMappingHandlerAdapter': Singleton bean creation not allowed while singletons of this factory are in destruction (Do not request a bean from a BeanFactory in a destroy method implementation!)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:220) ~[spring-beans-6.1.2.jar:6.1.2]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:323) ~[spring-beans-6.1.2.jar:6.1.2]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:199) ~[spring-beans-6.1.2.jar:6.1.2]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.getBeansOfType(DefaultListableBeanFactory.java:665) ~[spring-beans-6.1.2.jar:6.1.2]
+	at org.springframework.context.support.AbstractApplicationContext.getBeansOfType(AbstractApplicationContext.java:1386) ~[spring-context-6.1.2.jar:6.1.2]
+	at org.springframework.beans.factory.BeanFactoryUtils.beansOfTypeIncludingAncestors(BeanFactoryUtils.java:368) ~[spring-beans-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.DispatcherServlet.initHandlerAdapters(DispatcherServlet.java:653) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.DispatcherServlet.initStrategies(DispatcherServlet.java:514) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.DispatcherServlet.onRefresh(DispatcherServlet.java:502) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.FrameworkServlet.initWebApplicationContext(FrameworkServlet.java:603) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.FrameworkServlet.initServletBean(FrameworkServlet.java:537) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.HttpServletBean.init(HttpServletBean.java:169) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at jakarta.servlet.GenericServlet.init(GenericServlet.java:143) ~[tomcat-embed-core-10.1.17.jar:6.0]
+	at jakarta.servlet.http.HttpServlet.init(HttpServlet.java:121) ~[tomcat-embed-core-10.1.17.jar:6.0]
+	at org.apache.catalina.core.StandardWrapper.initServlet(StandardWrapper.java:944) ~[tomcat-embed-core-10.1.17.jar:10.1.17]
+	at org.apache.catalina.core.StandardWrapper.allocate(StandardWrapper.java:662) ~[tomcat-embed-core-10.1.17.jar:10.1.17]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletHandlerMappings$TomcatServletInitializer.initializeServlet(DispatcherServletHandlerMappings.java:108) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletHandlerMappings$TomcatServletInitializer.lambda$initializeServlet$0(DispatcherServletHandlerMappings.java:94) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at java.base/java.util.Optional.ifPresent(Optional.java:178) ~[na:na]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletHandlerMappings$TomcatServletInitializer.initializeServlet(DispatcherServletHandlerMappings.java:94) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletHandlerMappings.initializeDispatcherServletIfPossible(DispatcherServletHandlerMappings.java:77) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletHandlerMappings.getHandlerMappings(DispatcherServletHandlerMappings.java:62) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletsMappingDescriptionProvider.describeMappings(DispatcherServletsMappingDescriptionProvider.java:106) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletsMappingDescriptionProvider.lambda$describeMappings$0(DispatcherServletsMappingDescriptionProvider.java:85) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at java.base/java.util.LinkedHashMap.forEach(LinkedHashMap.java:986) ~[na:na]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletsMappingDescriptionProvider.describeMappings(DispatcherServletsMappingDescriptionProvider.java:84) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletsMappingDescriptionProvider.describeMappings(DispatcherServletsMappingDescriptionProvider.java:77) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletsMappingDescriptionProvider.describeMappings(DispatcherServletsMappingDescriptionProvider.java:56) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.MappingsEndpoint.lambda$mappingsForContext$0(MappingsEndpoint.java:60) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at java.base/java.lang.Iterable.forEach(Iterable.java:75) ~[na:na]
+	at org.springframework.boot.actuate.web.mappings.MappingsEndpoint.mappingsForContext(MappingsEndpoint.java:59) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.MappingsEndpoint.mappings(MappingsEndpoint.java:51) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:281) ~[spring-core-6.1.2.jar:6.1.2]
+	at org.springframework.boot.actuate.endpoint.invoke.reflect.ReflectiveOperationInvoker.invoke(ReflectiveOperationInvoker.java:74) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.endpoint.annotation.AbstractDiscoveredOperation.invoke(AbstractDiscoveredOperation.java:60) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.endpoint.jmx.EndpointMBean.invoke(EndpointMBean.java:124) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.endpoint.jmx.EndpointMBean.invoke(EndpointMBean.java:97) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.invoke(DefaultMBeanServerInterceptor.java:803) ~[na:na]
+	at java.management/com.sun.jmx.mbeanserver.JmxMBeanServer.invoke(JmxMBeanServer.java:802) ~[na:na]
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.doOperation(RMIConnectionImpl.java:1472) ~[na:na]
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl$PrivilegedOperation.run(RMIConnectionImpl.java:1310) ~[na:na]
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.doPrivilegedOperation(RMIConnectionImpl.java:1405) ~[na:na]
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.invoke(RMIConnectionImpl.java:829) ~[na:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360) ~[na:na]
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200) ~[na:na]
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197) ~[na:na]
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714) ~[na:na]
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196) ~[na:na]
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598) ~[na:na]
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844) ~[na:na]
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721) ~[na:na]
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400) ~[na:na]
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+2026-03-22T12:22:39.334+02:00  INFO 10091 --- [RMI TCP Connection(4)-127.0.0.1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-03-22T12:22:39.334+02:00  INFO 10091 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-03-22T12:22:39.335+02:00 ERROR 10091 --- [RMI TCP Connection(4)-127.0.0.1] o.s.web.servlet.DispatcherServlet        : Context initialization failed
+
+org.springframework.beans.factory.BeanCreationNotAllowedException: Error creating bean with name 'welcomePageHandlerMapping': Singleton bean creation not allowed while singletons of this factory are in destruction (Do not request a bean from a BeanFactory in a destroy method implementation!)
+	at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:220) ~[spring-beans-6.1.2.jar:6.1.2]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:323) ~[spring-beans-6.1.2.jar:6.1.2]
+	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:199) ~[spring-beans-6.1.2.jar:6.1.2]
+	at org.springframework.beans.factory.support.DefaultListableBeanFactory.getBeansOfType(DefaultListableBeanFactory.java:665) ~[spring-beans-6.1.2.jar:6.1.2]
+	at org.springframework.context.support.AbstractApplicationContext.getBeansOfType(AbstractApplicationContext.java:1386) ~[spring-context-6.1.2.jar:6.1.2]
+	at org.springframework.beans.factory.BeanFactoryUtils.beansOfTypeIncludingAncestors(BeanFactoryUtils.java:368) ~[spring-beans-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.DispatcherServlet.initHandlerMappings(DispatcherServlet.java:607) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.DispatcherServlet.initStrategies(DispatcherServlet.java:513) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.DispatcherServlet.onRefresh(DispatcherServlet.java:502) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.FrameworkServlet.initWebApplicationContext(FrameworkServlet.java:603) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.FrameworkServlet.initServletBean(FrameworkServlet.java:537) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at org.springframework.web.servlet.HttpServletBean.init(HttpServletBean.java:169) ~[spring-webmvc-6.1.2.jar:6.1.2]
+	at jakarta.servlet.GenericServlet.init(GenericServlet.java:143) ~[tomcat-embed-core-10.1.17.jar:6.0]
+	at jakarta.servlet.http.HttpServlet.init(HttpServlet.java:121) ~[tomcat-embed-core-10.1.17.jar:6.0]
+	at org.apache.catalina.core.StandardWrapper.initServlet(StandardWrapper.java:944) ~[tomcat-embed-core-10.1.17.jar:10.1.17]
+	at org.apache.catalina.core.StandardWrapper.allocate(StandardWrapper.java:662) ~[tomcat-embed-core-10.1.17.jar:10.1.17]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletHandlerMappings$TomcatServletInitializer.initializeServlet(DispatcherServletHandlerMappings.java:108) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletHandlerMappings$TomcatServletInitializer.lambda$initializeServlet$0(DispatcherServletHandlerMappings.java:94) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at java.base/java.util.Optional.ifPresent(Optional.java:178) ~[na:na]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletHandlerMappings$TomcatServletInitializer.initializeServlet(DispatcherServletHandlerMappings.java:94) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletHandlerMappings.initializeDispatcherServletIfPossible(DispatcherServletHandlerMappings.java:77) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletHandlerMappings.getHandlerMappings(DispatcherServletHandlerMappings.java:62) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletsMappingDescriptionProvider.describeMappings(DispatcherServletsMappingDescriptionProvider.java:106) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletsMappingDescriptionProvider.lambda$describeMappings$0(DispatcherServletsMappingDescriptionProvider.java:85) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at java.base/java.util.LinkedHashMap.forEach(LinkedHashMap.java:986) ~[na:na]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletsMappingDescriptionProvider.describeMappings(DispatcherServletsMappingDescriptionProvider.java:84) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletsMappingDescriptionProvider.describeMappings(DispatcherServletsMappingDescriptionProvider.java:77) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.servlet.DispatcherServletsMappingDescriptionProvider.describeMappings(DispatcherServletsMappingDescriptionProvider.java:56) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.MappingsEndpoint.lambda$mappingsForContext$0(MappingsEndpoint.java:60) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at java.base/java.lang.Iterable.forEach(Iterable.java:75) ~[na:na]
+	at org.springframework.boot.actuate.web.mappings.MappingsEndpoint.mappingsForContext(MappingsEndpoint.java:59) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.web.mappings.MappingsEndpoint.mappings(MappingsEndpoint.java:51) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:281) ~[spring-core-6.1.2.jar:6.1.2]
+	at org.springframework.boot.actuate.endpoint.invoke.reflect.ReflectiveOperationInvoker.invoke(ReflectiveOperationInvoker.java:74) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.endpoint.annotation.AbstractDiscoveredOperation.invoke(AbstractDiscoveredOperation.java:60) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.endpoint.jmx.EndpointMBean.invoke(EndpointMBean.java:124) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at org.springframework.boot.actuate.endpoint.jmx.EndpointMBean.invoke(EndpointMBean.java:97) ~[spring-boot-actuator-3.2.1.jar:3.2.1]
+	at java.management/com.sun.jmx.interceptor.DefaultMBeanServerInterceptor.invoke(DefaultMBeanServerInterceptor.java:803) ~[na:na]
+	at java.management/com.sun.jmx.mbeanserver.JmxMBeanServer.invoke(JmxMBeanServer.java:802) ~[na:na]
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.doOperation(RMIConnectionImpl.java:1472) ~[na:na]
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl$PrivilegedOperation.run(RMIConnectionImpl.java:1310) ~[na:na]
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.doPrivilegedOperation(RMIConnectionImpl.java:1405) ~[na:na]
+	at java.management.rmi/javax.management.remote.rmi.RMIConnectionImpl.invoke(RMIConnectionImpl.java:829) ~[na:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360) ~[na:na]
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200) ~[na:na]
+	at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197) ~[na:na]
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:714) ~[na:na]
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196) ~[na:na]
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:598) ~[na:na]
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:844) ~[na:na]
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:721) ~[na:na]
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400) ~[na:na]
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:720) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+2026-03-22T12:22:39.337+02:00  INFO 10091 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-03-22T12:22:40.241+02:00  INFO 10410 --- [restartedMain] com.example.project.HomeApplication      : Starting HomeApplication using Java 21.0.7 with PID 10410 (/Users/andrshv/VsCode/Smart-Gram-Home-Service/target/classes started by andrshv in /Users/andrshv/VsCode/Smart-Gram-Home-Service)
+2026-03-22T12:22:40.242+02:00 DEBUG 10410 --- [restartedMain] com.example.project.HomeApplication      : Running with Spring Boot v3.2.1, Spring v6.1.2
+2026-03-22T12:22:40.242+02:00  INFO 10410 --- [restartedMain] com.example.project.HomeApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-03-22T12:22:40.258+02:00  INFO 10410 --- [restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-03-22T12:22:40.258+02:00  INFO 10410 --- [restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-03-22T12:22:40.654+02:00  INFO 10410 --- [restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-22T12:22:40.706+02:00  INFO 10410 --- [restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 50 ms. Found 6 JPA repository interfaces.
+2026-03-22T12:22:40.842+02:00  INFO 10410 --- [restartedMain] o.s.cloud.context.scope.GenericScope     : BeanFactory id=97c8fd76-b836-35b0-94e8-700a23294786
+2026-03-22T12:22:41.186+02:00  INFO 10410 --- [restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8083 (http)
+2026-03-22T12:22:41.191+02:00  INFO 10410 --- [restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-22T12:22:41.191+02:00  INFO 10410 --- [restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.17]
+2026-03-22T12:22:41.208+02:00  INFO 10410 --- [restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-03-22T12:22:41.208+02:00  INFO 10410 --- [restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 950 ms
+2026-03-22T12:22:41.316+02:00 DEBUG 10410 --- [restartedMain] com.example.project.filters.JwtFilter    : Filter 'jwtFilter' configured for use
+2026-03-22T12:22:41.379+02:00  INFO 10410 --- [restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-03-22T12:22:41.396+02:00  INFO 10410 --- [restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.1.Final
+2026-03-22T12:22:41.406+02:00  INFO 10410 --- [restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-03-22T12:22:41.467+02:00  INFO 10410 --- [restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-22T12:22:41.475+02:00  INFO 10410 --- [restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-22T12:22:41.533+02:00  INFO 10410 --- [restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@56710a78
+2026-03-22T12:22:41.534+02:00  INFO 10410 --- [restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-22T12:22:41.854+02:00  INFO 10410 --- [restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-22T12:22:41.917+02:00  INFO 10410 --- [restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-22T12:22:42.010+02:00  WARN 10410 --- [restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-03-22T12:22:42.096+02:00  INFO 10410 --- [restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2026-03-22T12:22:42.572+02:00 ERROR 10410 --- [restartedMain] c.example.project.service.MinioService   : Не удалось установить политику для бакета 'posts': Failed to connect to localhost/[0:0:0:0:0:0:0:1]:9000
+2026-03-22T12:22:42.573+02:00 ERROR 10410 --- [restartedMain] c.example.project.service.MinioService   : Не удалось установить политику для бакета 'stories': Failed to connect to localhost/[0:0:0:0:0:0:0:1]:9000
+2026-03-22T12:22:42.632+02:00  INFO 10410 --- [restartedMain] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-22T12:22:42.849+02:00 DEBUG 10410 --- [restartedMain] swordEncoderAuthenticationManagerBuilder : No authenticationProviders and no parentAuthenticationManager defined. Returning null.
+2026-03-22T12:22:43.174+02:00  INFO 10410 --- [restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint(s) beneath base path '/actuator'
+2026-03-22T12:22:43.203+02:00  INFO 10410 --- [restartedMain] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@11ce42dd, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@16610259, org.springframework.security.web.context.SecurityContextHolderFilter@6ede952, org.springframework.security.web.header.HeaderWriterFilter@4418d90e, org.springframework.web.filter.CorsFilter@657dd5ab, org.springframework.security.web.authentication.logout.LogoutFilter@695ccc2, com.example.project.filters.JwtFilter@7bef9f68, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@744282a7, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@8792c4e, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@642f56a1, org.springframework.security.web.session.SessionManagementFilter@2fe2b2bc, org.springframework.security.web.access.ExceptionTranslationFilter@6122a5a8, org.springframework.security.web.access.intercept.AuthorizationFilter@2ca8787d]
+2026-03-22T12:22:43.532+02:00  INFO 10410 --- [restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8083 (http) with context path ''
+2026-03-22T12:22:43.545+02:00  INFO 10410 --- [restartedMain] com.example.project.HomeApplication      : Started HomeApplication in 3.439 seconds (process running for 3.681)
+2026-03-22T12:23:51.897+02:00  INFO 10410 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-03-22T12:23:51.900+02:00  INFO 10410 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-03-22T12:23:51.904+02:00  INFO 10410 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
+2026-03-22T12:23:52.842+02:00  INFO 11001 --- [restartedMain] com.example.project.HomeApplication      : Starting HomeApplication using Java 21.0.7 with PID 11001 (/Users/andrshv/VsCode/Smart-Gram-Home-Service/target/classes started by andrshv in /Users/andrshv/VsCode/Smart-Gram-Home-Service)
+2026-03-22T12:23:52.842+02:00 DEBUG 11001 --- [restartedMain] com.example.project.HomeApplication      : Running with Spring Boot v3.2.1, Spring v6.1.2
+2026-03-22T12:23:52.842+02:00  INFO 11001 --- [restartedMain] com.example.project.HomeApplication      : No active profile set, falling back to 1 default profile: "default"
+2026-03-22T12:23:52.857+02:00  INFO 11001 --- [restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-03-22T12:23:52.857+02:00  INFO 11001 --- [restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-03-22T12:23:53.275+02:00  INFO 11001 --- [restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-22T12:23:53.329+02:00  INFO 11001 --- [restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 52 ms. Found 6 JPA repository interfaces.
+2026-03-22T12:23:53.475+02:00  INFO 11001 --- [restartedMain] o.s.cloud.context.scope.GenericScope     : BeanFactory id=97c8fd76-b836-35b0-94e8-700a23294786
+2026-03-22T12:23:53.845+02:00  INFO 11001 --- [restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8083 (http)
+2026-03-22T12:23:53.849+02:00  INFO 11001 --- [restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-22T12:23:53.850+02:00  INFO 11001 --- [restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.17]
+2026-03-22T12:23:53.867+02:00  INFO 11001 --- [restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-03-22T12:23:53.867+02:00  INFO 11001 --- [restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1010 ms
+2026-03-22T12:23:53.975+02:00 DEBUG 11001 --- [restartedMain] com.example.project.filters.JwtFilter    : Filter 'jwtFilter' configured for use
+2026-03-22T12:23:54.039+02:00  INFO 11001 --- [restartedMain] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2026-03-22T12:23:54.056+02:00  INFO 11001 --- [restartedMain] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.1.Final
+2026-03-22T12:23:54.067+02:00  INFO 11001 --- [restartedMain] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2026-03-22T12:23:54.132+02:00  INFO 11001 --- [restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-22T12:23:54.141+02:00  INFO 11001 --- [restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-22T12:23:54.194+02:00  INFO 11001 --- [restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@4e922fd4
+2026-03-22T12:23:54.195+02:00  INFO 11001 --- [restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-22T12:23:54.548+02:00  INFO 11001 --- [restartedMain] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-22T12:23:54.616+02:00  INFO 11001 --- [restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-22T12:23:54.708+02:00  WARN 11001 --- [restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-03-22T12:23:54.793+02:00  INFO 11001 --- [restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2026-03-22T12:23:55.275+02:00 ERROR 11001 --- [restartedMain] c.example.project.service.MinioService   : Не удалось установить политику для бакета 'posts': Failed to connect to localhost/[0:0:0:0:0:0:0:1]:9000
+2026-03-22T12:23:55.276+02:00 ERROR 11001 --- [restartedMain] c.example.project.service.MinioService   : Не удалось установить политику для бакета 'stories': Failed to connect to localhost/[0:0:0:0:0:0:0:1]:9000
+2026-03-22T12:23:55.334+02:00  INFO 11001 --- [restartedMain] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-22T12:23:55.574+02:00 DEBUG 11001 --- [restartedMain] swordEncoderAuthenticationManagerBuilder : No authenticationProviders and no parentAuthenticationManager defined. Returning null.
+2026-03-22T12:23:55.902+02:00  INFO 11001 --- [restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint(s) beneath base path '/actuator'
+2026-03-22T12:23:55.924+02:00  INFO 11001 --- [restartedMain] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@6fe13858, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@76ed1452, org.springframework.security.web.context.SecurityContextHolderFilter@33362a0c, org.springframework.security.web.header.HeaderWriterFilter@29b98b50, org.springframework.web.filter.CorsFilter@31b40f35, org.springframework.security.web.authentication.logout.LogoutFilter@78c2040, com.example.project.filters.JwtFilter@29acda0b, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@670a8621, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@398b3849, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@3ee86b38, org.springframework.security.web.session.SessionManagementFilter@540e91ba, org.springframework.security.web.access.ExceptionTranslationFilter@409bfe96, org.springframework.security.web.access.intercept.AuthorizationFilter@57d93750]
+2026-03-22T12:23:56.264+02:00  INFO 11001 --- [restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8083 (http) with context path ''
+2026-03-22T12:23:56.278+02:00  INFO 11001 --- [restartedMain] com.example.project.HomeApplication      : Started HomeApplication in 3.571 seconds (process running for 3.827)
+2026-03-22T12:23:59.756+02:00  INFO 11001 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-03-22T12:23:59.758+02:00  INFO 11001 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-03-22T12:23:59.761+02:00  INFO 11001 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.

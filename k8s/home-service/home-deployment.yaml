@@ -14,8 +14,8 @@ spec:
     spec:
       containers:
         - name: home-service
-          image: home-service:v10
-          imagePullPolicy: IfNotPresent
+          image: home-service:v11
+          imagePullPolicy: Never
           ports:
             - containerPort: 8083
           env:
