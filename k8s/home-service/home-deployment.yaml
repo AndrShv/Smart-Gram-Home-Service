@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: home-service
-          image: home-service:v10
+          image: home-service:v14
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
@@ -51,9 +51,15 @@ spec:
             - name: SPRING_RABBITMQ_PASSWORD
               value: guest
 
-            # Auth Service
+            # Services
             - name: AUTH_SERVICE_URL
               value: http://auth-service:8081
+            - name: PROFILE_SERVICE_URL
+              value: http://profile-service:8082
+            - name: SUBSCRIPTION_SERVICE_URL
+              value: http://profile-service:8082
+            - name: NOTIFICATION_SERVICE_URL
+              value: http://notification-service:8084
 
             # JWT
             - name: JWT_SECRET
