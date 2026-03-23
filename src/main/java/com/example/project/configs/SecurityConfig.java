@@ -28,22 +28,21 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/health", "/actuator/**").permitAll()
+                        .requestMatchers("/favicon.ico", "/images/**").permitAll()
                         .requestMatchers(
-                                "/api/auth/**",
-                                "/api/password/reset/**",
-                                "/auth/**",
-                                "/oauth2/**",
-                                "/static.css/**",
-                                "/static/**",
+                                "/css/**",
+                                "/js/**",
                                 "/images/**",
-                                "/js/**"
+                                "/static/**",
+                                "/webjars/**",
+                                "/favicon.ico"
                         ).permitAll()
-                        .requestMatchers("/api/profiles/all").hasRole("ADMIN")
-                        .requestMatchers("/profiles/create", "/profiles/success").authenticated()
-                        .requestMatchers("/api/profiles/user/**").hasRole("ADMIN")
-                        .requestMatchers("/api/profiles/gender/**").hasRole("ADMIN")
-                        .requestMatchers("/api/profiles/{id}").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/profiles/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/proxy/**", "/api/profiles/*/avatar").permitAll()                        .requestMatchers(HttpMethod.GET, "/api/profiles/*/avatar").permitAll()
+                        .requestMatchers("/api/stories/all").authenticated()
+                        .requestMatchers("/stories/create").authenticated()
+                        .requestMatchers("/posts/create").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/stories/**").authenticated()
                         .anyRequest().authenticated()
                 );
 
