@@ -28,7 +28,7 @@ public class Post {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(length = 100)
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "photo_url", length = 512, nullable = false)

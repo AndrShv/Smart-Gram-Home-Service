@@ -2,6 +2,7 @@ package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
 import com.example.project.clients.SubscriptionClient;
+import com.example.project.dto.AiImageResult;
 import com.example.project.dto.post.PostDTO;
 import com.example.project.dto.count.PostReactionCountDTO;
 import com.example.project.dto.profile.SubscriberDTO;
@@ -13,6 +14,8 @@ import com.example.project.enums.PostMood;
 import com.example.project.enums.Reactions;
 import com.example.project.exceptions.PostNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
+import com.example.project.interfaces.AiImageService;
+import com.example.project.interfaces.ImaggaService;
 import com.example.project.interfaces.PostCrudService;
 import com.example.project.interfaces.PostReactionService;
 import com.example.project.metrics.HomeRabbitMetricsService;
@@ -42,7 +45,8 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     private final SubscriptionClient subscriptionClient;
     private final PostRepository postRepository;
     private final PostReactionRepository postReactionRepository;
-    private final ImaggaServiceImpl imaggaService;
+    private final ImaggaService imaggaService;
+    private final AiImageService aiImageService;
     private final NotificationProducer notificationProducer;
     private final PostMetricsService postMetrics;
     private final HomeRabbitMetricsService rabbitMetrics;
@@ -71,20 +75,42 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
             PostCategory category = PostCategory.OTHER;
             PostMood mood = PostMood.NEUTRAL;
 
+            AiImageResult ai = null;
+
             try {
                 if (post.getPhotoBytes() != null && post.getPhotoBytes().length > 0) {
-                    generatedTags = imaggaService.extractTagsFromBytes(post.getPhotoBytes(), post.getPhotoFileName());
-                    dominantColors = imaggaService.extractColorsFromBytes(post.getPhotoBytes(), post.getPhotoFileName());
+
+                    ai = aiImageService.analyzeImage(post.getPhotoBytes());
+
+                    generatedTags = ai.getTags();
+                    dominantColors = ai.getColors();
+
                     category = mapTagsToCategory(generatedTags);
                     mood = mapColorsToMood(dominantColors);
                 }
             } catch (Exception e) {
-                log.warn("Imagga не смог сгенерировать теги/цвета: {}", e.getMessage());
+                log.warn("Gemini failed → fallback Imagga");
+
+                try {
+                    generatedTags = imaggaService.extractTagsFromBytes(
+                            post.getPhotoBytes(), post.getPhotoFileName());
+
+                    dominantColors = imaggaService.extractColorsFromBytes(
+                            post.getPhotoBytes(), post.getPhotoFileName());
+
+                    category = mapTagsToCategory(generatedTags);
+                    mood = mapColorsToMood(dominantColors);
+
+                } catch (Exception ex) {
+                    log.error("Imagga also failed", ex);
+                }
             }
 
             String description = post.getDescription();
             if (description == null || description.isBlank()) {
-                description = "Фото с тегами: " + String.join(", ", generatedTags);
+                description = (ai != null)
+                        ? ai.getCaption()
+                        : "Фото: " + String.join(", ", generatedTags);
             }
 
             Post postToSave = Post.builder()

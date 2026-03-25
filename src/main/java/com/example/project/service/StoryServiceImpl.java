@@ -2,6 +2,7 @@ package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
 import com.example.project.clients.SubscriptionClient;
+import com.example.project.dto.AiImageResult;
 import com.example.project.dto.story.StoryDTO;
 import com.example.project.dto.count.StoryReactionCountDTO;
 import com.example.project.dto.profile.SubscriberDTO;
@@ -15,6 +16,7 @@ import com.example.project.enums.StoryMood;
 import com.example.project.exceptions.StoryIsNotAviableByTimeException;
 import com.example.project.exceptions.StoryNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
+import com.example.project.interfaces.AiImageService;
 import com.example.project.interfaces.ImaggaService;
 import com.example.project.interfaces.StoryCrudService;
 import com.example.project.interfaces.StoryReactionService;
@@ -49,6 +51,7 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
     private final StoryViewerRepository storyViewerRepository;
     private final StoryReactionRepository storyReactionRepository;
     private final ImaggaService imaggaService;
+    private final AiImageService aiImageService;
     private final NotificationProducer notificationProducer;
     private final StoryMetricsService storyMetrics;
     private final HomeRabbitMetricsService rabbitMetrics;
@@ -72,13 +75,27 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
             String mood = StoryMood.NEUTRAL.name();
 
             if (storyDTO.getPhotoBytes() != null && storyDTO.getPhotoFileName() != null) {
+                AiImageResult ai = null;
+
                 try {
-                    tags = imaggaService.extractTagsFromBytes(storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
-                    List<String> colors = imaggaService.extractColorsFromBytes(storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
+                    ai = aiImageService.analyzeImage(storyDTO.getPhotoBytes());
+                } catch (Exception e) {
+                    log.warn("Gemini failed → fallback");
+                }
+
+                if (ai != null) {
+                    tags = ai.getTags();
+                    category = mapTagsToCategory(tags);
+                    mood = mapColorsToMood(ai.getColors());
+                } else {
+                    tags = imaggaService.extractTagsFromBytes(
+                            storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
+
+                    List<String> colors = imaggaService.extractColorsFromBytes(
+                            storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
+
                     category = mapTagsToCategory(tags);
                     mood = mapColorsToMood(colors);
-                } catch (Exception e) {
-                    log.warn("Imagga не смог сгенерировать теги/цвета: {}", e.getMessage());
                 }
             }
 

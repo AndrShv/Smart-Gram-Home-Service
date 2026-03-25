@@ -21,7 +21,7 @@ public class PostDTO {
     private UUID id;
     private UUID userId;
 
-    @Size(min = 1, max = 100)
+    @Size(max = 200)
     private String description;
 
     private String photoUrl;

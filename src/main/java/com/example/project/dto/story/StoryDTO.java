@@ -19,7 +19,7 @@ public class StoryDTO {
     @NotNull
     private String userId;
 
-    @Size(max = 100)
+    @Size(max = 200)
     private String description;
 
     private String photoUrl;
