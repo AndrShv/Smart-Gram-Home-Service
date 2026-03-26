@@ -75,7 +75,7 @@ public class PostRestController {
         postDTO.setPhotoBytes(photoBytes);
         postDTO.setPhotoFileName(photo.getOriginalFilename());
 
-        Post createdPost = postService.createPost(postDTO);
+        Post createdPost = postService.createPost(postDTO, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(postMapper.toDto(createdPost));
     }
 

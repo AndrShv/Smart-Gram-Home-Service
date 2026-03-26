@@ -6,6 +6,7 @@ import com.example.project.dto.AiImageResult;
 import com.example.project.dto.post.PostDTO;
 import com.example.project.dto.count.PostReactionCountDTO;
 import com.example.project.dto.profile.SubscriberDTO;
+import com.example.project.dto.user.ShortUserDTO;
 import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Post;
 import com.example.project.entity.PostReaction;
@@ -33,6 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -50,6 +53,10 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     private final NotificationProducer notificationProducer;
     private final PostMetricsService postMetrics;
     private final HomeRabbitMetricsService rabbitMetrics;
+    private final ExecutorService virtualThreadExecutor;
+    private final PostAsyncService postAsyncService;
+
+
 
     // ============================================
     //           CRUD ОПЕРАЦИИ
@@ -57,104 +64,45 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
 
     @Override
     @Transactional
-    public Post createPost(PostDTO post) throws Exception {
+    public Post createPost(PostDTO post, UUID userId) throws Exception {
         log.info("Создание нового поста");
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new UnauthorizedException("JWT истёк");
+        }
+        ShortUserDTO currentUser = authClient.getUserById(userId);
 
-        return postMetrics.createPostTimer().recordCallable(() -> {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth == null || !auth.isAuthenticated()) {
-                throw new UnauthorizedException("JWT истёк");
-            }
+        String username = (currentUser != null
+                && currentUser.getUsername() != null
+                && !currentUser.getUsername().isBlank())
+                ? currentUser.getUsername()
+                : userId.toString();
 
-            UserResponseDTO currentUser = authClient.getCurrentUser();
-            UUID userId = UUID.fromString(currentUser.getId());
-            log.info("Получен пользователь с ID: {}", userId);
+        Post postToSave = Post.builder()
+                .id(UUID.randomUUID())
+                .userId(userId)
+                .description(post.getDescription())
+                .photoUrl(post.getPhotoUrl())
+                .createdAt(LocalDateTime.now())
+                .tags(new ArrayList<>())
+                .dominantColors(new ArrayList<>())
+                .category(PostCategory.OTHER)
+                .mood(PostMood.NEUTRAL)
+                .location(post.getLocation())
+                .isPublic(post.isPublic())
+                .reactions(new ArrayList<>())
+                .comments(new ArrayList<>())
+                .build();
 
-            List<String> generatedTags = new ArrayList<>();
-            List<String> dominantColors = new ArrayList<>();
-            PostCategory category = PostCategory.OTHER;
-            PostMood mood = PostMood.NEUTRAL;
+        Post savedPost = postRepository.save(postToSave);
 
-            AiImageResult ai = null;
+        postAsyncService.createPostAsync(post.getId(), post, userId);
 
-            try {
-                if (post.getPhotoBytes() != null && post.getPhotoBytes().length > 0) {
 
-                    ai = aiImageService.analyzeImage(post.getPhotoBytes());
+        postAsyncService.sendNotificationsAsync(savedPost, userId, username);
+        log.info("Пост с ID: {} успешно создан", savedPost.getId());
+        return savedPost;
 
-                    generatedTags = ai.getTags();
-                    dominantColors = ai.getColors();
-
-                    category = mapTagsToCategory(generatedTags);
-                    mood = mapColorsToMood(dominantColors);
-                }
-            } catch (Exception e) {
-                log.warn("Gemini failed → fallback Imagga");
-
-                try {
-                    generatedTags = imaggaService.extractTagsFromBytes(
-                            post.getPhotoBytes(), post.getPhotoFileName());
-
-                    dominantColors = imaggaService.extractColorsFromBytes(
-                            post.getPhotoBytes(), post.getPhotoFileName());
-
-                    category = mapTagsToCategory(generatedTags);
-                    mood = mapColorsToMood(dominantColors);
-
-                } catch (Exception ex) {
-                    log.error("Imagga also failed", ex);
-                }
-            }
-
-            String description = post.getDescription();
-            if (description == null || description.isBlank()) {
-                description = (ai != null)
-                        ? ai.getCaption()
-                        : "Фото: " + String.join(", ", generatedTags);
-            }
-
-            Post postToSave = Post.builder()
-                    .id(UUID.randomUUID())
-                    .userId(userId)
-                    .description(description)
-                    .photoUrl(post.getPhotoUrl())
-                    .createdAt(LocalDateTime.now())
-                    .tags(generatedTags)
-                    .dominantColors(dominantColors)
-                    .category(category)
-                    .mood(mood)
-                    .location(post.getLocation())
-                    .isPublic(post.isPublic())
-                    .reactions(new ArrayList<>())
-                    .comments(new ArrayList<>())
-                    .build();
-
-            Post savedPost = postRepository.save(postToSave);
-            postMetrics.incrementCreated();
-
-            try {
-                List<UUID> subscriberIds = subscriptionClient.getFollowers(userId)
-                        .stream()
-                        .map(SubscriberDTO::getSubscriberUserId)
-                        .toList();
-
-                for (UUID subscriberId : subscriberIds) {
-                    notificationProducer.sendPostCreated(
-                            savedPost.getId().toString(),
-                            userId.toString(),
-                            subscriberId.toString(),
-                            currentUser.getUsername() != null ? currentUser.getUsername() : userId.toString()
-                    );
-                    rabbitMetrics.increment();
-                }
-                log.info("Отправлено {} уведомлений о новом посте", subscriberIds.size());
-            } catch (Exception e) {
-                log.warn("Не удалось отправить уведомления: {}", e.getMessage());
-            }
-
-            log.info("Пост успешно сохранён с ID: {}", savedPost.getId());
-            return savedPost;
-        });
     }
 
     @Override
@@ -375,7 +323,7 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     private PostMood mapColorsToMood(List<String> colors) {
         if (colors == null || colors.isEmpty()) return PostMood.NEUTRAL;
         boolean hasBright = colors.stream().anyMatch(this::isBrightColor);
-        boolean hasDark   = colors.stream().anyMatch(this::isDarkColor);
+        boolean hasDark = colors.stream().anyMatch(this::isDarkColor);
         if (hasBright && !hasDark) return PostMood.HAPPY;
         if (!hasBright && hasDark) return PostMood.SAD;
         return PostMood.NEUTRAL;
@@ -387,8 +335,12 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
             int g = Integer.parseInt(hex.substring(3, 5), 16);
             int b = Integer.parseInt(hex.substring(5, 7), 16);
             return (r + g + b) / 3 > 127;
-        } catch (Exception e) { return false; }
+        } catch (Exception e) {
+            return false;
+        }
     }
 
-    private boolean isDarkColor(String hex) { return !isBrightColor(hex); }
+    private boolean isDarkColor(String hex) {
+        return !isBrightColor(hex);
+    }
 }

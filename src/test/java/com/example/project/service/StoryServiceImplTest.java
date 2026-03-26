@@ -2,6 +2,7 @@ package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
 import com.example.project.clients.SubscriptionClient;
+import com.example.project.dto.profile.SubscriberDTO;
 import com.example.project.dto.story.StoryDTO;
 import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Story;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -55,6 +57,7 @@ class StoryServiceImplTest {
     @Mock private StoryMetricsService storyMetrics;
     @Mock private HomeRabbitMetricsService rabbitMetrics;
     @Mock private ImaggaService imaggaService;
+    @Mock private StoryAsyncService storyAsyncService;
 
     @InjectMocks
     private StoryServiceImpl storyService;
@@ -96,12 +99,11 @@ class StoryServiceImplTest {
         when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
 
-        Story result = storyService.createStory(dto);
+        Story result = storyService.createStory(dto, userId);
 
         assertNotNull(result);
         assertEquals(userId, result.getUserId());
         verify(storyRepository).save(any(Story.class));
-        verify(storyMetrics).incrementCreated();
     }
 
     @Test
@@ -110,15 +112,18 @@ class StoryServiceImplTest {
         SecurityContextHolder.clearContext();
 
         assertThrows(UnauthorizedException.class,
-                () -> storyService.createStory(new StoryDTO()));
+                () -> storyService.createStory(new StoryDTO(), userId));
     }
 
     @Test
     void createStory_expireTimeIs24Hours() throws Exception {
+        UUID userId = UUID.randomUUID();
         when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
 
-        Story story = storyService.createStory(buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY));
+        StoryDTO dto = buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY);
+
+        Story story = storyService.createStory(dto, userId);
 
         assertTrue(story.getExpireAt().isAfter(story.getCreatedAt()));
     }
@@ -127,8 +132,9 @@ class StoryServiceImplTest {
     void createStory_viewersEmpty() throws Exception {
         when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
+        StoryDTO dto = buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY);
 
-        Story story = storyService.createStory(buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY));
+        Story story = storyService.createStory(dto, userId);
 
         assertNotNull(story.getViewers());
         assertTrue(story.getViewers().isEmpty());
@@ -142,7 +148,7 @@ class StoryServiceImplTest {
         when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
 
-        assertEquals("hello", storyService.createStory(dto).getDescription());
+        assertEquals("hello", storyService.createStory(dto, userId).getDescription());
     }
 
     @Test
@@ -153,15 +159,16 @@ class StoryServiceImplTest {
         when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
 
-        assertEquals("img.png", storyService.createStory(dto).getPhotoUrl());
+        assertEquals("img.png", storyService.createStory(dto, userId).getPhotoUrl());
     }
 
     @Test
     void createStory_saveCalledOnce() throws Exception {
         when(authClient.getCurrentUser()).thenReturn(user());
         mockAuthenticated();
+        StoryDTO dto = buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY);
 
-        storyService.createStory(buildDto(StoryCategory.FAMILY, StoryMood.HAPPY));
+        Story story = storyService.createStory(dto, userId);
 
         verify(storyRepository).save(any());
     }
@@ -169,26 +176,28 @@ class StoryServiceImplTest {
     @Test
     void createStory_sendsNotificationsToSubscribers() throws Exception {
         UUID subscriberId = UUID.randomUUID();
-        com.example.project.dto.profile.SubscriberDTO sub =
-                com.example.project.dto.profile.SubscriberDTO.builder()
-                        .subscriberUserId(subscriberId).build();
+        SubscriberDTO sub = SubscriberDTO.builder().subscriberUserId(subscriberId).build();
 
         when(authClient.getCurrentUser()).thenReturn(
                 UserResponseDTO.builder().id(userId.toString()).username("testuser").build());
         when(subscriptionClient.getFollowers(userId)).thenReturn(List.of(sub));
         mockAuthenticated();
-
         Story saved = validStory();
         when(storyRepository.save(any())).thenReturn(saved);
 
-        storyService.createStory(buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY));
+        when(storyAsyncService.sendNotificationsAsync(any(), any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
 
-        verify(notificationProducer).sendStoryCreated(
-                anyString(), eq(userId.toString()), eq(subscriberId.toString()), anyString()
+        StoryDTO dto = buildDto(StoryCategory.FRIENDS, StoryMood.HAPPY);
+        Story story = storyService.createStory(dto, userId);
+
+        verify(storyAsyncService).sendNotificationsAsync(
+                eq(story),
+                eq(userId),
+                any(String.class)
         );
-        verify(rabbitMetrics).increment();
-    }
 
+    }
     // ============================================
     //  VIEW STORY
     // ============================================

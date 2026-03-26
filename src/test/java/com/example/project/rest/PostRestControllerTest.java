@@ -43,13 +43,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class PostRestControllerTest {
 
-    @Mock private PostCrudService postService;
-    @Mock private PostReactionService postReactionService;
-    @Mock private PostMapper postMapper;
-    @Mock private MinioService minioService;
+    @Mock
+    private PostCrudService postService;
+    @Mock
+    private PostReactionService postReactionService;
+    @Mock
+    private PostMapper postMapper;
+    @Mock
+    private MinioService minioService;
 
-    // ✅ Mock — не @InjectMocks, метрикам нужен MeterRegistry
-    @Mock private PostApiMetricsService apiMetrics;
+    @Mock
+    private PostApiMetricsService apiMetrics;
 
     @InjectMocks
     private PostRestController postRestController;
@@ -110,7 +114,7 @@ class PostRestControllerTest {
     void createPost_success() throws Exception {
         when(minioService.uploadPostPhotoBytes(any(), anyString(), anyString()))
                 .thenReturn("http://minio/posts/photo.jpg");
-        when(postService.createPost(any(PostDTO.class))).thenReturn(post);
+        when(postService.createPost(any(PostDTO.class), eq(userId))).thenReturn(post);
         when(postMapper.toDto(post)).thenReturn(PostDTO.builder()
                 .id(postId).userId(userId).description("Test Post")
                 .photoUrl("http://minio/posts/photo.jpg")
@@ -127,7 +131,7 @@ class PostRestControllerTest {
                 .andExpect(jsonPath("$.id").value(postId.toString()))
                 .andExpect(jsonPath("$.description").value("Test Post"));
 
-        verify(postService).createPost(any(PostDTO.class));
+        verify(postService).createPost(any(PostDTO.class),  eq(userId));
         verify(postMapper).toDto(post);
     }
 

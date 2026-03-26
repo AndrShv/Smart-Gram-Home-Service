@@ -18,5 +18,5 @@ public enum StoryCategory {
     FASHION,
     TECHNOLOGY,
     EDUCATION,
-    HEALTH
+    HEALTH,
 }

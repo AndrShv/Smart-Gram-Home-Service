@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface StoryCrudService {
-    Story createStory(StoryDTO story) throws Exception;
+    Story createStory(StoryDTO storyDTO, UUID userId) throws Exception;
 
     void deleteStory(UUID storyId);
 

@@ -12,4 +12,5 @@ public enum StoryMood {
     PROUD,
     LONELY,
     HOPEFUL,
+    ENERGETIC
 }

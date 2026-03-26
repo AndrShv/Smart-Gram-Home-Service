@@ -6,6 +6,7 @@ import com.example.project.dto.AiImageResult;
 import com.example.project.dto.story.StoryDTO;
 import com.example.project.dto.count.StoryReactionCountDTO;
 import com.example.project.dto.profile.SubscriberDTO;
+import com.example.project.dto.user.ShortUserDTO;
 import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Story;
 import com.example.project.entity.StoryReaction;
@@ -55,49 +56,25 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
     private final NotificationProducer notificationProducer;
     private final StoryMetricsService storyMetrics;
     private final HomeRabbitMetricsService rabbitMetrics;
+    private final StoryAsyncService storyAsyncService;
+
 
     @Override
     @Transactional
-    public Story createStory(StoryDTO storyDTO) throws Exception {
+    public Story createStory(StoryDTO storyDTO, UUID userId) throws Exception {
         log.info("Создание новой истории");
 
         return storyMetrics.createStoryTimer().recordCallable(() -> {
-            UserResponseDTO currentUser = authClient.getCurrentUser();
-            UUID userId = UUID.fromString(currentUser.getId());
-
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth == null || !auth.isAuthenticated()) {
                 throw new UnauthorizedException("JWT истёк");
             }
-
-            List<String> tags = new ArrayList<>();
-            String category = StoryCategory.OTHER.name();
-            String mood = StoryMood.NEUTRAL.name();
-
-            if (storyDTO.getPhotoBytes() != null && storyDTO.getPhotoFileName() != null) {
-                AiImageResult ai = null;
-
-                try {
-                    ai = aiImageService.analyzeImage(storyDTO.getPhotoBytes());
-                } catch (Exception e) {
-                    log.warn("Gemini failed → fallback");
-                }
-
-                if (ai != null) {
-                    tags = ai.getTags();
-                    category = mapTagsToCategory(tags);
-                    mood = mapColorsToMood(ai.getColors());
-                } else {
-                    tags = imaggaService.extractTagsFromBytes(
-                            storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
-
-                    List<String> colors = imaggaService.extractColorsFromBytes(
-                            storyDTO.getPhotoBytes(), storyDTO.getPhotoFileName());
-
-                    category = mapTagsToCategory(tags);
-                    mood = mapColorsToMood(colors);
-                }
-            }
+            ShortUserDTO currentUser = authClient.getUserById(userId);
+            String username = (currentUser != null
+                    && currentUser.getUsername() != null
+                    && !currentUser.getUsername().isBlank())
+                    ? currentUser.getUsername()
+                    : userId.toString();
 
             Story story = Story.builder()
                     .userId(userId)
@@ -105,10 +82,10 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
                     .photoUrl(storyDTO.getPhotoUrl())
                     .createdAt(LocalDateTime.now())
                     .expireAt(LocalDateTime.now().plusHours(STORY_LIFETIME_HOURS))
-                    .tags(tags.isEmpty() ? storyDTO.getTags() : tags)
-                    .category(StoryCategory.valueOf(category))
+                    .tags(new ArrayList<>())
+                    .category(StoryCategory.OTHER)
                     .location(storyDTO.getLocation())
-                    .mood(StoryMood.valueOf(mood))
+                    .mood(StoryMood.NEUTRAL)
                     .overlayText(storyDTO.getOverlayText())
                     .musicCaption(storyDTO.getMusicCaption())
                     .isPublic(storyDTO.isPublic())
@@ -116,29 +93,12 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
                     .build();
 
             Story savedStory = storyRepository.save(story);
-            storyMetrics.incrementCreated();
 
-            try {
-                List<UUID> subscriberIds = subscriptionClient.getFollowers(userId)
-                        .stream()
-                        .map(SubscriberDTO::getSubscriberUserId)
-                        .toList();
+            storyAsyncService.createStoryAsync(savedStory, userId);
 
-                for (UUID subscriberId : subscriberIds) {
-                    notificationProducer.sendStoryCreated(
-                            savedStory.getId().toString(),
-                            userId.toString(),
-                            subscriberId.toString(),
-                            currentUser.getUsername() != null ? currentUser.getUsername() : userId.toString()
-                    );
-                    rabbitMetrics.increment();
-                }
-                log.info("Отправлено {} уведомлений о новой истории", subscriberIds.size());
-            } catch (Exception e) {
-                log.warn("Не удалось отправить уведомления о story: {}", e.getMessage());
-            }
+            storyAsyncService.sendNotificationsAsync(savedStory, userId, username);
 
-            log.info("✅ История успешно создана для пользователя с ID: {}", userId);
+            log.info("История с ID: {} успешно создана", savedStory.getId());
             return savedStory;
         });
     }

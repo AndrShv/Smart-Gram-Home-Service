@@ -12,5 +12,8 @@ public enum PostMood {
     PROUD,
     LONELY,
     HOPEFUL,
+    ENERGETIC,
+    CALM,
+    MYSTERIOUS,
 
 }

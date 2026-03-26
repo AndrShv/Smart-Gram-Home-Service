@@ -40,17 +40,14 @@ public class Story {
     @Column(name = "expire_at", nullable = false)
     private LocalDateTime expireAt;
 
-    // Теги (например: ["закат", "море", "лето"])
     @ElementCollection
     @CollectionTable(name = "story_tags", joinColumns = @JoinColumn(name = "story_id"))
     @Column(name = "tag")
     private List<String> tags;
 
-    // Категория (например: "Путешествия", "Еда", "Спорт")
     @Column(name = "category", length = 64)
     private StoryCategory category;
 
-    // Геолокация (например: "Одесса, Украина")
     @Column(name = "location", length = 128)
     private String location;
 
@@ -78,4 +75,9 @@ public class Story {
     @JsonIgnore
     @OneToMany(mappedBy = "story", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<StoryReaction> reactions;
+
+
+    @JsonIgnore
+    private transient byte[] photoBytes;
+
 }

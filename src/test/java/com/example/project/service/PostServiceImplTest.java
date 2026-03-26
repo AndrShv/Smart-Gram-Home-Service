@@ -3,12 +3,15 @@ package com.example.project.service;
 import com.example.project.clients.AuthClient;
 import com.example.project.clients.SubscriptionClient;
 import com.example.project.dto.post.PostDTO;
+import com.example.project.dto.profile.SubscriberDTO;
+import com.example.project.dto.user.ShortUserDTO;
 import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Post;
 import com.example.project.entity.PostReaction;
 import com.example.project.enums.Reactions;
 import com.example.project.exceptions.PostNotFoundException;
 import com.example.project.exceptions.UnauthorizedException;
+import com.example.project.interfaces.AiImageService;
 import com.example.project.metrics.HomeRabbitMetricsService;
 import com.example.project.metrics.PostMetricsService;
 import com.example.project.repository.PostReactionRepository;
@@ -55,6 +58,10 @@ class PostServiceImplTest {
     private HomeRabbitMetricsService rabbitMetrics;
     @Mock
     private ImaggaServiceImpl imaggaService;
+    @Mock
+    private AiImageService aiImageService;
+    @Mock
+    private PostAsyncService postAsyncService;
 
     @InjectMocks
     private PostServiceImpl postService;
@@ -78,7 +85,6 @@ class PostServiceImplTest {
                 .comments(new ArrayList<>())
                 .build();
 
-        // ✅ мокаем Timer чтобы recordCallable выполнял переданный Callable
         Timer mockTimer = mock(Timer.class, withSettings().lenient());
         try {
             when(mockTimer.recordCallable(any())).thenAnswer(inv ->
@@ -115,12 +121,11 @@ class PostServiceImplTest {
                 UserResponseDTO.builder().id(userId.toString()).username("testuser").build());
         when(postRepository.save(any(Post.class))).thenReturn(post);
 
-        Post created = postService.createPost(dto);
+        Post created = postService.createPost(dto, userId);
 
         assertNotNull(created);
         assertEquals("Test Post", created.getDescription());
         verify(postRepository).save(any(Post.class));
-        verify(postMetrics).incrementCreated();
     }
 
     @Test
@@ -131,7 +136,7 @@ class PostServiceImplTest {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         when(auth.isAuthenticated()).thenReturn(false);
 
-        assertThrows(UnauthorizedException.class, () -> postService.createPost(new PostDTO()));
+        assertThrows(UnauthorizedException.class, () -> postService.createPost(new PostDTO(), userId));
     }
 
     @Test
@@ -140,25 +145,24 @@ class PostServiceImplTest {
         dto.setDescription("Post");
 
         UUID subscriberId = UUID.randomUUID();
-        com.example.project.dto.profile.SubscriberDTO sub =
-                com.example.project.dto.profile.SubscriberDTO.builder()
-                        .subscriberUserId(subscriberId)
-                        .build();
 
-        when(authClient.getCurrentUser()).thenReturn(
-                UserResponseDTO.builder().id(userId.toString()).username("testuser").build());
-        when(postRepository.save(any())).thenReturn(post);
-        when(subscriptionClient.getFollowers(userId)).thenReturn(List.of(sub));
+        SubscriberDTO sub = SubscriberDTO.builder()
+                .subscriberUserId(subscriberId)
+                .build();
 
-        postService.createPost(dto);
+        ShortUserDTO currentUser = new ShortUserDTO();
+        currentUser.setUsername("testuser");
 
-        verify(notificationProducer).sendPostCreated(
-                post.getId().toString(),
-                userId.toString(),
-                subscriberId.toString(),
-                "testuser"
+        when(authClient.getUserById(userId)).thenReturn(currentUser);
+        when(postRepository.save(any(Post.class))).thenReturn(post);
+
+        postService.createPost(dto, userId);
+
+        verify(postAsyncService).sendNotificationsAsync(
+                eq(post),
+                eq(userId),
+                eq("testuser")
         );
-        verify(rabbitMetrics).increment();
     }
 
     // ============================================
