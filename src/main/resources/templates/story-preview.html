@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Предпросмотр — SmartGram</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/story-preview.css}">
+</head>
+<body>
+<div class="space-background"><div class="stars"></div><div class="stars2"></div><div class="stars3"></div></div>
+<div class="aurora"><div class="aurora-blob"></div><div class="aurora-blob"></div></div>
+
+<header class="top-bar">
+  <div class="top-bar-inner">
+    <a href="/stories/create" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+    <span class="page-title">Предпросмотр</span>
+    <div style="width:38px"></div>
+  </div>
+</header>
+
+<div class="main-wrap">
+  <div class="no-data" id="noData" style="display:none">
+    <p style="font-size:36px;margin-bottom:16px;opacity:.3">📷</p>
+    <p style="margin-bottom:12px">Нет данных для предпросмотра</p>
+    <a href="/stories/create">← Вернуться к созданию</a>
+  </div>
+
+  <div class="story-card" id="storyCard">
+    <div class="story-frame">
+      <div class="story-frame-inner">
+        <img id="previewImg" src="" alt="История">
+        <div class="story-gradient"></div>
+        <div class="story-progress"><div class="story-progress-fill" id="progressFill"></div></div>
+        <div class="story-top">
+          <div class="avatar-ring"><img id="previewAvatar" src="/images/default-avatar.png" alt="avatar"></div>
+          <div class="story-meta">
+            <span class="story-username" id="previewUsername">Вы</span>
+            <span class="story-ts">Только что · 24ч</span>
+          </div>
+        </div>
+        <div class="overlay-text-el" id="overlayTextEl"></div>
+        <div class="story-bottom">
+          <div class="location-badge" id="locationBadge"><i class="fas fa-location-dot"></i><span id="locationText"></span></div>
+          <p class="story-desc-el" id="descEl"></p>
+          <div class="tags-row" id="tagsRow"></div>
+          <div class="music-badge" id="musicBadge"><span class="music-icon-spin">♫</span><span id="musicText"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-section" id="aiSection">
+    <div class="ai-title">✦ Теги и параметры</div>
+    <div class="ai-chips" id="aiChips"></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-back" onclick="window.location.href='/stories/create'">
+      <i class="fas fa-pen"></i> Изменить
+    </button>
+    <button class="btn btn-publish" id="publishBtn">
+      <span class="btn-label"><i class="fas fa-rocket"></i> Опубликовать</span>
+      <span class="spinner"></span>
+    </button>
+  </div>
+</div>
+
+<div class="success-overlay" id="successOverlay">
+  <div class="success-circle">🚀</div>
+  <div class="success-title">История опубликована!</div>
+  <div class="success-sub">Она будет доступна 24 часа</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+  (function() {
+    var photo64     = sessionStorage.getItem('story_photo_base64');
+    var photoName   = sessionStorage.getItem('story_photo_name')   || 'photo.jpg';
+    var photoType   = sessionStorage.getItem('story_photo_type')   || 'image/jpeg';
+    var storyDesc   = sessionStorage.getItem('story_description')  || '';
+    var storyPlace  = sessionStorage.getItem('story_location')     || '';
+    var storyOverlay= sessionStorage.getItem('story_overlayText')  || '';
+    var storyMusic  = sessionStorage.getItem('story_musicCaption') || '';
+    var storyPublic = sessionStorage.getItem('story_isPublic') !== 'false';
+
+    if (!photo64) {
+      document.getElementById('storyCard').style.display = 'none';
+      document.getElementById('aiSection').style.display = 'none';
+      document.querySelector('.actions').style.display   = 'none';
+      document.getElementById('noData').style.display    = 'block';
+      return;
+    }
+
+    document.getElementById('previewImg').src = photo64;
+
+    // Load current user avatar/name
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(me => {
+        if (!me) return;
+        return fetch(`/api/profiles/user/${me.id || me.userId}`, { credentials: 'include' });
+      })
+      .then(r => r && r.ok ? r.json() : null)
+      .then(profile => {
+        if (!profile) return;
+        if (profile.avatarUrl) document.getElementById('previewAvatar').src = `/api/profiles/${profile.id}/avatar`;
+        var name = profile.name || 'Вы';
+        document.getElementById('previewUsername').textContent = name.toLowerCase() + '_' + (profile.surname || '').toLowerCase();
+      })
+      .catch(() => {});
+
+    if (storyOverlay) { var el=document.getElementById('overlayTextEl'); el.textContent=storyOverlay; el.style.display='block'; }
+    if (storyDesc)    { var el=document.getElementById('descEl');        el.textContent=storyDesc;    el.style.display='block'; }
+    if (storyPlace)   { document.getElementById('locationText').textContent=storyPlace; document.getElementById('locationBadge').style.display='inline-flex'; }
+    if (storyMusic)   { document.getElementById('musicText').textContent=storyMusic;    document.getElementById('musicBadge').style.display='inline-flex'; }
+
+    // Tags
+    var combined = (storyDesc+' '+storyPlace+' '+storyOverlay).toLowerCase();
+    var tagMap = [
+      { kw:['море','пляж','ocean','sea','beach'],  label:'море',        cls:'chip-cyan'   },
+      { kw:['город','city','urban','улица'],        label:'город',       cls:'chip-cyan'   },
+      { kw:['природа','лес','nature','forest'],     label:'природа',     cls:'chip-cyan'   },
+      { kw:['еда','food','ресторан','кафе'],        label:'еда',         cls:'chip-cyan'   },
+      { kw:['путешест','travel','поездк'],          label:'путешествие', cls:'chip-cyan'   },
+      { kw:['закат','рассвет','sunset','sunrise'],  label:'закат',       cls:'chip-rose'   },
+      { kw:['музык','music','концерт'],             label:'музыка',      cls:'chip-violet' },
+      { kw:['спорт','фитнес','sport','fitness'],    label:'спорт',       cls:'chip-violet' },
+    ];
+    var found = tagMap.filter(t => t.kw.some(k => combined.includes(k)));
+    var tagsRow = document.getElementById('tagsRow');
+    found.slice(0,4).forEach(t => {
+      var s=document.createElement('span'); s.className='story-tag'; s.textContent='#'+t.label; tagsRow.appendChild(s);
+    });
+
+    var chipsEl = document.getElementById('aiChips');
+    var allChips = found.concat([
+      { label: storyPublic ? '🌍 Публичная' : '🔒 Приватная', cls: storyPublic ? 'chip-cyan' : 'chip-violet' },
+      { label: '⏳ 24 часа', cls: 'chip-rose' }
+    ]);
+    allChips.forEach(t => {
+      var c=document.createElement('span'); c.className='chip '+t.cls; c.textContent=t.label; chipsEl.appendChild(c);
+    });
+    document.getElementById('aiSection').style.display = 'block';
+
+    document.getElementById('publishBtn').addEventListener('click', async function() {
+      var btn = document.getElementById('publishBtn');
+      btn.disabled = true; btn.classList.add('loading');
+      try {
+        var fetchRes = await fetch(photo64);
+        var blob     = await fetchRes.blob();
+        var file     = new File([blob], photoName, { type: photoType });
+        var fd = new FormData();
+        fd.append('photo',        file);
+        fd.append('description',  storyDesc);
+        fd.append('location',     storyPlace);
+        fd.append('overlayText',  storyOverlay);
+        fd.append('musicCaption', storyMusic);
+        fd.append('isPublic',     storyPublic);
+        var res = await fetch('/api/stories', { method:'POST', body:fd, credentials:'include' });
+        if (!res.ok) throw new Error(await res.text() || 'Ошибка ' + res.status);
+        ['story_photo_base64','story_photo_name','story_photo_type','story_description',
+         'story_location','story_overlayText','story_musicCaption','story_isPublic'].forEach(k => sessionStorage.removeItem(k));
+        document.getElementById('successOverlay').classList.add('show');
+        setTimeout(() => window.location.href = '/home', 2200);
+      } catch(err) {
+        showToast('Ошибка: ' + err.message);
+        btn.disabled=false; btn.classList.remove('loading');
+      }
+    });
+
+    function showToast(msg) {
+      var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 4000);
+    }
+  })();
+</script>
+</body>
+</html>

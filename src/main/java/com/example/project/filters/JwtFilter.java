@@ -55,22 +55,23 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            Claims claims = jwtUtil.extractAllClaims(token);
-            List<String> authorities = (List<String>) claims.get("authorities");
+            List<String> authorities = jwtUtil.getAuthoritiesFromToken(token);
+            String userId = jwtUtil.getUserIdFromToken(token).toString();
 
             List<SimpleGrantedAuthority> grantedAuthorities = authorities.stream()
-                    .map(auth -> new SimpleGrantedAuthority("ROLE_" + auth))
+                    .map(role -> new SimpleGrantedAuthority(
+                            role.startsWith("ROLE_") ? role : "ROLE_" + role))
                     .collect(Collectors.toList());
 
-            log.debug("User from token: {}, authorities: {}", email, grantedAuthorities);
+            log.debug("User from token: {}, userId: {}, authorities: {}", email, userId, grantedAuthorities);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    email, null, grantedAuthorities);
+                    userId, token, grantedAuthorities);
 
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.info("✅ Authentication set for user: {} with roles: {}", email, grantedAuthorities);
-        } else if (email == null) {
+            log.info("✅ Authentication set for user: {} (userId: {}) with roles: {}", email, userId, grantedAuthorities);
+        }else if (email == null) {
             log.warn("❌ Email is null, authentication not set");
         } else {
             log.debug("Authentication already exists in context");
@@ -113,14 +114,18 @@ public class JwtFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         boolean shouldSkip =
-                path.startsWith("/api/auth/") ||
-                        path.startsWith("/api/auth/") && !path.equals("/api/auth/me") ||
-                        path.startsWith("/auth/") ||
+                path.startsWith("/auth/") ||
                         path.startsWith("/oauth2/") ||
-                        path.startsWith("/static.css/") ||
-                        path.startsWith("/static/") ||
+                        path.startsWith("/actuator/") ||
+                        path.startsWith("/css/") ||
+                        path.startsWith("/js/") ||
                         path.startsWith("/images/") ||
-                        path.startsWith("/js/");
+                        path.startsWith("/webjars/") ||
+                        path.equals("/favicon.ico");
+
+        if (path.startsWith("/actuator/")) {
+            log.info("🔥 ACTUATOR PATH DETECTED: {}, skipping filter", path);
+        }
 
         log.debug("Path: {}, shouldNotFilter: {}", path, shouldSkip);
         return shouldSkip;
