@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Поиск — SmartGram</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" th:href="@{/css/search.css}">
+</head>
+<body>
+<div class="space-background"><div class="stars"></div><div class="stars2"></div><div class="stars3"></div></div>
+<div class="aurora"><div class="aurora-blob"></div><div class="aurora-blob"></div><div class="aurora-blob"></div></div>
+
+<!-- TOP BAR -->
+<header class="top-bar">
+  <div class="top-bar-content">
+    <a href="/home" class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="lg1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="50%" stop-color="#93c5fd"/><stop offset="100%" stop-color="#f9a8d4"/></linearGradient>
+            <linearGradient id="lg2" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient>
+          </defs>
+          <circle cx="18" cy="18" r="16" stroke="url(#lg1)" stroke-width="1.5" stroke-dasharray="4 2" fill="none" opacity=".5"/>
+          <circle cx="18" cy="18" r="11" fill="url(#lg2)" opacity=".15"/>
+          <path d="M13.5 14.5 C13.5 13.1 14.6 12 16 12 H19.5 C20.9 12 22 13.1 22 14.5 C22 15.9 20.9 17 19.5 17 H16.5 C15.1 17 14 18.1 14 19.5 C14 20.9 15.1 22 16.5 22 H20 C21.4 22 22.5 20.9 22.5 19.5" stroke="url(#lg1)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+          <circle cx="28" cy="10" r="2.5" fill="#f9a8d4" opacity=".9"/>
+        </svg>
+      </div>
+      <span class="logo-text">Smart<span>Gram</span></span>
+    </a>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="main-content">
+
+  <!-- SEARCH BOX -->
+  <div class="search-wrap">
+    <i class="fas fa-magnifying-glass search-icon"></i>
+    <input type="text" id="searchInput" placeholder="Поиск людей, постов, тегов…" autocomplete="off">
+    <button class="clear-btn" id="clearBtn"><i class="fas fa-xmark"></i></button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" data-tab="users"><i class="fas fa-users"></i>Люди</button>
+    <button class="tab" data-tab="posts"><i class="fas fa-grid-2"></i>Посты</button>
+    <button class="tab" data-tab="hashtags"><i class="fas fa-hashtag"></i>Теги</button>
+  </div>
+
+  <!-- LOADING -->
+  <div class="loading" id="loading">
+    <div class="loader-dots"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+    Ищем…
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-container">
+
+    <!-- USERS -->
+    <div class="tab-content active" id="users-tab">
+      <div class="users-grid" id="usersGrid">
+        <div class="empty-state"><i class="fas fa-user-astronaut"></i><p>Введите имя для поиска</p></div>
+      </div>
+    </div>
+
+    <!-- POSTS -->
+    <div class="tab-content" id="posts-tab">
+      <div class="posts-grid" id="postsGrid">
+        <div class="empty-state" style="grid-column:1/-1"><i class="fas fa-image"></i><p>Введите запрос для поиска</p></div>
+      </div>
+    </div>
+
+    <!-- HASHTAGS -->
+    <div class="tab-content" id="hashtags-tab">
+      <div id="hashtagsList">
+        <div class="empty-state"><i class="fas fa-hashtag"></i><p>Введите тег для поиска</p></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <a href="/home"     class="nav-item"><i class="fas fa-house"></i><span>Главная</span></a>
+  <a href="/search"   class="nav-item active"><i class="fas fa-magnifying-glass"></i><span>Поиск</span></a>
+  <a href="/messages" class="nav-item"><i class="fas fa-comment-dots"></i><span>Чаты</span></a>
+  <a href="/profile"  class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
+  <a href="/settings" class="nav-item"><i class="fas fa-gear"></i><span>Настройки</span></a>
+</nav>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('searchInput');
+    const clearBtn    = document.getElementById('clearBtn');
+    const loading     = document.getElementById('loading');
+    const tabs        = document.querySelectorAll('.tab');
+
+    let searchTimeout;
+    let activeTab = 'users';
+    let myUserId  = null;
+    let followingIds = new Set();
+
+    // Load current user + followings
+    (async function() {
+      try {
+        const r = await fetch('/api/auth/me', { credentials: 'include' });
+        if (r.ok) { const me = await r.json(); myUserId = me.id || me.userId; }
+      } catch {}
+      if (myUserId) {
+        try {
+          const r = await fetch(`/api/subscriptions/${myUserId}/followings`, { credentials: 'include' });
+          if (r.ok) {
+            const list = await r.json();
+            list.forEach(f => { const id = f.followingUserId || f.targetUserId || f.userId || f.id; if (id) followingIds.add(String(id)); });
+          }
+        } catch {}
+      }
+    })();
+
+    // ── TABS ──
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        activeTab = tab.dataset.tab;
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(activeTab + '-tab').classList.add('active');
+        const q = searchInput.value.trim();
+        if (q.length >= 2) performSearch(q);
+      });
+    });
+
+    // ── CLEAR ──
+    clearBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      clearBtn.style.display = 'none';
+      resetResults();
+    });
+
+    // ── INPUT ──
+    searchInput.addEventListener('input', e => {
+      const v = e.target.value.trim();
+      clearBtn.style.display = v ? 'block' : 'none';
+      clearTimeout(searchTimeout);
+      if (v.length >= 2) searchTimeout = setTimeout(() => performSearch(v), 300);
+      else if (!v) resetResults();
+    });
+
+    // ── SEARCH ──
+    async function performSearch(query) {
+      loading.style.display = 'block';
+      try {
+        if (activeTab === 'users')    await searchUsers(query);
+        else if (activeTab === 'posts')    await searchPosts(query);
+        else if (activeTab === 'hashtags') await searchHashtags(query);
+      } catch (e) { console.error(e); }
+      finally { loading.style.display = 'none'; }
+    }
+
+    async function searchUsers(query) {
+      const r = await fetch(`/api/profiles/search?query=${encodeURIComponent(query)}`, { credentials: 'include' });
+      if (!r.ok) throw new Error();
+      renderUsers(await r.json());
+    }
+
+    async function searchPosts(query) {
+      const r = await fetch(`/api/posts/search?query=${encodeURIComponent(query)}`, { credentials: 'include' });
+      if (!r.ok) throw new Error();
+      renderPosts(await r.json());
+    }
+
+    async function searchHashtags(query) {
+      const r = await fetch(`/api/posts/search/tags?tag=${encodeURIComponent(query)}`, { credentials: 'include' });
+      if (!r.ok) throw new Error();
+      renderHashtags(await r.json(), query);
+    }
+
+    // ── RENDER USERS ──
+    function renderUsers(profiles) {
+      const grid = document.getElementById('usersGrid');
+      if (!profiles?.length) {
+        grid.innerHTML = `<div class="empty-state"><i class="fas fa-user-slash"></i><p>Пользователи не найдены</p></div>`;
+        return;
+      }
+      grid.innerHTML = '';
+      profiles.forEach(profile => {
+        const isOwn       = String(profile.userId) === String(myUserId);
+        const isFollowing = followingIds.has(String(profile.userId));
+        const card = document.createElement('div');
+        card.className = 'user-card';
+        card.onclick = () => window.location.href = `/profile/${profile.userId}`;
+
+        const avatarSrc = profile.avatarUrl
+          ? `/api/profiles/${profile.id}/avatar`
+          : '/images/default-avatar.png';
+
+        card.innerHTML = `
+          <div class="user-avatar-wrap">
+            <div class="user-avatar-ring">
+              <div class="user-avatar-ring-inner">
+                <img src="${avatarSrc}" alt="${profile.name}"
+                     onerror="this.onerror=null;this.src='/images/default-avatar.png'">
+              </div>
+            </div>
+          </div>
+          <div class="user-info">
+            <div class="user-name">${profile.name} ${profile.surname}</div>
+            <div class="user-bio">${profile.bioDescription || ''}</div>
+          </div>
+          ${!isOwn ? `<button class="user-follow-btn ${isFollowing ? 'following' : ''}" data-uid="${profile.userId}">
+            ${isFollowing ? 'Подписан' : 'Подписаться'}
+          </button>` : ''}
+        `;
+
+        const btn = card.querySelector('.user-follow-btn');
+        if (btn) {
+          btn.addEventListener('click', async e => {
+            e.stopPropagation();
+            const uid = btn.dataset.uid;
+            if (followingIds.has(String(uid))) return; // already following
+            try {
+              const res = await fetch(`/api/subscriptions/${uid}/subscribe`, { method: 'POST', credentials: 'include' });
+              if (res.ok || res.status === 409) {
+                followingIds.add(String(uid));
+                btn.textContent = 'Подписан';
+                btn.classList.add('following');
+              }
+            } catch {}
+          });
+        }
+        grid.appendChild(card);
+      });
+    }
+
+    // ── RENDER POSTS ──
+    function renderPosts(posts) {
+      const grid = document.getElementById('postsGrid');
+      if (!posts?.length) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-image"></i><p>Посты не найдены</p></div>`;
+        return;
+      }
+      grid.innerHTML = posts.map(post => `
+        <div class="post-item" onclick="window.location.href='/post/${post.id}'">
+          <img src="/api/proxy/image?url=${encodeURIComponent(post.photoUrl)}"
+               alt="Post" onerror="this.onerror=null;this.src='/images/default-avatar.png'">
+          <div class="overlay">
+            <div class="overlay-stat"><i class="fas fa-heart"></i><span>${post.reactionsCount||0}</span></div>
+            <div class="overlay-stat"><i class="fas fa-comment"></i><span>${post.commentsCount||0}</span></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ── RENDER HASHTAGS ──
+    function renderHashtags(posts, query) {
+      const list = document.getElementById('hashtagsList');
+      if (!posts?.length) {
+        list.innerHTML = `<div class="empty-state"><i class="fas fa-hashtag"></i><p>Тег #${query} не найден</p></div>`;
+        return;
+      }
+
+      const matchingTags = new Set();
+      posts.forEach(post => (post.tags||[]).forEach(tag => {
+        if (tag.toLowerCase().includes(query.toLowerCase())) matchingTags.add(tag);
+      }));
+
+      const tagsHtml = [...matchingTags].map(tag => `
+        <div class="hashtag-item" onclick="filterByTag('${tag}')">
+          <span class="hashtag-name">#${tag}</span>
+          <span class="hashtag-count">${posts.filter(p=>(p.tags||[]).includes(tag)).length} постов</span>
+        </div>
+      `).join('');
+
+      const postsHtml = posts.slice(0,6).map(post => `
+        <div class="post-item">
+          <img src="/api/proxy/image?url=${encodeURIComponent(post.photoUrl)}"
+               alt="Post" onerror="this.onerror=null;this.src='/images/default-avatar.png'">
+          <div class="overlay">
+            <div class="overlay-stat"><i class="fas fa-heart"></i><span>${post.reactionsCount||0}</span></div>
+          </div>
+        </div>
+      `).join('');
+
+      list.innerHTML = `
+        <div class="hashtags-list">${tagsHtml}</div>
+        ${posts.length ? `<div style="margin-top:16px"><div class="hashtag-posts-grid">${postsHtml}</div></div>` : ''}
+      `;
+    }
+
+    window.filterByTag = function(tag) {
+      searchInput.value = tag;
+      clearBtn.style.display = 'block';
+      performSearch(tag);
+    };
+
+    function resetResults() {
+      document.getElementById('usersGrid').innerHTML =
+        `<div class="empty-state"><i class="fas fa-user-astronaut"></i><p>Введите имя для поиска</p></div>`;
+      document.getElementById('postsGrid').innerHTML =
+        `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-image"></i><p>Введите запрос для поиска</p></div>`;
+      document.getElementById('hashtagsList').innerHTML =
+        `<div class="empty-state"><i class="fas fa-hashtag"></i><p>Введите тег для поиска</p></div>`;
+    }
+  });
+</script>
+</body>
+</html>

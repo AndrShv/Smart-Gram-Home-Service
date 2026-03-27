@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-home
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-home
+  template:
+    metadata:
+      labels:
+        app: mysql-home
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "1111"
+            - name: MYSQL_DATABASE
+              value: homeservice
+          volumeMounts:
+            - name: mysql-home-storage
+              mountPath: /var/lib/mysql
+          livenessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - mysqladmin
+                - ping
+                - -h
+                - localhost
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: mysql-home-storage
+          persistentVolumeClaim:
+            claimName: mysql-home-pvc
+

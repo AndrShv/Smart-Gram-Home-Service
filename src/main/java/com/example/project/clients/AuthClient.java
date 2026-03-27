@@ -2,7 +2,8 @@ package com.example.project.clients;
 
 
 import com.example.project.configs.FeignClientInterceptor;
-import com.example.project.dto.UserResponseDTO;
+import com.example.project.dto.user.ShortUserDTO;
+import com.example.project.dto.user.UserResponseDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,15 +19,9 @@ public interface AuthClient {
     @GetMapping("/api/users/{id}")
     ShortUserDTO getUserById(@PathVariable UUID id);
 
-    @PutMapping("/api/users/{id}/role")
-    void changeRole(
-            @PathVariable UUID id,
-            @RequestParam String role
-    );
-
-    @DeleteMapping("/api/users/{id}")
-    void deleteUser(@PathVariable UUID id);
-
     @GetMapping("/api/auth/me")
     UserResponseDTO getCurrentUser();
+
+    @GetMapping("/api/users/{id}/short")
+    ShortUserDTO getShortUser(@PathVariable UUID id);
 }

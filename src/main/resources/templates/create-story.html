@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Новая история — SmartGram</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/create-story.css}">
+</head>
+<body>
+<div class="space-background"><div class="stars"></div><div class="stars2"></div><div class="stars3"></div></div>
+<div class="aurora"><div class="aurora-blob"></div><div class="aurora-blob"></div></div>
+
+<header class="top-bar">
+  <div class="top-bar-inner">
+    <a href="/home" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+    <span class="page-title">Новая история</span>
+  </div>
+</header>
+
+<div class="page-wrap">
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="photoInput" accept="image/*">
+    <div class="upload-icon"><i class="fas fa-image"></i></div>
+    <div class="upload-hint"><strong>Выберите фото</strong> или перетащите<br>JPG · PNG · WEBP · до 10 МБ</div>
+    <div class="upload-preview" id="uploadPreview" style="display:none">
+      <img id="thumbImg" src="" alt="">
+      <div class="upload-preview-overlay">
+        <span class="change-badge"><i class="fas fa-rotate"></i> Сменить фото</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div class="field-group">
+      <label class="field-label" for="description">Описание</label>
+      <textarea id="description" placeholder="Расскажи, что происходит…"></textarea>
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="location"><i class="fas fa-location-dot"></i>Местоположение</label>
+      <input type="text" id="location" placeholder="Одесса, Украина">
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="overlayText"><i class="fas fa-font"></i>Текст поверх фото</label>
+      <input type="text" id="overlayText" placeholder="Крупный текст на истории…">
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="musicCaption"><i class="fas fa-music"></i>Музыка</label>
+      <input type="text" id="musicCaption" placeholder="Название трека или исполнитель">
+    </div>
+    <div class="toggle-row">
+      <div class="toggle-label-text">Публичная история<small>Видна всем пользователям</small></div>
+      <label class="toggle"><input type="checkbox" id="isPublic" checked><span class="toggle-track"></span></label>
+    </div>
+    <button class="submit-btn" id="nextBtn" disabled>
+      <i class="fas fa-eye"></i> Далее — предпросмотр
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const photoInput   = document.getElementById('photoInput');
+  const uploadZone   = document.getElementById('uploadZone');
+  const uploadPreview= document.getElementById('uploadPreview');
+  const thumbImg     = document.getElementById('thumbImg');
+  const nextBtn      = document.getElementById('nextBtn');
+  const toast        = document.getElementById('toast');
+  let selectedFile = null, objectUrl = null;
+
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault(); uploadZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) handleFile(f);
+  });
+  photoInput.addEventListener('change', () => { if (photoInput.files[0]) handleFile(photoInput.files[0]); });
+
+  function handleFile(file) {
+    if (file.size > 10 * 1024 * 1024) { showToast('Файл слишком большой (макс. 10 МБ)'); return; }
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = URL.createObjectURL(file);
+    selectedFile = file;
+    thumbImg.src = objectUrl;
+    uploadPreview.style.display = 'block';
+    nextBtn.disabled = false;
+  }
+
+  nextBtn.addEventListener('click', () => {
+    if (!selectedFile) return;
+    nextBtn.disabled = true;
+    nextBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Загрузка…';
+    const reader = new FileReader();
+    reader.onload = e => {
+      ['story_photo_base64','story_photo_name','story_photo_type','story_description',
+       'story_location','story_overlayText','story_musicCaption','story_isPublic'].forEach(k => sessionStorage.removeItem(k));
+      sessionStorage.setItem('story_photo_base64', e.target.result);
+      sessionStorage.setItem('story_photo_name',   selectedFile.name);
+      sessionStorage.setItem('story_photo_type',   selectedFile.type);
+      sessionStorage.setItem('story_description',  document.getElementById('description').value);
+      sessionStorage.setItem('story_location',     document.getElementById('location').value);
+      sessionStorage.setItem('story_overlayText',  document.getElementById('overlayText').value);
+      sessionStorage.setItem('story_musicCaption', document.getElementById('musicCaption').value);
+      sessionStorage.setItem('story_isPublic',     document.getElementById('isPublic').checked);
+      window.location.href = '/stories/preview';
+    };
+    reader.onerror = () => { showToast('Ошибка чтения файла'); nextBtn.disabled=false; nextBtn.innerHTML='<i class="fas fa-eye"></i> Далее — предпросмотр'; };
+    reader.readAsDataURL(selectedFile);
+  });
+
+  function showToast(msg) {
+    toast.textContent = msg; toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+</script>
+</body>
+</html>
