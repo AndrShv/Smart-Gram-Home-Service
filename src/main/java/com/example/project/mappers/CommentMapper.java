@@ -66,4 +66,6 @@ public interface CommentMapper {
                 .map(this::toDtoWithReplies)
                 .toList();
     }
+
+    Object tp(Comment comment);
 }

@@ -1,12 +1,15 @@
 package com.example.project.service;
 
+import com.example.project.enums.CommentReactions;
 import com.example.project.event.NotificationMessage;
 import com.example.project.enums.NotificationType;
 import com.example.project.metrics.HomeRabbitMetricsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.N;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -83,7 +86,45 @@ public class NotificationProducer {
                 .createdAt(LocalDateTime.now())
                 .build());
     }
+    // ───COMMENT ──────────────────────────────────────────
 
+    public void sendCreateCommentInPostToPostOwner(String commentId, String actorId, String recipientId, String username) {
+        if (actorId.equals(recipientId)) return;
+
+        send(NotificationMessage.builder()
+                .type(NotificationType.COMMENT_CREATED)
+                .entityId(commentId)
+                .actorId(actorId)
+                .recipientId(recipientId)
+                .username(username)
+                .message(username + " прокомментировал ваш пост")
+                .createdAt(LocalDateTime.now())
+                .build());
+    }
+
+    public void sendCreateCommentInPostToCommentOwner(String commentId, String postId, String actorId, String recipientId, String username) {
+        send(NotificationMessage.builder()
+                .type(NotificationType.COMMENT_CREATED)
+                .entityId(commentId)
+                .actorId(actorId)
+                .recipientId(recipientId)
+                .username(username)
+                .message(username + " ответил на ваш комментарий")
+                .createdAt(LocalDateTime.now())
+                .build());
+    }
+
+    public void sendCreateCommentReactionToCommentOwner(String commentId, String actorId, String recipientId, String username, CommentReactions reaction) {
+        send(NotificationMessage.builder()
+                .type(NotificationType.COMMENT_REATED)
+                .entityId(commentId)
+                .actorId(actorId)
+                .recipientId(recipientId)
+                .username(username)
+                .message(username + " поставил реакцию " + reaction.name() + " на ваш комментарий")
+                .createdAt(LocalDateTime.now())
+                .build());
+    }
     // ── INTERNAL ──────────────────────────────────────────
 
     private void send(NotificationMessage msg) {

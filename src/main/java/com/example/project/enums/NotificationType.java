@@ -1,6 +1,7 @@
 package com.example.project.enums;
 
 public enum NotificationType {
+    COMMENT_CREATED,
     POST_CREATED,
     POST_LIKED,
     POST_COMMENTED,
@@ -8,5 +9,5 @@ public enum NotificationType {
     STORY_VIEWED,
     PROFILE_CREATED,
     PROFILE_FOLLOWED,
-    SUBSCRIPTION_NEW
+    COMMENT_LIKED, COMMENT_REATED, SUBSCRIPTION_NEW
 }

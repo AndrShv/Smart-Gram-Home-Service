@@ -30,6 +30,7 @@ public class CommentServiceImpl implements CommentCrudService {
     private final AuthClient authClient;
     private final PostClient postClient;
     private final CommentRepository commentRepository;
+    private final NotificationProducer notificationProducer;
 
     @Override
     @Transactional
@@ -55,6 +56,13 @@ public class CommentServiceImpl implements CommentCrudService {
         commentRepository.save(comment);
         log.info("Комментарий успешно сохранён с ID: {}", comment.getId());
 
+        notificationProducer.sendCreateCommentInPostToPostOwner(
+                existingPostId.toString(),
+                currentUserId.toString(),
+                postClient.getPost(existingPostId).getUserId().toString(),
+                currentUser.getUsername()
+        );
+        log.info("Уведомление о новом комментарии успешно отправлено владельцу поста с ID: {}", existingPostId);
         return comment;
     }
 
@@ -201,6 +209,16 @@ public class CommentServiceImpl implements CommentCrudService {
 
         log.info("Реакция {} успешно добавлена к комментарию с ID: {} пользователем с ID: {}",
                 addedReaction, commentId, currentUserId);
+
+
+        notificationProducer.sendCreateCommentReactionToCommentOwner(
+                commentId.toString(),
+                currentUserId.toString(),
+                comment.getUserId().toString(),
+                currentUser.getUsername(),
+                addedReaction
+        );
+        log.info("Уведомление о новой реакции на комментарий с ID: {} успешно); отправлено владельцу комментария с ID: {}", commentId, comment.getUserId());
     }
 
     @Override
@@ -260,10 +278,19 @@ public class CommentServiceImpl implements CommentCrudService {
 
         log.info("Комментарий-ответ успешно добавлен. ID reply: {}, parent ID: {}", savedComment.getId(), parentCommentId);
 
+
+        notificationProducer.sendCreateCommentInPostToCommentOwner(
+                savedComment.getId().toString(),
+                existingPostId.toString(),
+                currentUserId.toString(),
+                parentComment.getUserId().toString(),
+                currentUser.getUsername()
+        );
+        log.info("Уведомление о новом комментарии-ответе успешно отправлено владельцу родительского комментария с ID: {}", parentComment.getUserId());
+
+
         return savedComment;
     }
-
-
 
 
     // =========================
@@ -290,7 +317,7 @@ public class CommentServiceImpl implements CommentCrudService {
         return currentUser.getRole() != null && currentUser.getRole().equalsIgnoreCase("ADMIN");
     }
 
-    private UserResponseDTO getAuthenticatedUser() {
+    UserResponseDTO getAuthenticatedUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
         if (auth == null || !auth.isAuthenticated()) {
