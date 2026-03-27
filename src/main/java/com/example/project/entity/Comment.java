@@ -1,44 +1,51 @@
 package com.example.project.entity;
 
+import com.example.project.enums.CommentReactions;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.GenericGenerator;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "comments")
-@Data
+@Getter
+@Setter
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class Comment {
 
     @Id
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    @Column(columnDefinition = "BINARY(16)", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(nullable = false)
     private UUID userId;
 
     @Column(nullable = false, length = 500)
     private String text;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false)
+    private UUID postId;
 
-    @ToString.Exclude
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
+    @JoinColumn(name = "parent_comment_id")
+    private Comment parentComment;
 
-    @ToString.Exclude
-    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<StoryReaction> reactions;
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC")
+    @Builder.Default
+    private List<Comment> childComments = new ArrayList<>();
+
+    @ElementCollection(targetClass = CommentReactions.class)
+    @CollectionTable(name = "comment_reactions", joinColumns = @JoinColumn(name = "comment_id"))
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reaction")
+    @Builder.Default
+    private List<CommentReactions> reactions = new ArrayList<>();
 }
-

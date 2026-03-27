@@ -63,7 +63,6 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
         log.info("Создание новой истории");
 
 
-
         return storyMetrics.createStoryTimer().recordCallable(() -> {
             UserResponseDTO currentUser = getAuthenticatedUser();
             UUID userId = UUID.fromString(currentUser.getId());
@@ -104,15 +103,25 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
         log.info("Удаление истории с ID: {}", storyId);
 
         UserResponseDTO currentUser = getAuthenticatedUser();
-        UUID userId = UUID.fromString(currentUser.getId());
+        UUID currentUserId = UUID.fromString(currentUser.getId());
+        boolean isAdmin = currentUser.getRole() != null && currentUser.getRole().contains("ADMIN");
 
-        Story story = storyRepository.findById(storyId)
+
+
+        Story existingStory = storyRepository.findById(storyId)
                 .orElseThrow(() -> {
                     log.warn("❌ История с ID: {} не найдена", storyId);
                     return new StoryNotFoundException("История с ID " + storyId + " не найдена");
                 });
 
-        validateStoryOwnership(story, userId);
+        if (!existingStory.getUserId().equals(currentUserId) && !isAdmin) {
+            throw new UnauthorizedException("Вы не можете изменять чужой пост");
+        }
+
+        if (isAdmin ){
+            log.info("Пользователь {} с ролью ADMIN удаляет историю {}", currentUserId, storyId);
+        }
+        validateStoryOwnership(existingStory, currentUserId);
 
         storyRepository.deleteById(storyId);
         storyMetrics.incrementDeleted();
@@ -212,10 +221,17 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
         UserResponseDTO currentUser = getAuthenticatedUser();
         UUID userId = UUID.fromString(currentUser.getId());
 
-        Story story = storyRepository.findById(storyId)
+        Story existingStory = storyRepository.findById(storyId)
                 .orElseThrow(() -> new StoryNotFoundException("История с ID " + storyId + " не найдена"));
 
-        if (story.getExpireAt().isBefore(LocalDateTime.now())) {
+        boolean isAdmin = currentUser.getRole() != null && currentUser.getRole().contains("ADMIN");
+        if (!existingStory.getUserId().equals(userId) && !hasRole("ADMIN")) {
+            throw new UnauthorizedException("Вы не можете удалять реакцию от имени другого пользователя");
+        }
+        if (isAdmin){
+            log.info("Пользователь {} с ролью ADMIN удаляет реакцию на историю {}", userId, storyId);
+        }
+        if (existingStory.getExpireAt().isBefore(LocalDateTime.now())) {
             throw new StoryIsNotAviableByTimeException("История истекла");
         }
 
@@ -274,8 +290,10 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
     private String mapTagsToCategory(List<String> tags) {
         if (tags == null) return StoryCategory.OTHER.name();
         if (tags.stream().anyMatch(t -> t.contains("food") || t.contains("еда"))) return StoryCategory.FOOD.name();
-        if (tags.stream().anyMatch(t -> t.contains("nature") || t.contains("природа"))) return StoryCategory.NATURE.name();
-        if (tags.stream().anyMatch(t -> t.contains("travel") || t.contains("путешествие"))) return StoryCategory.TRAVEL.name();
+        if (tags.stream().anyMatch(t -> t.contains("nature") || t.contains("природа")))
+            return StoryCategory.NATURE.name();
+        if (tags.stream().anyMatch(t -> t.contains("travel") || t.contains("путешествие")))
+            return StoryCategory.TRAVEL.name();
         return StoryCategory.OTHER.name();
     }
 
@@ -321,5 +339,15 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
         if (!story.getUserId().equals(userId)) {
             throw new UnauthorizedException("Вы не можете изменять или удалять чужую историю");
         }
+    }
+
+    private boolean hasRole(String role) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities() == null) {
+            return false;
+        }
+
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_" + role));
     }
 }

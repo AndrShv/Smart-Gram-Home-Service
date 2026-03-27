@@ -100,6 +100,7 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
 
         UserResponseDTO currentUser = getAuthenticatedUser();
         UUID currentUserId = UUID.fromString(currentUser.getId());
+        boolean isAdmin = currentUser.getRole() != null && currentUser.getRole().equalsIgnoreCase("ADMIN");
 
         Post existingPost = postRepository.findById(postId)
                 .orElseThrow(() -> {
@@ -107,8 +108,12 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
                     return new PostNotFoundException("Пост с ID " + postId + " не найден");
                 });
 
-        if (!existingPost.getUserId().equals(currentUserId)) {
+        if (!existingPost.getUserId().equals(currentUserId) && !isAdmin) {
             throw new UnauthorizedException("Вы не можете изменять чужой пост");
+        }
+
+        if (isAdmin) {
+            log.info("Пользователь {} имеет роль ADMIN, разрешено обновление поста {}", currentUserId, postId);
         }
 
         existingPost.setDescription(post.getDescription());
@@ -134,8 +139,14 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
                     return new PostNotFoundException("Пост с ID " + postId + " не найден");
                 });
 
-        if (!existingPost.getUserId().equals(currentUserId)) {
+        boolean isAdmin = currentUser.getRole() != null && currentUser.getRole().equalsIgnoreCase("ADMIN");
+
+
+        if (!existingPost.getUserId().equals(currentUserId) && !isAdmin) {
             throw new UnauthorizedException("Вы не можете удалять чужой пост");
+        }
+        if (isAdmin) {
+            log.info("Пользователь {} имеет роль ADMIN, разрешено удаление поста {}", currentUserId, postId);
         }
 
         postRepository.delete(existingPost);
@@ -382,5 +393,15 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
         }
 
         return currentUser;
+    }
+
+    private boolean hasRole(String role) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities() == null) {
+            return false;
+        }
+
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_" + role));
     }
 }

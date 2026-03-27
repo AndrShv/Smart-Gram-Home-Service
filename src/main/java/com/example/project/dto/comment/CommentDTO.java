@@ -1,15 +1,14 @@
 package com.example.project.dto.comment;
 
-
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import com.example.project.enums.CommentReactions;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -19,16 +18,16 @@ import java.util.UUID;
 public class CommentDTO {
     private UUID id;
     private UUID userId;
-
-    @NotBlank
-    @Size(min = 1, max = 500)
     private String text;
-
-    @NotNull
     private LocalDateTime createdAt;
+    private UUID postId;
+    private UUID parentCommentId;
 
+    @Builder.Default
+    private List<CommentReactions> reactions = new ArrayList<>();
 
-
-    @NotNull
     private long reactionsCount;
+
+    @Builder.Default
+    private List<CommentDTO> replies = new ArrayList<>();
 }
