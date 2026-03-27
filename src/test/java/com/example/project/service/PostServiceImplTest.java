@@ -96,14 +96,12 @@ class PostServiceImplTest {
         lenient().when(postMetrics.createPostTimer()).thenReturn(mockTimer);
         lenient().when(postMetrics.getPostTimer()).thenReturn(mockTimer);
 
-        // ✅ мокаем SecurityContext
         Authentication auth = mock(Authentication.class);
         when(auth.isAuthenticated()).thenReturn(true);
         SecurityContext securityContext = mock(SecurityContext.class);
         when(securityContext.getAuthentication()).thenReturn(auth);
         SecurityContextHolder.setContext(securityContext);
 
-        // ✅ подписчики пустые по умолчанию — не ломаем тесты которым не важны уведомления
         lenient().when(subscriptionClient.getFollowers(any())).thenReturn(List.of());
     }
 
@@ -121,7 +119,7 @@ class PostServiceImplTest {
                 UserResponseDTO.builder().id(userId.toString()).username("testuser").build());
         when(postRepository.save(any(Post.class))).thenReturn(post);
 
-        Post created = postService.createPost(dto, userId);
+        Post created = postService.createPost(dto);
 
         assertNotNull(created);
         assertEquals("Test Post", created.getDescription());
@@ -136,7 +134,7 @@ class PostServiceImplTest {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         when(auth.isAuthenticated()).thenReturn(false);
 
-        assertThrows(UnauthorizedException.class, () -> postService.createPost(new PostDTO(), userId));
+        assertThrows(UnauthorizedException.class, () -> postService.createPost(new PostDTO()));
     }
 
     @Test
@@ -144,19 +142,11 @@ class PostServiceImplTest {
         PostDTO dto = new PostDTO();
         dto.setDescription("Post");
 
-        UUID subscriberId = UUID.randomUUID();
-
-        SubscriberDTO sub = SubscriberDTO.builder()
-                .subscriberUserId(subscriberId)
-                .build();
-
-        ShortUserDTO currentUser = new ShortUserDTO();
-        currentUser.setUsername("testuser");
-
-        when(authClient.getUserById(userId)).thenReturn(currentUser);
+        when(authClient.getCurrentUser()).thenReturn(user());
+        mockAuthenticated();
         when(postRepository.save(any(Post.class))).thenReturn(post);
 
-        postService.createPost(dto, userId);
+        postService.createPost(dto);
 
         verify(postAsyncService).sendNotificationsAsync(
                 eq(post),
@@ -191,19 +181,28 @@ class PostServiceImplTest {
         dto.setDescription("Updated");
         dto.setPhotoUrl("http://example.com/updated.jpg");
 
+        post.setUserId(userId);
+
+        when(authClient.getCurrentUser()).thenReturn(user());
+        mockAuthenticated();
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
 
         postService.updatePost(postId, dto);
 
         assertEquals("Updated", post.getDescription());
+        assertEquals("http://example.com/updated.jpg", post.getPhotoUrl());
+
         verify(postRepository).save(post);
         verify(postMetrics).incrementUpdated();
     }
-
     @Test
     void updatePost_notFound() {
+        when(authClient.getCurrentUser()).thenReturn(user());
+        mockAuthenticated();
         when(postRepository.findById(postId)).thenReturn(Optional.empty());
-        assertThrows(PostNotFoundException.class, () -> postService.updatePost(postId, new PostDTO()));
+
+        assertThrows(PostNotFoundException.class,
+                () -> postService.updatePost(postId, new PostDTO()));
     }
 
     // ============================================
@@ -212,18 +211,64 @@ class PostServiceImplTest {
 
     @Test
     void deletePost_success() {
+        post.setUserId(userId);
+
+        when(authClient.getCurrentUser()).thenReturn(user());
+        mockAuthenticated();
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+
         postService.deletePost(postId);
+
         verify(postRepository).delete(post);
         verify(postMetrics).incrementDeleted();
     }
 
     @Test
     void deletePost_notFound() {
+        when(authClient.getCurrentUser()).thenReturn(user());
+        mockAuthenticated();
         when(postRepository.findById(postId)).thenReturn(Optional.empty());
-        assertThrows(PostNotFoundException.class, () -> postService.deletePost(postId));
+
+        assertThrows(PostNotFoundException.class,
+                () -> postService.deletePost(postId));
     }
 
+    // ============================================
+    //  UNAUTHORIZED ACCESS
+    // ============================================
+
+    @Test
+    void updatePost_notOwner() {
+        UUID anotherUserId = UUID.randomUUID();
+        post.setUserId(anotherUserId);
+
+        PostDTO dto = new PostDTO();
+        dto.setDescription("Updated");
+
+        when(authClient.getCurrentUser()).thenReturn(user()); // userId
+        mockAuthenticated();
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+
+        assertThrows(UnauthorizedException.class,
+                () -> postService.updatePost(postId, dto));
+
+        verify(postRepository, never()).save(any());
+    }
+
+    @Test
+    void deletePost_notOwner() {
+        UUID anotherUserId = UUID.randomUUID();
+        post.setUserId(anotherUserId);
+
+        when(authClient.getCurrentUser()).thenReturn(user()); // userId
+        mockAuthenticated();
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+
+        assertThrows(UnauthorizedException.class,
+                () -> postService.deletePost(postId));
+
+        verify(postRepository, never()).delete(any());
+    }
     // ============================================
     //  REACT TO POST
     // ============================================
@@ -475,5 +520,18 @@ class PostServiceImplTest {
     void countReactionsByType_zero() {
         when(postReactionRepository.countByPostIdAndReaction(postId, Reactions.LIKE)).thenReturn(0L);
         assertEquals(0, postService.countReactionsByType(postId, Reactions.LIKE));
+    }
+
+    private void mockAuthenticated() {
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    private UserResponseDTO user() {
+        return UserResponseDTO.builder()
+                .id(userId.toString())
+                .username("testuser")
+                .build();
     }
 }

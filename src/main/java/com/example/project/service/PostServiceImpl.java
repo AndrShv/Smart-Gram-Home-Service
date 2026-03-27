@@ -2,11 +2,8 @@ package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
 import com.example.project.clients.SubscriptionClient;
-import com.example.project.dto.AiImageResult;
-import com.example.project.dto.post.PostDTO;
 import com.example.project.dto.count.PostReactionCountDTO;
-import com.example.project.dto.profile.SubscriberDTO;
-import com.example.project.dto.user.ShortUserDTO;
+import com.example.project.dto.post.PostDTO;
 import com.example.project.dto.user.UserResponseDTO;
 import com.example.project.entity.Post;
 import com.example.project.entity.PostReaction;
@@ -35,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -56,31 +52,25 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     private final ExecutorService virtualThreadExecutor;
     private final PostAsyncService postAsyncService;
 
-
-
     // ============================================
     //           CRUD ОПЕРАЦИИ
     // ============================================
 
     @Override
     @Transactional
-    public Post createPost(PostDTO post, UUID userId) throws Exception {
+    public Post createPost(PostDTO post) throws Exception {
         log.info("Создание нового поста");
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new UnauthorizedException("JWT истёк");
-        }
-        ShortUserDTO currentUser = authClient.getUserById(userId);
 
-        String username = (currentUser != null
-                && currentUser.getUsername() != null
-                && !currentUser.getUsername().isBlank())
+        UserResponseDTO currentUser = getAuthenticatedUser();
+        UUID currentUserId = UUID.fromString(currentUser.getId());
+
+        String username = currentUser.getUsername() != null && !currentUser.getUsername().isBlank()
                 ? currentUser.getUsername()
-                : userId.toString();
+                : currentUserId.toString();
 
         Post postToSave = Post.builder()
                 .id(UUID.randomUUID())
-                .userId(userId)
+                .userId(currentUserId)
                 .description(post.getDescription())
                 .photoUrl(post.getPhotoUrl())
                 .createdAt(LocalDateTime.now())
@@ -96,29 +86,37 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
 
         Post savedPost = postRepository.save(postToSave);
 
-        postAsyncService.createPostAsync(post.getId(), post, userId);
+        postAsyncService.createPostAsync(savedPost.getId(), post, currentUserId);
+        postAsyncService.sendNotificationsAsync(savedPost, currentUserId, username);
 
-
-        postAsyncService.sendNotificationsAsync(savedPost, userId, username);
         log.info("Пост с ID: {} успешно создан", savedPost.getId());
         return savedPost;
-
     }
 
     @Override
     @Transactional
     public void updatePost(UUID postId, PostDTO post) {
         log.info("Обновление поста с ID: {}", postId);
+
+        UserResponseDTO currentUser = getAuthenticatedUser();
+        UUID currentUserId = UUID.fromString(currentUser.getId());
+
         Post existingPost = postRepository.findById(postId)
                 .orElseThrow(() -> {
                     log.warn("❌ Пост с ID {} не найден для обновления", postId);
                     return new PostNotFoundException("Пост с ID " + postId + " не найден");
                 });
 
+        if (!existingPost.getUserId().equals(currentUserId)) {
+            throw new UnauthorizedException("Вы не можете изменять чужой пост");
+        }
+
         existingPost.setDescription(post.getDescription());
         existingPost.setPhotoUrl(post.getPhotoUrl());
+
         postRepository.save(existingPost);
         postMetrics.incrementUpdated();
+
         log.info("Пост с ID: {} успешно обновлён", postId);
     }
 
@@ -126,14 +124,23 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     @Transactional
     public void deletePost(UUID postId) {
         log.info("Удаление поста с ID: {}", postId);
+
+        UserResponseDTO currentUser = getAuthenticatedUser();
+        UUID currentUserId = UUID.fromString(currentUser.getId());
+
         Post existingPost = postRepository.findById(postId)
                 .orElseThrow(() -> {
                     log.warn("❌ Пост с ID {} не найден для удаления", postId);
                     return new PostNotFoundException("Пост с ID " + postId + " не найден");
                 });
 
+        if (!existingPost.getUserId().equals(currentUserId)) {
+            throw new UnauthorizedException("Вы не можете удалять чужой пост");
+        }
+
         postRepository.delete(existingPost);
         postMetrics.incrementDeleted();
+
         log.info("Пост с ID: {} успешно удалён", postId);
     }
 
@@ -189,7 +196,7 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     public void reactToPost(UUID postId, Reactions reaction) {
         log.info("Попытка реакции {} на пост {}", reaction, postId);
 
-        UserResponseDTO currentUser = authClient.getCurrentUser();
+        UserResponseDTO currentUser = getAuthenticatedUser();
         UUID userId = UUID.fromString(currentUser.getId());
 
         Post post = postRepository.findById(postId)
@@ -211,17 +218,19 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
                 .reaction(reaction)
                 .reactedAt(LocalDateTime.now())
                 .build();
+
         postReactionRepository.save(newReaction);
         postMetrics.incrementReactionAdded();
 
-        // Уведомление владельцу поста
         try {
             if (!post.getUserId().equals(userId)) {
                 notificationProducer.sendPostLiked(
                         postId.toString(),
                         userId.toString(),
                         post.getUserId().toString(),
-                        currentUser.getUsername() != null ? currentUser.getUsername() : userId.toString()
+                        currentUser.getUsername() != null && !currentUser.getUsername().isBlank()
+                                ? currentUser.getUsername()
+                                : userId.toString()
                 );
                 rabbitMetrics.increment();
             }
@@ -234,7 +243,9 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     @Transactional
     public void deleteReaction(UUID postId) {
         log.info("Попытка удаления реакции пользователя с поста {}", postId);
-        UUID userId = UUID.fromString(authClient.getCurrentUser().getId());
+
+        UserResponseDTO currentUser = getAuthenticatedUser();
+        UUID userId = UUID.fromString(currentUser.getId());
 
         postRepository.findById(postId)
                 .orElseThrow(() -> new PostNotFoundException("Пост не найден"));
@@ -260,10 +271,15 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     @Override
     public List<PostReactionCountDTO> getReactionStats(UUID postId) {
         List<PostReaction> reactions = postReactionRepository.findByPostId(postId);
+
         Map<Reactions, Long> stats = reactions.stream()
                 .collect(Collectors.groupingBy(PostReaction::getReaction, Collectors.counting()));
+
         return stats.entrySet().stream()
-                .map(e -> PostReactionCountDTO.builder().reaction(e.getKey()).count(e.getValue()).build())
+                .map(e -> PostReactionCountDTO.builder()
+                        .reaction(e.getKey())
+                        .count(e.getValue())
+                        .build())
                 .sorted((a, b) -> Long.compare(b.getCount(), a.getCount()))
                 .collect(Collectors.toList());
     }
@@ -287,6 +303,14 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     @Transactional
     public void setAllPostsPrivacy(UUID userId, boolean isPublic) {
         log.info("Установка приватности постов пользователя {}: isPublic={}", userId, isPublic);
+
+        UserResponseDTO currentUser = getAuthenticatedUser();
+        UUID currentUserId = UUID.fromString(currentUser.getId());
+
+        if (!currentUserId.equals(userId)) {
+            throw new UnauthorizedException("Вы не можете менять приватность чужих постов");
+        }
+
         List<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId);
         posts.forEach(p -> p.setPublic(isPublic));
         postRepository.saveAll(posts);
@@ -295,7 +319,8 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     public List<Post> searchPosts(String query) {
         String lower = query.toLowerCase();
         return postRepository.findAll().stream()
-                .filter(p -> p.isPublic() && p.getDescription() != null
+                .filter(p -> p.isPublic()
+                        && p.getDescription() != null
                         && p.getDescription().toLowerCase().contains(lower))
                 .collect(Collectors.toList());
     }
@@ -303,7 +328,8 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
     public List<Post> searchByTag(String tag) {
         String lower = tag.toLowerCase();
         return postRepository.findAll().stream()
-                .filter(p -> p.isPublic() && p.getTags() != null
+                .filter(p -> p.isPublic()
+                        && p.getTags() != null
                         && p.getTags().stream().anyMatch(t -> t.toLowerCase().contains(lower)))
                 .collect(Collectors.toList());
     }
@@ -342,5 +368,19 @@ public class PostServiceImpl implements PostCrudService, PostReactionService {
 
     private boolean isDarkColor(String hex) {
         return !isBrightColor(hex);
+    }
+
+    private UserResponseDTO getAuthenticatedUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new UnauthorizedException("JWT истёк");
+        }
+
+        UserResponseDTO currentUser = authClient.getCurrentUser();
+        if (currentUser == null || currentUser.getId() == null) {
+            throw new UnauthorizedException("Пользователь не найден");
+        }
+
+        return currentUser;
     }
 }

@@ -75,7 +75,7 @@ public class StoryRestController {
         storyDTO.setPhotoBytes(photoBytes);
         storyDTO.setPhotoFileName(photo.getOriginalFilename());
 
-        Story createdStory = storyService.createStory(storyDTO,  userId);
+        Story createdStory = storyService.createStory(storyDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(storyMapper.toDto(createdStory));
     }
 

@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public interface PostCrudService {
 
-    Post createPost(PostDTO post, UUID userId) throws Exception;
+    Post createPost(PostDTO post) throws Exception;
 
     void updatePost(UUID postId, PostDTO post);
 

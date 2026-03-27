@@ -36,7 +36,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -58,21 +57,18 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
     private final HomeRabbitMetricsService rabbitMetrics;
     private final StoryAsyncService storyAsyncService;
 
-
     @Override
     @Transactional
-    public Story createStory(StoryDTO storyDTO, UUID userId) throws Exception {
+    public Story createStory(StoryDTO storyDTO) throws Exception {
         log.info("Создание новой истории");
 
+
+
         return storyMetrics.createStoryTimer().recordCallable(() -> {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth == null || !auth.isAuthenticated()) {
-                throw new UnauthorizedException("JWT истёк");
-            }
-            ShortUserDTO currentUser = authClient.getUserById(userId);
-            String username = (currentUser != null
-                    && currentUser.getUsername() != null
-                    && !currentUser.getUsername().isBlank())
+            UserResponseDTO currentUser = getAuthenticatedUser();
+            UUID userId = UUID.fromString(currentUser.getId());
+
+            String username = currentUser.getUsername() != null && !currentUser.getUsername().isBlank()
                     ? currentUser.getUsername()
                     : userId.toString();
 
@@ -95,7 +91,6 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
             Story savedStory = storyRepository.save(story);
 
             storyAsyncService.createStoryAsync(savedStory, userId);
-
             storyAsyncService.sendNotificationsAsync(savedStory, userId, username);
 
             log.info("История с ID: {} успешно создана", savedStory.getId());
@@ -104,26 +99,44 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
     }
 
     @Override
+    @Transactional
     public void deleteStory(UUID storyId) {
         log.info("Удаление истории с ID: {}", storyId);
-        storyRepository.findById(storyId)
+
+        UserResponseDTO currentUser = getAuthenticatedUser();
+        UUID userId = UUID.fromString(currentUser.getId());
+
+        Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> {
                     log.warn("❌ История с ID: {} не найдена", storyId);
                     return new StoryNotFoundException("История с ID " + storyId + " не найдена");
                 });
+
+        validateStoryOwnership(story, userId);
+
         storyRepository.deleteById(storyId);
         storyMetrics.incrementDeleted();
     }
 
     @Override
+    @Transactional
     public void viewStory(UUID storyId, UUID viewerId) {
         log.info("Пользователь {} просматривает историю {}", viewerId, storyId);
+
+        UserResponseDTO currentUser = getAuthenticatedUser();
+        UUID currentUserId = UUID.fromString(currentUser.getId());
+
+        if (!currentUserId.equals(viewerId)) {
+            throw new UnauthorizedException("Нельзя просматривать историю от имени другого пользователя");
+        }
+
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new StoryNotFoundException("История с ID " + storyId + " не найдена"));
 
         if (story.getExpireAt().isBefore(LocalDateTime.now())) {
             throw new StoryIsNotAviableByTimeException("История истекла");
         }
+
         if (storyViewerRepository.existsByStoryIdAndViewerId(storyId, viewerId)) {
             return;
         }
@@ -135,14 +148,13 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
         storyViewerRepository.save(viewer);
         storyMetrics.incrementViewed();
 
-        // Уведомление автору истории
         try {
             if (!story.getUserId().equals(viewerId)) {
                 notificationProducer.sendStoryViewed(
                         storyId.toString(),
                         viewerId.toString(),
                         story.getUserId().toString(),
-                        viewerId.toString()
+                        currentUser.getUsername() != null ? currentUser.getUsername() : viewerId.toString()
                 );
                 rabbitMetrics.increment();
             }
@@ -161,13 +173,18 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
         return storyViewerRepository.countByStoryId(storyId);
     }
 
+    @Override
     @Transactional
     public void reactToStory(UUID storyId, Reactions reaction) {
-        UserResponseDTO currentUser = authClient.getCurrentUser();
+        UserResponseDTO currentUser = getAuthenticatedUser();
         UUID userId = UUID.fromString(currentUser.getId());
 
         Story story = storyRepository.findById(storyId)
                 .orElseThrow(() -> new StoryNotFoundException("Story not found"));
+
+        if (story.getExpireAt().isBefore(LocalDateTime.now())) {
+            throw new StoryIsNotAviableByTimeException("История истекла");
+        }
 
         Optional<StoryReaction> existing = storyReactionRepository.findByStoryIdAndUserId(storyId, userId);
 
@@ -184,13 +201,15 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
                 .reaction(reaction)
                 .reactedAt(LocalDateTime.now())
                 .build();
+
         storyReactionRepository.save(storyReaction);
         storyMetrics.incrementReactionAdded();
     }
 
     @Override
+    @Transactional
     public void deleteReaction(UUID storyId) {
-        UserResponseDTO currentUser = authClient.getCurrentUser();
+        UserResponseDTO currentUser = getAuthenticatedUser();
         UUID userId = UUID.fromString(currentUser.getId());
 
         Story story = storyRepository.findById(storyId)
@@ -234,6 +253,13 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
     @Override
     @Transactional
     public void setAllStoriesPrivacy(UUID userId, boolean isPublic) {
+        UserResponseDTO currentUser = getAuthenticatedUser();
+        UUID currentUserId = UUID.fromString(currentUser.getId());
+
+        if (!currentUserId.equals(userId)) {
+            throw new UnauthorizedException("Нельзя менять приватность чужих историй");
+        }
+
         List<Story> stories = storyRepository.findByUserIdAndExpireAtAfterOrderByCreatedAtDesc(userId, LocalDateTime.now());
         stories.forEach(s -> s.setPublic(isPublic));
         storyRepository.saveAll(stories);
@@ -256,7 +282,7 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
     private String mapColorsToMood(List<String> colors) {
         if (colors == null || colors.isEmpty()) return StoryMood.NEUTRAL.name();
         boolean hasBright = colors.stream().anyMatch(this::isBrightColor);
-        boolean hasDark   = colors.stream().anyMatch(this::isDarkColor);
+        boolean hasDark = colors.stream().anyMatch(this::isDarkColor);
         if (hasBright && !hasDark) return StoryMood.HAPPY.name();
         if (!hasBright && hasDark) return StoryMood.SAD.name();
         return StoryMood.NEUTRAL.name();
@@ -268,8 +294,32 @@ public class StoryServiceImpl implements StoryCrudService, StoryReactionService 
             int g = Integer.parseInt(hex.substring(3, 5), 16);
             int b = Integer.parseInt(hex.substring(5, 7), 16);
             return (r + g + b) / 3 > 127;
-        } catch (Exception e) { return false; }
+        } catch (Exception e) {
+            return false;
+        }
     }
 
-    private boolean isDarkColor(String hex) { return !isBrightColor(hex); }
+    private boolean isDarkColor(String hex) {
+        return !isBrightColor(hex);
+    }
+
+    private UserResponseDTO getAuthenticatedUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new UnauthorizedException("JWT истёк");
+        }
+
+        UserResponseDTO currentUser = authClient.getCurrentUser();
+        if (currentUser == null || currentUser.getId() == null) {
+            throw new UnauthorizedException("Пользователь не найден");
+        }
+
+        return currentUser;
+    }
+
+    private void validateStoryOwnership(Story story, UUID userId) {
+        if (!story.getUserId().equals(userId)) {
+            throw new UnauthorizedException("Вы не можете изменять или удалять чужую историю");
+        }
+    }
 }

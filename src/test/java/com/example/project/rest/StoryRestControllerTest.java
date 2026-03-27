@@ -87,7 +87,7 @@ class StoryRestControllerTest {
 
         when(minioService.uploadStoryPhotoBytes(any(), anyString(), anyString()))
                 .thenReturn("http://minio/stories/photo.jpg");
-        when(storyService.createStory(any(StoryDTO.class), eq(userId))).thenReturn(story);
+        when(storyService.createStory(any(StoryDTO.class))).thenReturn(story);
         when(storyMapper.toDto(story)).thenReturn(dto);
 
         mockMvc.perform(multipart("/api/stories")
@@ -96,7 +96,7 @@ class StoryRestControllerTest {
                         .param("isPublic", "true"))
                 .andExpect(status().isCreated());
 
-        verify(storyService).createStory(any(StoryDTO.class),  eq(userId));
+        verify(storyService).createStory(any(StoryDTO.class));
     }
 
     @Test
@@ -104,7 +104,7 @@ class StoryRestControllerTest {
         mockAuthentication();
         when(minioService.uploadStoryPhotoBytes(any(), any(), any()))
                 .thenReturn("http://minio/x.jpg");
-        when(storyService.createStory(any(), eq(userId))).thenThrow(new UnauthorizedException("Unauthorized"));
+        when(storyService.createStory(any())).thenThrow(new UnauthorizedException("Unauthorized"));
 
         mockMvc.perform(multipart("/api/stories")
                         .file(new MockMultipartFile("photo","photo.jpg","image/jpeg","img".getBytes())))
