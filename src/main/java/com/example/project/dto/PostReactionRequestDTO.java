@@ -1,5 +1,4 @@
-package com.example.project.dto.count;
-
+package com.example.project.dto;
 
 import com.example.project.enums.Reactions;
 import lombok.AllArgsConstructor;
@@ -11,8 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StoryReactionCountDTO {
+public class PostReactionRequestDTO {
     private Reactions reaction;
-    private long count;
-}
 
+}

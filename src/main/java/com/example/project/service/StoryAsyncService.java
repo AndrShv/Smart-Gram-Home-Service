@@ -2,8 +2,7 @@ package com.example.project.service;
 
 import com.example.project.clients.SubscriptionClient;
 import com.example.project.dto.AiImageResult;
-import com.example.project.dto.profile.SubscriberDTO;
-import com.example.project.dto.story.StoryDTO;
+import com.example.project.dto.SubscriberDTO;
 import com.example.project.entity.Story;
 import com.example.project.enums.StoryCategory;
 import com.example.project.enums.StoryMood;

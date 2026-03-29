@@ -1,4 +1,4 @@
-package com.example.project.dto.story;
+package com.example.project.dto;
 
 import lombok.*;
 import java.time.LocalDateTime;

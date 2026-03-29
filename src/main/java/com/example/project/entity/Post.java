@@ -63,9 +63,14 @@ public class Post {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PostReaction> reactions;
 
-    @ToString.Exclude
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Comment> comments;
+    @ElementCollection
+    @CollectionTable(name = "post_comment_ids", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "comment_id", columnDefinition = "BINARY(16)")
+    private List<UUID> commentIds;
+
+    @Column(name = "comments_count", nullable = false)
+    @Builder.Default
+    private int commentsCount = 0;
 
 
     @ElementCollection

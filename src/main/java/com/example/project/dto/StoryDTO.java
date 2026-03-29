@@ -1,4 +1,4 @@
-package com.example.project.dto.story;
+package com.example.project.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotNull;

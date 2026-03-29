@@ -1,4 +1,4 @@
-package com.example.project.dto.profile;
+package com.example.project.dto;
 
 
 import com.example.project.enums.Genders;

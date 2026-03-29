@@ -1,4 +1,4 @@
-package com.example.project.dto.notification;
+package com.example.project.dto;
 
 import com.example.project.enums.NotificationType;
 import lombok.AllArgsConstructor;

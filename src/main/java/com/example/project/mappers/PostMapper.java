@@ -1,17 +1,16 @@
 package com.example.project.mappers;
 
-import com.example.project.dto.post.PostDTO;
+import com.example.project.dto.PostDTO;
 import com.example.project.entity.Post;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = { CommentMapper.class })
+@Mapper(componentModel = "spring")
 public interface PostMapper {
 
     @Mapping(target = "reactionsCount",
             expression = "java(post.getReactions() != null ? post.getReactions().size() : 0)")
-    @Mapping(target = "commentsCount",
-            expression = "java(post.getComments() != null ? post.getComments().size() : 0)")
+    @Mapping(target = "commentsCount", source = "commentsCount")
     @Mapping(target = "viewsCount", ignore = true)
     @Mapping(target = "tags", source = "tags")
     @Mapping(target = "dominantColors", source = "dominantColors")
@@ -20,5 +19,4 @@ public interface PostMapper {
     @Mapping(target = "location", source = "location")
     @Mapping(target = "isPublic", expression = "java(post.isPublic())")
     PostDTO toDto(Post post);
-
 }

@@ -1,4 +1,4 @@
-package com.example.project.dto.comment;
+package com.example.project.dto;
 
 import com.example.project.enums.CommentReactions;
 import lombok.AllArgsConstructor;

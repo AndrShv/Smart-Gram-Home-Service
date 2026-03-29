@@ -1,7 +1,7 @@
 package com.example.project.clients;
 
 import com.example.project.configs.FeignClientInterceptor;
-import com.example.project.dto.notification.NotificationDTO;
+import com.example.project.dto.NotificationDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

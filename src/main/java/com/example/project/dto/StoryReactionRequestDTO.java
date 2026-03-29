@@ -1,7 +1,7 @@
-package com.example.project.dto.reaction;
+package com.example.project.dto;
 
 import com.example.project.enums.Reactions;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +12,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StoryReactionRequestDTO {
-    @NotNull
+
+
     private Reactions reaction;
+
+
+
+
+
 }

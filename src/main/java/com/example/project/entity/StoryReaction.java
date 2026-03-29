@@ -30,11 +30,8 @@ public class StoryReaction {
     @JoinColumn(name = "story_id")
     private Story story;
 
-
-    @ToString.Exclude
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "comment_id")
-    private Comment comment;
+    @Column(name = "comment_id", columnDefinition = "BINARY(16)")
+    private UUID commentId;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
