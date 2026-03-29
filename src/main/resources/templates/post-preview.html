@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Предпросмотр поста — SmartGram</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/post-preview.css}">
+</head>
+<body>
+<div class="space-background"><div class="stars"></div><div class="stars2"></div><div class="stars3"></div></div>
+<div class="aurora"><div class="aurora-blob"></div><div class="aurora-blob"></div></div>
+
+<header class="top-bar">
+    <div class="top-bar-inner">
+        <a href="/posts/create" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+        <span class="page-title">Предпросмотр</span>
+        <div style="width:38px"></div>
+    </div>
+</header>
+
+<div class="main-wrap">
+
+    <div class="no-data" id="noData" style="display:none">
+        <p style="font-size:36px;margin-bottom:16px;opacity:.3">🖼</p>
+        <p style="margin-bottom:12px">Нет данных для предпросмотра</p>
+        <a href="/posts/create">← Вернуться к созданию</a>
+    </div>
+
+    <div id="postCard">
+        <div class="post-card">
+
+            <div class="card-header">
+                <div class="card-avatar-ring">
+                    <div class="card-avatar-ring-inner">
+                        <img id="previewAvatar" src="/images/default-avatar.png" alt="avatar">
+                    </div>
+                </div>
+                <div class="card-user-info">
+                    <div class="card-username" id="previewUsername">Вы</div>
+                    <div class="card-meta">
+                        <i class="fas fa-clock"></i><span>Только что</span>
+                        <span id="locationMetaWrap" style="display:none">· <i class="fas fa-location-dot"></i> <span id="locationMetaText"></span></span>
+                    </div>
+                </div>
+                <button class="card-more"><i class="fas fa-ellipsis"></i></button>
+            </div>
+
+            <div class="card-photo">
+                <img id="previewImg" src="" alt="Пост">
+                <div class="location-badge-photo" id="locationBadgePhoto">
+                    <i class="fas fa-location-dot"></i>
+                    <span id="locationPhotoText"></span>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button class="action-btn like" id="likeBtn"><i class="far fa-heart"></i></button>
+                <button class="action-btn comment"><i class="far fa-comment"></i></button>
+                <button class="action-btn share"><i class="far fa-paper-plane"></i></button>
+                <div class="action-spacer"></div>
+                <button class="action-btn save"><i class="far fa-bookmark"></i></button>
+            </div>
+
+            <div class="card-body">
+                <div class="card-description" id="cardDescription" style="display:none">
+                    <span class="author-name" id="cardAuthorName">вы</span>
+                    <span id="cardDescText"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- META CHIPS -->
+        <div class="meta-section">
+            <div class="meta-title">✦ Параметры публикации</div>
+            <div class="meta-chips" id="metaChips"></div>
+            <!-- AI PENDING -->
+            <div class="ai-pending" style="margin-top:10px">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <span><strong>Imagga AI</strong> автоматически добавит теги, категорию и настроение после публикации</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="actions">
+        <button class="btn btn-back" onclick="window.location.href='/posts/create'">
+            <i class="fas fa-pen"></i> Изменить
+        </button>
+        <button class="btn btn-publish" id="publishBtn">
+            <span class="btn-label"><i class="fas fa-rocket"></i> Опубликовать</span>
+            <span class="spinner"></span>
+        </button>
+    </div>
+
+</div>
+
+<div class="success-overlay" id="successOverlay">
+    <div class="success-circle">🚀</div>
+    <div class="success-title">Пост опубликован!</div>
+    <div class="success-sub">Он появился в ленте</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+    (function () {
+      const photo64   = sessionStorage.getItem('post_photo_base64');
+      const photoName = sessionStorage.getItem('post_photo_name')  || 'photo.jpg';
+      const photoType = sessionStorage.getItem('post_photo_type')  || 'image/jpeg';
+      const desc      = sessionStorage.getItem('post_description') || '';
+      const location  = sessionStorage.getItem('post_location')    || '';
+      const isPublic  = sessionStorage.getItem('post_isPublic') !== 'false';
+
+      if (!photo64) {
+        document.getElementById('postCard').style.display = 'none';
+        document.querySelector('.actions').style.display  = 'none';
+        document.getElementById('noData').style.display   = 'block';
+        return;
+      }
+
+      document.getElementById('previewImg').src = photo64;
+
+      // Load current user
+      (async function () {
+        try {
+          const r = await fetch('/api/auth/me', { credentials: 'include' });
+          if (!r.ok) return;
+          const me = await r.json();
+          const pr = await fetch(`/api/profiles/user/${me.id || me.userId}`, { credentials: 'include' });
+          if (!pr.ok) return;
+          const p = await pr.json();
+          if (p.avatarUrl) document.getElementById('previewAvatar').src = `/api/profiles/${p.id}/avatar`;
+          const slug = ((p.name||'') + (p.surname ? '_'+p.surname : '')).toLowerCase().replace(/\s+/g,'_');
+          document.getElementById('previewUsername').textContent = slug;
+          document.getElementById('cardAuthorName').textContent  = slug;
+        } catch {}
+      })();
+
+      if (desc) {
+        document.getElementById('cardDescText').textContent = desc;
+        document.getElementById('cardDescription').style.display = 'block';
+      }
+
+      if (location) {
+        document.getElementById('locationMetaWrap').style.display = 'inline';
+        document.getElementById('locationMetaText').textContent   = location;
+        document.getElementById('locationPhotoText').textContent  = location;
+        document.getElementById('locationBadgePhoto').style.display = 'inline-flex';
+      }
+
+      // Like animation (preview only)
+      const likeBtn = document.getElementById('likeBtn');
+      likeBtn.addEventListener('click', () => {
+        likeBtn.classList.toggle('liked');
+        likeBtn.querySelector('i').className = likeBtn.classList.contains('liked') ? 'fas fa-heart' : 'far fa-heart';
+      });
+
+      // Meta chips
+      const chips = document.getElementById('metaChips');
+      const addChip = (label, cls) => {
+        const c = document.createElement('span');
+        c.className = 'chip ' + cls; c.textContent = label; chips.appendChild(c);
+      };
+      if (location) addChip('📍 ' + location, 'chip-sky');
+      addChip(isPublic ? '🌍 Публичный' : '🔒 Приватный', isPublic ? 'chip-sky' : 'chip-rose');
+
+      // Publish
+      document.getElementById('publishBtn').addEventListener('click', async function () {
+        const btn = document.getElementById('publishBtn');
+        btn.disabled = true; btn.classList.add('loading');
+        try {
+          const blob = await (await fetch(photo64)).blob();
+          const file = new File([blob], photoName, { type: photoType });
+          const fd   = new FormData();
+          fd.append('photo',       file);
+          fd.append('description', desc);
+          fd.append('location',    location);
+          fd.append('isPublic',    isPublic);
+
+          const res = await fetch('/api/posts', { method: 'POST', body: fd, credentials: 'include' });
+          if (!res.ok) throw new Error(await res.text() || 'Ошибка ' + res.status);
+
+          ['post_photo_base64','post_photo_name','post_photo_type',
+           'post_description','post_location','post_isPublic'].forEach(k => sessionStorage.removeItem(k));
+
+          document.getElementById('successOverlay').classList.add('show');
+          setTimeout(() => window.location.href = '/home', 2200);
+        } catch (err) {
+          showToast('Ошибка: ' + err.message);
+          btn.disabled = false; btn.classList.remove('loading');
+        }
+      });
+
+      function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 4000);
+      }
+    })();
+</script>
+</body>
+</html>
