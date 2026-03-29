@@ -1,18 +1,24 @@
 package com.example.project.rest;
 
+import com.example.project.configs.SecurityConfig;
 import com.example.project.dto.comment.CommentDTO;
 import com.example.project.entity.Comment;
 import com.example.project.enums.CommentReactions;
+import com.example.project.filters.JwtFilter;
 import com.example.project.interfaces.CommentCrudService;
 import com.example.project.mappers.CommentMapper;
+import com.example.project.utils.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
@@ -28,7 +34,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CommentRestController.class)
-class CommentRestControllerTest {
+@AutoConfigureMockMvc(addFilters = false)
+@TestPropertySource(properties = {
+        "AUTH_SERVICE_URL=http://localhost:8081",
+        "PROFILE_SERVICE_URL=http://localhost:8082",
+        "SUBSCRIPTION_SERVICE_URL=http://localhost:8082",
+        "NOTIFICATION_SERVICE_URL=http://localhost:8084",
+        "POST_SERVICE_URL=http://localhost:8083",
+        "STORY_SERVICE_URL=http://localhost:8083"
+})class CommentRestControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -38,6 +52,12 @@ class CommentRestControllerTest {
 
     @MockBean
     private CommentCrudService commentService;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private JwtFilter jwtFilter;
 
     @MockBean
     private CommentMapper commentMapper;
@@ -287,7 +307,7 @@ class CommentRestControllerTest {
                         .with(csrf())
                         .param("userId", userId.toString())
                         .param("reaction", "INVALID"))
-                .andExpect(status().is4xxClientError());
+                .andExpect(status().isBadRequest());
     }
 
     // ============================================
