@@ -65,22 +65,66 @@ public class RabbitMqConfig {
 
     // --- Exchanges ---
     @Bean
+    public TopicExchange homeExchange() {
+        return new TopicExchange("home.exchange", true, false);
+    }
+
+    @Bean
+    public TopicExchange profileExchange() {
+        return new TopicExchange("profile.exchange", true, false);
+    }
+    @Bean
     public TopicExchange authExchange() {
         return new TopicExchange("auth.exchange", true, false);
     }
 
+    @Bean
+    public TopicExchange notificationExchange() {
+        return new TopicExchange("notification.exchange", true, false);
+    }
+
+
 
     // --- Queues ---
+    @Bean
+    public Queue homeQueue() {
+        return new Queue("home.smart.gram.queue", true);
+    }
+
     @Bean
     public Queue authQueue() {
         return new Queue("auth.smart.gram.queue", true);
     }
+    @Bean
+    public Queue profileQueue() {
+        return new Queue("profile.smart.gram.queue", true);
+    }
+
+    @Bean
+    public Queue notificationQueue() {
+        return new Queue("notification.smart.gram.queue", true);
+    }
+
+
 
 
     // --- Bindings ---
     @Bean
+    public Binding bindingHome(Queue homeQueue, TopicExchange homeExchange) {
+        return BindingBuilder.bind(homeQueue).to(homeExchange).with("home.#");
+    }
+    @Bean
     public Binding bindingAuth(Queue authQueue, TopicExchange authExchange) {
         return BindingBuilder.bind(authQueue).to(authExchange).with("auth.#");
+    }
+
+    @Bean
+    public Binding bindingProfile(Queue profileQueue, TopicExchange profileExchange) {
+        return BindingBuilder.bind(profileQueue).to(profileExchange).with("profile.#");
+    }
+    @Bean
+    public Binding bindingNotification(Queue notificationQueue, TopicExchange notificationExchange) {
+        return BindingBuilder.bind(notificationQueue).to(notificationExchange).with("notification.#");
     }
 
 }
