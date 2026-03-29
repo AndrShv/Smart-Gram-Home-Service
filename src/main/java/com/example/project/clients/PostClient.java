@@ -1,9 +1,8 @@
 package com.example.project.clients;
 
 import com.example.project.configs.FeignClientInterceptor;
-import com.example.project.dto.post.PostDTO;
+import com.example.project.dto.PostDTO;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 

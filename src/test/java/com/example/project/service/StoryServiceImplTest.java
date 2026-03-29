@@ -2,10 +2,10 @@ package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
 import com.example.project.clients.SubscriptionClient;
-import com.example.project.dto.profile.SubscriberDTO;
-import com.example.project.dto.story.StoryDTO;
-import com.example.project.dto.user.ShortUserDTO;
-import com.example.project.dto.user.UserResponseDTO;
+import com.example.project.dto.SubscriberDTO;
+import com.example.project.dto.StoryDTO;
+import com.example.project.dto.ShortUserDTO;
+import com.example.project.dto.UserResponseDTO;
 import com.example.project.entity.Story;
 import com.example.project.entity.StoryReaction;
 import com.example.project.entity.StoryViewer;

@@ -2,8 +2,8 @@ package com.example.project.clients;
 
 
 import com.example.project.configs.FeignClientInterceptor;
-import com.example.project.dto.user.ShortUserDTO;
-import com.example.project.dto.user.UserResponseDTO;
+import com.example.project.dto.ShortUserDTO;
+import com.example.project.dto.UserResponseDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

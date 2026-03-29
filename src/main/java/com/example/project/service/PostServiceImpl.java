@@ -2,9 +2,9 @@ package com.example.project.service;
 
 import com.example.project.clients.AuthClient;
 import com.example.project.clients.SubscriptionClient;
-import com.example.project.dto.count.PostReactionCountDTO;
-import com.example.project.dto.post.PostDTO;
-import com.example.project.dto.user.UserResponseDTO;
+import com.example.project.dto.PostReactionCountDTO;
+import com.example.project.dto.PostDTO;
+import com.example.project.dto.UserResponseDTO;
 import com.example.project.entity.Post;
 import com.example.project.entity.PostReaction;
 import com.example.project.enums.PostCategory;

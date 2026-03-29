@@ -1,12 +1,10 @@
 package com.example.project.service;
 
 
-import com.example.project.clients.AuthClient;
 import com.example.project.clients.SubscriptionClient;
 import com.example.project.dto.AiImageResult;
-import com.example.project.dto.post.PostDTO;
-import com.example.project.dto.profile.SubscriberDTO;
-import com.example.project.dto.user.UserResponseDTO;
+import com.example.project.dto.PostDTO;
+import com.example.project.dto.SubscriberDTO;
 import com.example.project.entity.Post;
 import com.example.project.enums.PostCategory;
 import com.example.project.enums.PostMood;

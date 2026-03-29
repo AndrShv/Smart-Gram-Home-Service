@@ -1,15 +1,12 @@
 package com.example.project.service;
 
-import com.example.project.enums.CommentReactions;
 import com.example.project.event.NotificationMessage;
 import com.example.project.enums.NotificationType;
 import com.example.project.metrics.HomeRabbitMetricsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.units.qual.N;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;

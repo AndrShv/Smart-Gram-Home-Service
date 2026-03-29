@@ -2,8 +2,8 @@ package com.example.project.clients;
 
 
 import com.example.project.configs.FeignConfig;
-import com.example.project.dto.profile.SubscriberDTO;
-import com.example.project.dto.profile.SubscriptionDTO;
+import com.example.project.dto.SubscriberDTO;
+import com.example.project.dto.SubscriptionDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

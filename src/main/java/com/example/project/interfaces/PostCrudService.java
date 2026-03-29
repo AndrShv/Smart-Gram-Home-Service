@@ -1,6 +1,6 @@
 package com.example.project.interfaces;
 
-import com.example.project.dto.post.PostDTO;
+import com.example.project.dto.PostDTO;
 import com.example.project.entity.Post;
 
 import java.util.List;
