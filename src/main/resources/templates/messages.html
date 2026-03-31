@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сообщения — SmartGram</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" th:href="@{/css/messages.css}">
+</head>
+<body>
+<div class="space-background"><div class="stars"></div><div class="stars2"></div><div class="stars3"></div></div>
+<div class="aurora"><div class="aurora-blob"></div><div class="aurora-blob"></div></div>
+
+<header class="top-bar">
+  <div class="top-bar-content">
+    <a href="/home" class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="lg1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="50%" stop-color="#93c5fd"/><stop offset="100%" stop-color="#f9a8d4"/></linearGradient>
+            <linearGradient id="lg2" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient>
+          </defs>
+          <circle cx="18" cy="18" r="16" stroke="url(#lg1)" stroke-width="1.5" stroke-dasharray="4 2" fill="none" opacity=".5"/>
+          <circle cx="18" cy="18" r="11" fill="url(#lg2)" opacity=".15"/>
+          <path d="M13.5 14.5 C13.5 13.1 14.6 12 16 12 H19.5 C20.9 12 22 13.1 22 14.5 C22 15.9 20.9 17 19.5 17 H16.5 C15.1 17 14 18.1 14 19.5 C14 20.9 15.1 22 16.5 22 H20 C21.4 22 22.5 20.9 22.5 19.5" stroke="url(#lg1)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+          <circle cx="28" cy="10" r="2.5" fill="#f9a8d4" opacity=".9"/>
+        </svg>
+      </div>
+      <span class="logo-text">Smart<span>Gram</span></span>
+    </a>
+    <button class="compose-btn"><i class="fas fa-pen-to-square"></i></button>
+  </div>
+</header>
+
+<main class="main-content">
+  <div class="page-header">
+    <span class="page-header-label">Сообщения</span>
+    <div class="page-header-line"></div>
+  </div>
+
+  <div class="search-bar">
+    <i class="fas fa-magnifying-glass"></i>
+    <input type="text" placeholder="Поиск по чатам…" id="searchInput">
+  </div>
+
+  <div class="chat-list" id="chatList">
+    <!-- Заглушка — нет сообщений -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">💬</div>
+      <div class="empty-title">Пока тихо</div>
+      <div class="empty-sub">Напишите первому —<br>начните разговор с кем-то из подписок</div>
+    </div>
+  </div>
+</main>
+
+<nav class="bottom-nav">
+  <a href="/home"     class="nav-item"><i class="fas fa-house"></i><span>Главная</span></a>
+  <a href="/search"   class="nav-item"><i class="fas fa-magnifying-glass"></i><span>Поиск</span></a>
+  <a href="/messages" class="nav-item active"><i class="fas fa-comment-dots"></i><span>Чаты</span></a>
+  <a href="/profile"  class="nav-item"><i class="fas fa-user"></i><span>Профиль</span></a>
+  <a href="/settings" class="nav-item"><i class="fas fa-gear"></i><span>Настройки</span></a>
+</nav>
+
+<script>
+  // Заготовка — когда появится бэкенд чатов, вставить сюда загрузку
+  // async function loadChats() { ... }
+
+  const searchInput = document.getElementById('searchInput');
+  searchInput.addEventListener('input', () => {
+    // filter chat items when they exist
+  });
+</script>
+</body>
+</html>

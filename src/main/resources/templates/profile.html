@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль — SmartGram</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/profile.css}">
+</head>
+<body>
+
+<div class="space-background">
+    <div class="stars"></div><div class="stars2"></div><div class="stars3"></div>
+</div>
+<div class="aurora">
+    <div class="aurora-blob"></div><div class="aurora-blob"></div><div class="aurora-blob"></div>
+</div>
+
+<!-- TOP BAR -->
+<header class="top-bar">
+    <div class="top-bar-content">
+        <a href="/home" class="logo">
+            <div class="logo-mark">
+                <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="lg1" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="50%" stop-color="#93c5fd"/><stop offset="100%" stop-color="#f9a8d4"/></linearGradient>
+                        <linearGradient id="lg2" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient>
+                    </defs>
+                    <circle cx="18" cy="18" r="16" stroke="url(#lg1)" stroke-width="1.5" stroke-dasharray="4 2" fill="none" opacity=".5"/>
+                    <circle cx="18" cy="18" r="11" fill="url(#lg2)" opacity=".15"/>
+                    <path d="M13.5 14.5 C13.5 13.1 14.6 12 16 12 H19.5 C20.9 12 22 13.1 22 14.5 C22 15.9 20.9 17 19.5 17 H16.5 C15.1 17 14 18.1 14 19.5 C14 20.9 15.1 22 16.5 22 H20 C21.4 22 22.5 20.9 22.5 19.5" stroke="url(#lg1)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                    <circle cx="28" cy="10" r="2.5" fill="#f9a8d4" opacity=".9"/>
+                </svg>
+            </div>
+            <span class="logo-text">Smart<span>Gram</span></span>
+        </a>
+        <div class="top-bar-actions">
+            <button class="icon-btn" id="backBtn" style="display:none" onclick="history.back()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <button class="icon-btn" id="settingsBtn" onclick="window.location.href='/settings'">
+                <i class="fas fa-gear"></i>
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- MAIN -->
+<main class="main-content">
+
+    <!-- PROFILE HEADER -->
+    <div class="profile-header">
+        <div class="avatar-wrap">
+            <div class="avatar-ring">
+                <div class="avatar-ring-inner">
+                    <img id="profileAvatar" src="/images/default-avatar.png" alt="Avatar">
+                </div>
+            </div>
+            <div class="avatar-edit-badge" id="avatarEditBadge" style="display:none">
+                <i class="fas fa-camera"></i>
+            </div>
+        </div>
+
+        <div class="profile-info">
+            <div class="profile-username-row">
+                <h1 id="profileUsername">загрузка…</h1>
+                <!-- кнопка редактирования (только своя страница) -->
+                <button class="btn-edit" id="editBtn" style="display:none"
+                        onclick="window.location.href='/profiles/edit'">
+                    <i class="fas fa-pen"></i> Изменить
+                </button>
+                <!-- кнопка подписки/отписки (чужая страница) -->
+                <button class="btn-follow follow" id="followBtn" style="display:none">
+                    Подписаться
+                </button>
+            </div>
+
+            <div class="profile-stats">
+                <div class="stat-item" id="statPosts">
+                    <span class="stat-number" id="postsCount">0</span>
+                    <span class="stat-label">постов</span>
+                </div>
+                <div class="stat-item" id="statFollowers">
+                    <span class="stat-number" id="followersCount">0</span>
+                    <span class="stat-label">подписчиков</span>
+                </div>
+                <div class="stat-item" id="statFollowing">
+                    <span class="stat-number" id="followingCount">0</span>
+                    <span class="stat-label">подписок</span>
+                </div>
+            </div>
+
+            <div class="profile-bio">
+                <div id="profileName" style="font-size:14px;font-weight:600;"></div>
+                <div id="profileBio" style="font-size:13px;color:var(--muted);line-height:1.5;margin-top:3px;"></div>
+                <div class="profile-details">
+                    <span id="profileLocation" class="detail-item"></span>
+                    <span id="profileBirthdate" class="detail-item"></span>
+                    <span id="profileRelation" class="detail-item"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="profile-tabs">
+        <button class="tab-btn active" data-tab="stories"><i class="fas fa-circle-play"></i> Истории</button>
+        <button class="tab-btn" data-tab="posts"><i class="fas fa-grid-2"></i> Посты</button>
+        <button class="tab-btn" data-tab="saved" id="savedTabBtn"><i class="fas fa-bookmark"></i> Сохранённое</button>
+    </div>
+
+    <!-- TAB: STORIES -->
+    <div class="tab-pane active" id="stories-tab">
+        <div class="stories-row" id="storiesGrid">
+            <div class="highlight-item" id="addStoryBtn" onclick="window.location.href='/stories/create'">
+                <div class="highlight-ring add-ring">
+                    <div class="highlight-ring-inner">
+                        <div class="add-icon-wrap"><i class="fas fa-plus"></i></div>
+                    </div>
+                </div>
+                <span class="highlight-name">Новая</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: POSTS -->
+    <div class="tab-pane" id="posts-tab">
+        <div class="posts-grid" id="postsGrid">
+            <div class="loading-posts" style="grid-column:1/-1">
+                <div class="loader-dots"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+                Загружаем посты…
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB: SAVED -->
+    <div class="tab-pane" id="saved-tab">
+        <div class="empty-state"><i class="fas fa-bookmark"></i><p>Сохранённых постов пока нет</p></div>
+    </div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+    <a href="/home"     class="nav-item"><i class="fas fa-house"></i><span>Главная</span></a>
+    <a href="/search"   class="nav-item"><i class="fas fa-magnifying-glass"></i><span>Поиск</span></a>
+    <a href="/messages" class="nav-item"><i class="fas fa-comment-dots"></i><span>Чаты</span></a>
+    <a href="/profile"  class="nav-item active"><i class="fas fa-user"></i><span>Профиль</span></a>
+    <a href="/settings" class="nav-item"><i class="fas fa-gear"></i><span>Настройки</span></a>
+</nav>
+
+<!-- POST MODAL -->
+<div class="modal" id="postModal">
+    <div class="modal-overlay" onclick="closePostModal()"></div>
+    <div class="modal-content">
+        <button class="close-modal" onclick="closePostModal()"><i class="fas fa-xmark"></i></button>
+        <div class="post-modal-grid">
+            <div class="post-modal-image"><img id="modalPostImage" src="" alt=""></div>
+            <div class="post-modal-sidebar">
+                <div class="post-modal-header">
+                    <img id="modalUserAvatar" src="" alt="">
+                    <div class="post-modal-user">
+                        <span id="modalUsername"></span>
+                        <span id="modalPostTime"></span>
+                    </div>
+                </div>
+                <div class="post-modal-description" id="modalDescription"></div>
+                <div class="post-modal-stats">
+                    <span><i class="fas fa-heart"></i> <span id="modalLikes">0</span> лайков</span>
+                    <button id="openCommentsBtn" type="button" class="modal-comments-btn">
+                        <i class="fas fa-comment"></i>
+                        <span id="modalComments">0</span> комм.
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async function () {
+
+        // ── определяем чей профиль смотрим ──
+        const pathParts   = window.location.pathname.split('/');
+        const routeUserId = pathParts[pathParts.length - 1];
+        const isOwnRoute  = window.location.pathname === '/profile' || routeUserId === 'profile';
+
+        let myUserId         = null;
+        let viewedUserId     = null;
+        let isOwnProfile     = false;
+        let currentProfileId = null;
+        let isFollowing      = false;
+
+        // ── AUTH ──
+        try {
+            const r = await fetch('/api/auth/me', { credentials: 'include' });
+            if (!r.ok) { window.location.href = '/auth/login'; return; }
+            const me = await r.json();
+            myUserId = me.id || me.userId;
+            console.log('✅ myUserId:', myUserId);
+        } catch { window.location.href = '/auth/login'; return; }
+
+        viewedUserId = isOwnRoute ? myUserId : routeUserId;
+        isOwnProfile = String(viewedUserId) === String(myUserId);
+
+        // ── UI переключение своя/чужая страница ──
+        if (isOwnProfile) {
+            document.getElementById('editBtn').style.display         = '';
+            document.getElementById('avatarEditBadge').style.display = '';
+            document.getElementById('settingsBtn').style.display     = '';
+            document.getElementById('backBtn').style.display         = 'none';
+            document.getElementById('savedTabBtn').style.display     = '';
+            document.getElementById('addStoryBtn').style.display     = '';
+            document.getElementById('followBtn').style.display       = 'none';
+        } else {
+            document.getElementById('editBtn').style.display         = 'none';
+            document.getElementById('avatarEditBadge').style.display = 'none';
+            document.getElementById('settingsBtn').style.display     = 'none';
+            document.getElementById('backBtn').style.display         = '';
+            document.getElementById('savedTabBtn').style.display     = 'none';
+            document.getElementById('addStoryBtn').style.display     = 'none';
+        }
+
+        // ── LOAD профиль и истории параллельно ──
+        await Promise.all([loadProfile(viewedUserId), loadStories(viewedUserId)]);
+        loadPosts(viewedUserId);
+        if (isOwnProfile) setupAvatarUpload();
+
+        // ── ПОДПИСКА — только для чужого профиля ──
+        if (!isOwnProfile) {
+            await checkSubscription();
+
+            document.getElementById('followBtn').addEventListener('click', async () => {
+                const btn = document.getElementById('followBtn');
+                btn.disabled = true; // блокируем пока идёт запрос
+
+                try {
+                    if (isFollowing) {
+                        // Отписываемся
+                        const res = await fetch(`/api/subscriptions/${viewedUserId}/unsubscribe`,
+                            { method: 'DELETE', credentials: 'include' });
+                        if (res.ok) {
+                            isFollowing = false;
+                            const cnt = document.getElementById('followersCount');
+                            cnt.textContent = Math.max(0, parseInt(cnt.textContent) - 1);
+                        }
+                    } else {
+                        // Подписываемся
+                        const res = await fetch(`/api/subscriptions/${viewedUserId}/subscribe`,
+                            { method: 'POST', credentials: 'include' });
+                        // 200 = успешно, 409 = уже подписан — в обоих случаях считаем подписанным
+                        if (res.ok || res.status === 409) {
+                            isFollowing = true;
+                            if (res.ok) { // счётчик увеличиваем только при реальной новой подписке
+                                const cnt = document.getElementById('followersCount');
+                                cnt.textContent = parseInt(cnt.textContent) + 1;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('❌ Ошибка подписки:', e);
+                } finally {
+                    btn.disabled = false;
+                    updateFollowBtn();
+                }
+            });
+        }
+
+        // ── Проверяем статус подписки через список подписок текущего юзера ──
+        // Используем /followings вместо /is-subscribed — более надёжный способ
+        async function checkSubscription() {
+            try {
+                // Способ 1: через is-subscribed эндпоинт
+                const res = await fetch(`/api/subscriptions/${viewedUserId}/is-subscribed`,
+                    { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json();
+                    // API может вернуть boolean или объект { subscribed: true }
+                    isFollowing = typeof data === 'boolean' ? data : (data.subscribed || data.isSubscribed || false);
+                    console.log('✅ is-subscribed response:', data, '→ isFollowing:', isFollowing);
+                    updateFollowBtn();
+                    return;
+                }
+            } catch (e) {
+                console.warn('⚠️ is-subscribed failed, fallback to followings list:', e);
+            }
+
+            // Способ 2 (fallback): проверяем через список подписок
+            try {
+                const res = await fetch(`/api/subscriptions/${myUserId}/followings`,
+                    { credentials: 'include' });
+                if (res.ok) {
+                    const list = await res.json();
+                    console.log('📋 followings list:', JSON.stringify(list));
+                    isFollowing = list.some(f => {
+                        const id = f.followingUserId || f.targetUserId || f.userId || f.id;
+                        return String(id) === String(viewedUserId);
+                    });
+                    console.log('✅ isFollowing (from list):', isFollowing);
+                }
+            } catch (e) {
+                console.error('❌ followings fallback failed:', e);
+            }
+
+            updateFollowBtn();
+        }
+
+        function updateFollowBtn() {
+            const btn = document.getElementById('followBtn');
+            btn.style.display = '';
+            if (isFollowing) {
+                btn.textContent = 'Отписаться';
+                btn.className   = 'btn-follow unfollow';
+            } else {
+                btn.textContent = 'Подписаться';
+                btn.className   = 'btn-follow follow';
+            }
+        }
+
+        // ── кликабельные счётчики ──
+        document.getElementById('statFollowers').addEventListener('click', () => {
+            window.location.href = `/profile/${viewedUserId}/followers`;
+        });
+        document.getElementById('statFollowing').addEventListener('click', () => {
+            window.location.href = `/profile/${viewedUserId}/followings`;
+        });
+
+        // ── TABS ──
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab + '-tab').classList.add('active');
+            });
+        });
+
+        // ── PROFILE ──
+        async function loadProfile(uid) {
+            try {
+                const [pRes, flrRes, flnRes, postsRes] = await Promise.all([
+                    fetch(`/api/profiles/user/${uid}`, { credentials: 'include' }),
+                    fetch(`/api/subscriptions/${uid}/followers/count`, { credentials: 'include' }),
+                    fetch(`/api/subscriptions/${uid}/followings/count`, { credentials: 'include' }),
+                    fetch(`/api/posts/user/${uid}`, { credentials: 'include' })
+                ]);
+                if (!pRes.ok) throw new Error('Profile not found');
+                const profile    = await pRes.json();
+                const followers  = flrRes.ok ? await flrRes.json() : 0;
+                const followings = flnRes.ok ? await flnRes.json() : 0;
+                const posts      = postsRes.ok ? await postsRes.json() : [];
+                currentProfileId = profile.id;
+                renderProfile(profile, followers, followings, posts.length);
+            } catch (e) { console.error('Ошибка профиля:', e); }
+        }
+
+        function renderProfile(p, flr, fln, postsCount) {
+            const avatar = document.getElementById('profileAvatar');
+            if (p.avatarUrl && p.avatarUrl !== 'null') {
+                avatar.src = `/api/profiles/${p.id}/avatar?t=${Date.now()}`;
+            }
+            avatar.onerror = () => { avatar.onerror = null; avatar.src = '/images/default-avatar.png'; };
+            document.getElementById('profileUsername').textContent =
+                `${p.name.toLowerCase()}_${p.surname.toLowerCase()}`;
+            document.getElementById('profileName').textContent = `${p.name} ${p.surname}`;
+            document.getElementById('profileBio').textContent  = p.bioDescription || '';
+            document.getElementById('postsCount').textContent     = postsCount;
+            document.getElementById('followersCount').textContent = flr;
+            document.getElementById('followingCount').textContent = fln;
+            if (p.location)
+                document.getElementById('profileLocation').innerHTML =
+                    `<i class="fas fa-location-dot"></i> ${formatLocation(p.location)}`;
+            if (p.birthDate)
+                document.getElementById('profileBirthdate').innerHTML =
+                    `<i class="fas fa-cake-candles"></i> ${calculateAge(p.birthDate)} лет`;
+            if (p.relationStatus)
+                document.getElementById('profileRelation').innerHTML =
+                    `<i class="fas fa-heart"></i> ${formatRelation(p.relationStatus)}`;
+        }
+
+        // ── STORIES ──
+        async function loadStories(uid) {
+            try {
+                const r = await fetch(`/api/stories/user/${uid}`, { credentials: 'include' });
+                if (!r.ok) return;
+                renderStories(await r.json());
+            } catch (e) { console.error(e); }
+        }
+
+        function renderStories(stories) {
+            const grid   = document.getElementById('storiesGrid');
+            const addBtn = grid.querySelector('#addStoryBtn');
+            grid.innerHTML = '';
+            if (isOwnProfile && addBtn) grid.appendChild(addBtn);
+            if (!stories?.length) return;
+            stories.forEach(story => {
+                const el  = document.createElement('div');
+                el.className = 'highlight-item';
+                const src = story.photoUrl
+                    ? `/api/proxy/image?url=${encodeURIComponent(story.photoUrl)}`
+                    : '/images/default-avatar.png';
+                el.innerHTML = `
+                    <div class="highlight-ring">
+                        <div class="highlight-ring-inner">
+                            <img src="${src}" alt="Story" onerror="this.onerror=null;this.src='/images/default-avatar.png'">
+                        </div>
+                    </div>
+                    <span class="highlight-name">${formatStoryTime(story.createdAt)}</span>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        // ── POSTS ──
+        async function loadPosts(uid) {
+            try {
+                const r = await fetch(`/api/posts/user/${uid}`, { credentials: 'include' });
+                if (!r.ok) throw new Error();
+                renderPosts(await r.json());
+            } catch {
+                document.getElementById('postsGrid').innerHTML =
+                    `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera"></i><p>Постов пока нет</p></div>`;
+            }
+        }
+
+        function renderPosts(posts) {
+            const grid = document.getElementById('postsGrid');
+            grid.innerHTML = '';
+            if (!posts?.length) {
+                grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-camera"></i><p>Постов пока нет</p></div>`;
+                return;
+            }
+            posts.forEach(post => {
+                const el  = document.createElement('div');
+                el.className = 'post-grid-item';
+                const src = post.photoUrl
+                    ? `/api/proxy/image?url=${encodeURIComponent(post.photoUrl)}`
+                    : '/images/default-avatar.png';
+                el.innerHTML = `
+                    <img src="${src}" alt="" onerror="this.onerror=null;this.src='/images/default-avatar.png'">
+                    <div class="post-grid-overlay">
+                        <div class="overlay-stat"><i class="fas fa-heart"></i><span>${post.reactionsCount || 0}</span></div>
+                        <div class="overlay-stat"><i class="fas fa-comment"></i><span>${post.commentsCount || 0}</span></div>
+                    </div>
+                `;
+                el.onclick = () => openPost(post, src);
+                grid.appendChild(el);
+            });
+        }
+
+        function openPost(post, src) {
+            document.getElementById('modalPostImage').src = src;
+            document.getElementById('modalUserAvatar').src = document.getElementById('profileAvatar').src;
+            document.getElementById('modalUsername').textContent = document.getElementById('profileUsername').textContent;
+            document.getElementById('modalPostTime').textContent = formatPostTime(post.createdAt);
+            document.getElementById('modalDescription').textContent = post.description || '';
+            document.getElementById('modalLikes').textContent = post.reactionsCount || 0;
+            document.getElementById('modalComments').textContent = post.commentsCount || 0;
+
+            const commentsBtn = document.getElementById('openCommentsBtn');
+            commentsBtn.onclick = () => {
+                window.location.href = `http://localhost:8085/comments?postId=${post.id}`;
+            };
+
+            document.getElementById('postModal').classList.add('show');
+        }
+        window.closePostModal = () => document.getElementById('postModal').classList.remove('show');
+
+        // ── AVATAR UPLOAD ──
+        function setupAvatarUpload() {
+            const badge  = document.getElementById('avatarEditBadge');
+            const avatar = document.getElementById('profileAvatar');
+            [badge, avatar].forEach(el => {
+                el.style.cursor = 'pointer';
+                el.addEventListener('click', () => {
+                    if (!currentProfileId) return;
+                    const input = document.createElement('input');
+                    input.type = 'file'; input.accept = 'image/png,image/jpeg';
+                    input.onchange = async e => {
+                        const file = e.target.files[0]; if (!file) return;
+                        const fd = new FormData(); fd.append('file', file);
+                        try {
+                            const r = await fetch(`/api/profiles/${currentProfileId}/avatar`,
+                                { method: 'POST', credentials: 'include', body: fd });
+                            if (!r.ok) throw new Error();
+                            avatar.src = `/api/profiles/${currentProfileId}/avatar?t=${Date.now()}`;
+                        } catch { console.error('Ошибка загрузки аватара'); }
+                    };
+                    input.click();
+                });
+            });
+        }
+
+        // ── HELPERS ──
+        function formatLocation(l) {
+            return {
+                'USA':     '🇺🇸 США',     'RUSSIA': '🇷🇺 Россия',
+                'UK':      '🇬🇧 Великобритания', 'GERMANY': '🇩🇪 Германия',
+                'FRANCE':  '🇫🇷 Франция', 'ITALY':  '🇮🇹 Италия',
+                'SPAIN':   '🇪🇸 Испания', 'CANADA': '🇨🇦 Канада',
+                'UKRAINE': '🇺🇦 Украина'
+            }[l] || l;
+        }
+        function formatRelation(s) {
+            return {
+                'SINGLE':           'Не в отношениях',
+                'IN_A_RELATIONSHIP':'В отношениях',
+                'ENGAGED':          'Помолвлен(а)',
+                'MARRIED':          'Женат/Замужем',
+                'IT_IS_COMPLICATED':'Всё сложно'
+            }[s] || s;
+        }
+        function calculateAge(bd) {
+            const t = new Date(), b = new Date(bd);
+            let a = t.getFullYear() - b.getFullYear();
+            if (t.getMonth() < b.getMonth() ||
+               (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) a--;
+            return a;
+        }
+        function formatStoryTime(ts) {
+            const h = Math.floor((Date.now() - new Date(ts)) / 3600000);
+            return h < 1 ? 'сейчас' : h < 24 ? h + 'ч' : Math.floor(h / 24) + 'д';
+        }
+        function formatPostTime(ts) {
+            const d = Math.floor((Date.now() - new Date(ts)) / 1000);
+            if (d < 60)    return 'только что';
+            if (d < 3600)  return Math.floor(d / 60) + ' мин';
+            if (d < 86400) return Math.floor(d / 3600) + ' ч';
+            return Math.floor(d / 86400) + ' д';
+        }
+    });
+
+    async function openComments(postId) {
+        try {
+            const res = await fetch(`http://localhost:8085/api/comments/post/${postId}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            if (!res.ok) {
+                console.warn('Не удалось загрузить комментарии', res.status);
+                return;
+            }
+
+            const comments = await res.json();
+
+            showCommentsModal(comments, postId);
+
+        } catch (err) {
+            console.error('Ошибка fetch комментариев:', err);
+        }
+    }
+
+    function showCommentsModal(comments, postId) {
+        let modal = document.getElementById('commentsModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'commentsModal';
+            modal.style.position = 'fixed';
+            modal.style.top = '50%';
+            modal.style.left = '50%';
+            modal.style.transform = 'translate(-50%, -50%)';
+            modal.style.background = 'white';
+            modal.style.padding = '20px';
+            modal.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
+            modal.style.zIndex = 1000;
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = `<h3>Комментарии (${postId})</h3>` +
+            comments.map(c => `<p><b>${c.author}</b>: ${c.text}</p>`).join('') +
+            `<button id="closeComments">Закрыть</button>`;
+
+        document.getElementById('closeComments').onclick = () => modal.remove();
+    }
+</script>
+</body>
+</html>
