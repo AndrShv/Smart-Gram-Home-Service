@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Посты — SmartGram</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/user-posts.css}">
+</head>
+<body>
+
+<div class="space-background">
+    <div class="stars"></div><div class="stars2"></div><div class="stars3"></div>
+</div>
+<div class="aurora">
+    <div class="aurora-blob"></div><div class="aurora-blob"></div><div class="aurora-blob"></div>
+</div>
+
+<!-- TOP BAR -->
+<header class="top-bar">
+    <div class="top-bar-content">
+        <button class="icon-btn" onclick="history.back()">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="header-profile">
+            <img class="header-avatar" id="headerAvatar" src="/images/default-avatar.png" alt="">
+            <h1 class="header-username" id="headerUsername">Загрузка...</h1>
+        </div>
+    </div>
+</header>
+
+<!-- MAIN -->
+<main class="main-content">
+    <div class="posts-feed" id="postsFeed">
+        <div class="loading-posts">
+            <div class="loader-dots"><div class="loader-dot"></div><div class="loader-dot"></div><div class="loader-dot"></div></div>
+            Загружаем посты…
+        </div>
+    </div>
+</main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        const pathParts = window.location.pathname.split('/');
+        const userId = pathParts[pathParts.length - 2]; // /user-posts/{userId}/{postId}
+        const initialPostId = pathParts[pathParts.length - 1];
+
+        let myUserId = null;
+        let allPosts = [];
+        let currentIndex = 0;
+
+        // AUTH
+        try {
+            const res = await fetch('/api/auth/me', { credentials: 'include' });
+            if (res.ok) {
+                const me = await res.json();
+                myUserId = me.id || me.userId;
+            }
+        } catch { window.location.href = '/auth/login'; return; }
+
+        // LOAD PROFILE & POSTS
+        await Promise.all([loadProfile(userId), loadPosts(userId)]);
+
+        // SCROLL TO INITIAL POST
+        if (initialPostId) {
+            currentIndex = allPosts.findIndex(p => p.id === initialPostId);
+            if (currentIndex === -1) currentIndex = 0;
+        }
+
+        async function loadProfile(uid) {
+            try {
+                const res = await fetch(`/api/profiles/user/${uid}`, { credentials: 'include' });
+                if (res.ok) {
+                    const profile = await res.json();
+                    document.getElementById('headerAvatar').src = profile.avatarUrl || '/images/default-avatar.png';
+                    document.getElementById('headerUsername').textContent =
+                        `${profile.name?.toLowerCase() || '?'}_${profile.surname?.toLowerCase() || ''}`;
+                }
+            } catch (e) {
+                console.error('Ошибка загрузки профиля:', e);
+            }
+        }
+
+        async function loadPosts(uid) {
+            try {
+                const res = await fetch(`/api/posts/user/${uid}`, { credentials: 'include' });
+                if (!res.ok) throw new Error();
+
+                allPosts = await res.json();
+
+                if (!allPosts.length) {
+                    document.getElementById('postsFeed').innerHTML =
+                        '<div class="empty-state"><i class="fas fa-camera"></i><p>Постов пока нет</p></div>';
+                    return;
+                }
+
+                renderPosts();
+            } catch (e) {
+                console.error('Ошибка загрузки постов:', e);
+                document.getElementById('postsFeed').innerHTML =
+                    '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Ошибка загрузки постов</p></div>';
+            }
+        }
+
+        async function renderPosts() {
+            const feed = document.getElementById('postsFeed');
+            feed.innerHTML = '';
+
+            for (const post of allPosts) {
+                const profile = await getProfile(post.userId);
+                const comments = await getComments(post.id);
+                const card = await createPostCard(post, profile, comments);
+                feed.appendChild(card);
+            }
+
+            // Scroll to initial post
+            if (currentIndex > 0) {
+                const targetCard = feed.children[currentIndex];
+                if (targetCard) {
+                    targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        }
+
+        async function createPostCard(post, profile, comments) {
+            const card = document.createElement('article');
+            card.className = 'post-card';
+            card.dataset.postId = post.id;
+
+            const isLiked = false;
+            const reactionsCount = await getReactionsCount(post.id);
+
+            card.innerHTML = `
+            <div class="post-header">
+                <div class="post-author">
+                    <img class="post-avatar" src="${profile?.avatarUrl || '/images/default-avatar.png'}" alt="">
+                    <div>
+                        <div class="post-author-name">${profile?.name || '?'} ${profile?.surname || ''}</div>
+                        <div class="post-time">${formatTime(post.createdAt)}</div>
+                    </div>
+                </div>
+            </div>
+
+            ${post.photoUrl ? `<img class="post-image" src="${post.photoUrl}" alt="">` : ''}
+
+            <div class="post-content">
+                ${post.description ? `<p class="post-description">${escapeHtml(post.description)}</p>` : ''}
+
+                <div class="post-actions">
+                    <button class="action-btn like-btn ${isLiked ? 'liked' : ''}" data-post-id="${post.id}">
+                        <i class="fas fa-heart"></i>
+                        <span class="action-count">${reactionsCount}</span>
+                    </button>
+                    <button class="action-btn comment-btn" data-post-id="${post.id}">
+                        <i class="fas fa-comment"></i>
+                        <span class="action-count">${comments.length}</span>
+                    </button>
+                    <button class="action-btn"><i class="fas fa-share-nodes"></i></button>
+                    <button class="action-btn" style="margin-left:auto"><i class="fas fa-bookmark"></i></button>
+                </div>
+
+                <div class="comments-preview" id="comments-${post.id}">
+                    ${renderCommentsPreview(comments)}
+                </div>
+
+                <div class="comment-input-section">
+                    <input type="text"
+                           class="quick-comment-input"
+                           placeholder="Добавить комментарий..."
+                           data-post-id="${post.id}">
+                    <button class="quick-send-btn" data-post-id="${post.id}">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+
+            // LIKE
+            card.querySelector('.like-btn').addEventListener('click', async function() {
+                try {
+                    await fetch(`/api/posts/${post.id}/reaction`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ reaction: 'LIKE' })
+                    });
+                    this.classList.toggle('liked');
+                    const count = this.querySelector('.action-count');
+                    count.textContent = this.classList.contains('liked')
+                        ? parseInt(count.textContent) + 1
+                        : Math.max(0, parseInt(count.textContent) - 1);
+                } catch (e) {
+                    console.error('Ошибка реакции:', e);
+                }
+            });
+
+            // COMMENT
+            card.querySelector('.comment-btn').addEventListener('click', function() {
+                window.location.href = `http://localhost:8085/comments?postId=${post.id}`;
+            });
+
+            // QUICK COMMENT
+            const quickSend = card.querySelector('.quick-send-btn');
+            const quickInput = card.querySelector('.quick-comment-input');
+
+            quickSend.addEventListener('click', () => sendQuickComment(post.id, quickInput));
+            quickInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter') sendQuickComment(post.id, quickInput);
+            });
+
+            return card;
+        }
+
+        function renderCommentsPreview(comments) {
+            if (!comments.length) return '<p class="no-comments">Комментариев пока нет</p>';
+
+            const preview = comments.slice(0, 2).map(c => `
+            <div class="comment-preview-item">
+                <span class="comment-author">Пользователь</span>
+                <span class="comment-text">${escapeHtml(c.text)}</span>
+            </div>
+        `).join('');
+
+            const more = comments.length > 2
+                ? `<button class="view-all-comments">Посмотреть все ${comments.length} комментариев</button>`
+                : '';
+
+            return preview + more;
+        }
+
+        async function sendQuickComment(postId, input) {
+            const text = input.value.trim();
+            if (!text) return;
+
+            try {
+                const res = await fetch('http://localhost:8085/api/comments', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, postId })
+                });
+
+                if (res.ok) {
+                    input.value = '';
+                    const comments = await getComments(postId);
+                    document.getElementById(`comments-${postId}`).innerHTML = renderCommentsPreview(comments);
+
+                    // Update count
+                    const btn = document.querySelector(`.comment-btn[data-post-id="${postId}"] .action-count`);
+                    if (btn) btn.textContent = comments.length;
+                }
+            } catch (e) {
+                console.error('Ошибка отправки комментария:', e);
+            }
+        }
+
+        async function getProfile(userId) {
+            try {
+                const res = await fetch(`/api/profiles/user/${userId}`, { credentials: 'include' });
+                return res.ok ? await res.json() : null;
+            } catch {
+                return null;
+            }
+        }
+
+        async function getComments(postId) {
+            try {
+                const res = await fetch(`http://localhost:8085/api/comments/post/${postId}`, { credentials: 'include' });
+                return res.ok ? await res.json() : [];
+            } catch {
+                return [];
+            }
+        }
+
+        async function getReactionsCount(postId) {
+            try {
+                const res = await fetch(`/api/posts/${postId}/reactions/count`, { credentials: 'include' });
+                return res.ok ? await res.json() : 0;
+            } catch {
+                return 0;
+            }
+        }
+
+        function formatTime(ts) {
+            if (!ts) return '';
+            const d = Math.floor((Date.now() - new Date(ts)) / 1000);
+            if (d < 60) return 'только что';
+            if (d < 3600) return Math.floor(d / 60) + ' мин';
+            if (d < 86400) return Math.floor(d / 3600) + ' ч';
+            return Math.floor(d / 86400) + ' д';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    });
+</script>
+</body>
+</html>
